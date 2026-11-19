@@ -224,6 +224,8 @@ class HomeActivity : ComponentActivity() {
         RowKind("followed_channels", R.string.home_row_followed_channels, { AppState.showFollowedChannels }, HomeData::followedChannels),
         RowKind("clips", R.string.home_row_clips, { com.shrug.shrugtv.clips.ClipsSettings.rowOn(this) },
             { ctx -> com.shrug.shrugtv.clips.ClipsSettings.load(ctx).let { s -> com.shrug.shrugtv.clips.ClipsFeed.load(ctx, s).take(s.count) } }),
+        RowKind("clips_surprise", R.string.home_row_clips_surprise, { com.shrug.shrugtv.clips.ClipsSettings.surpriseRowOn(this) },
+            { ctx -> com.shrug.shrugtv.clips.ClipsSettings.surprise(ctx).let { s -> com.shrug.shrugtv.clips.ClipsFeed.load(ctx, s).take(s.count) } }),
         RowKind("followed_categories", R.string.home_row_followed_categories, { AppState.showFollowedGames }, HomeData::followedGames),
         RowKind("past_broadcasts", R.string.home_row_past_broadcasts, { AppState.showPastBroadcasts }, HomeData::pastBroadcasts),
         RowKind("top_categories", R.string.home_row_top_categories, { AppState.showTopGames }, HomeData::topGames),
@@ -382,8 +384,11 @@ class HomeActivity : ComponentActivity() {
     private fun open(m: Movie) {
         // A clip from the clips row: the row is the queue
         if (m.isClip) {
-            val pool = com.shrug.shrugtv.clips.ClipsFeed.pool()
-            com.shrug.shrugtv.clips.ClipQueue.set(if (pool.any { it.clipSlug == m.clipSlug }) pool else state.rows.firstOrNull { it.id == "clips" }?.entries.orEmpty())
+            // The queue is the pool behind the row the clip is in, so it goes on past what the row shows
+            val surprise = state.rows.firstOrNull { it.id == "clips_surprise" }?.entries.orEmpty().any { it.clipSlug == m.clipSlug }
+            val pool = com.shrug.shrugtv.clips.ClipsFeed.cachedPool(this, if (surprise) com.shrug.shrugtv.clips.ClipsSettings.surprise(this) else com.shrug.shrugtv.clips.ClipsSettings.load(this))
+            val row = state.rows.firstOrNull { it.id == (if (surprise) "clips_surprise" else "clips") }?.entries.orEmpty()
+            com.shrug.shrugtv.clips.ClipQueue.set(if (pool.any { it.clipSlug == m.clipSlug }) pool else row)
         }
         Destinations.open(this, m)
     }

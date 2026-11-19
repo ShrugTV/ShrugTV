@@ -18,12 +18,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
@@ -42,6 +43,8 @@ import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.key
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.graphics.SolidColor
@@ -99,8 +102,27 @@ fun SettingsScreen(groups: List<Entry.Page>, z: SettingsAccess, account: Account
     // because the clicked row disappears (2026-10-21 in the emulator: focus jumped to "Account").
     val right = remember { FocusRequester() }
     var levelChange by remember { mutableStateOf(0) }
-    LaunchedEffect(levelChange) { if (levelChange > 0) runCatching { right.requestFocus() } }
-    androidx.activity.compose.BackHandler(enabled = path.size > 1) { path.removeAt(path.lastIndex); levelChange++ }
+    // Where the focus goes in the list: a new page starts at its first entry, Back returns to the entry that
+    // opened the sub-page, and arrow right from the groups enters at the top. Before, the focus search picked the row at the same
+    // height ("Greeting on the home screen", "Language of the clips") and Back landed at the top of the list.
+    var aim by remember { mutableStateOf(Aim(null, 0)) }
+    val openedFrom = remember { mutableStateMapOf<String, String>() }
+    val listStates = remember { mutableMapOf<String, androidx.compose.foundation.lazy.LazyListState>() }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    fun aimAt(key: String?) { aim = Aim(key, aim.token + 1); levelChange++ }
+    LaunchedEffect(levelChange) {
+        if (levelChange == 0) return@LaunchedEffect
+        // The aimed row takes the focus itself (see Aimed); if there is none, or it does not get it in time, the list does
+        if (aim.key == null) runCatching { right.requestFocus() }
+        else {
+            kotlinx.coroutines.delay(600)
+            if (aim.key != null) { aim = Aim(null, aim.token); runCatching { right.requestFocus() } }
+        }
+    }
+    androidx.activity.compose.BackHandler(enabled = path.size > 1) {
+        path.removeAt(path.lastIndex)
+        aimAt(path.lastOrNull()?.let { openedFrom[pageId(it)] })
+    }
 
     // Pages with a preview (Appearance): the preview is pinned on the right and never scrolls.
     // While the focus is in the list the group column shrinks to a rail so list and preview both fit.
@@ -112,16 +134,40 @@ fun SettingsScreen(groups: List<Entry.Page>, z: SettingsAccess, account: Account
     var focusKey by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(selected) { inList = false; focusKey = null }
     val narrow = pinned && inList
-    val railWidth by animateDpAsState(if (narrow) 64.dp else 310.dp, label = "rail")
+    // One curve for the whole change: the rail shrinks, list and preview slide left as one block. Before,
+    // the list changed its width every frame (its text re-wrapped while moving) and the preview appeared at once.
+    val shrink by androidx.compose.animation.core.animateFloatAsState(
+        if (narrow) 1f else 0f,
+        androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing), label = "rail",
+    )
+    fun between(wide: Float, slim: Float) = (wide + (slim - wide) * shrink).dp
+    val railWidth = between(310f, 64f)
+    // The labels give way to icons half way, when the rail is too slim for them
+    val compactRail = shrink > 0.5f
+    // On preview pages the list has the width it has beside the preview with a slim rail, in both states, so it never re-wraps
+    val screenWidth = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
+    val pinnedListWidth = (screenWidth - 12 - 64 - 4 - 24 - 60 - 400 - 16).coerceAtLeast(320).dp
 
     Row(Modifier.fillMaxSize().themeBackground()) {
         Column(
             Modifier.width(railWidth).fillMaxHeight()
-                .padding(start = if (narrow) 12.dp else 72.dp, top = 48.dp, end = if (narrow) 4.dp else 16.dp)
-                .onFocusChanged { if (it.hasFocus) inList = false },
+                .padding(start = between(72f, 12f), top = 48.dp, end = between(16f, 4f))
+                .onFocusChanged { if (it.hasFocus) inList = false }
+                .onPreviewKeyEvent { ev ->
+                    // Arrow right into a settings page: its first entry, not the row at the same height
+                    val page = path.lastOrNull()
+                    if (ev.key == androidx.compose.ui.input.key.Key.DirectionRight && page != null &&
+                        InfoPage.visible.getOrNull(selected - groups.size) == null) {
+                        if (ev.type == androidx.compose.ui.input.key.KeyEventType.KeyDown) {
+                            listStates[pageId(page)]?.let { st -> scope.launch { st.scrollToItem(0) } }
+                            aimAt(firstKey(page))
+                        }
+                        true
+                    } else false
+                },
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(if (narrow) "" else stringResource(R.string.pref_title_root_title), fontFamily = Inter, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = TvColors.Text,
+            Text(if (compactRail) "" else stringResource(R.string.pref_title_root_title), fontFamily = Inter, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = TvColors.Text,
                 maxLines = 1, modifier = Modifier.padding(bottom = 14.dp))
             // focusRestorer: arrow left from the content returns to the selected entry, not to the
             // geometrically nearest one (2026-10-28 in the emulator: from "Changes" to "Application info")
@@ -129,13 +175,13 @@ fun SettingsScreen(groups: List<Entry.Page>, z: SettingsAccess, account: Account
                 item {
                     GroupButton(stringResource(R.string.settings_account),
                         account.name?.let { stringResource(R.string.settings_signed_in, it) } ?: stringResource(R.string.settings_not_signed_in),
-                        false, Modifier, compact = narrow, icon = R.drawable.ic_baseline_person_24px) { account.logIn() }
+                        false, Modifier, compact = compactRail, icon = R.drawable.ic_baseline_person_24px) { account.logIn() }
                 }
                 items(groups.size) { i ->
                     val g = groups[i]
                     GroupButton(g.title, null, i == selected,
                         (if (i == 0) Modifier.focusRequester(firstGroup) else Modifier).onFocusChanged { if (it.isFocused) selected = i },
-                        compact = narrow, icon = g.icon, changed = PageChanges.changedDeep(g.children, z) > 0) {
+                        compact = compactRail, icon = g.icon, changed = PageChanges.changedDeep(g.children, z) > 0) {
                         selected = i
                     }
                 }
@@ -143,7 +189,7 @@ fun SettingsScreen(groups: List<Entry.Page>, z: SettingsAccess, account: Account
                 items(InfoPage.visible.size) { j ->
                     val i = groups.size + j
                     GroupButton(InfoPage.visible[j].title, null, i == selected,
-                        Modifier.onFocusChanged { if (it.isFocused) selected = i }, compact = narrow, icon = R.drawable.ic_baseline_info_24px) {
+                        Modifier.onFocusChanged { if (it.isFocused) selected = i }, compact = compactRail, icon = R.drawable.ic_baseline_info_24px) {
                         selected = i
                         runCatching { right.requestFocus() }
                     }
@@ -161,20 +207,28 @@ fun SettingsScreen(groups: List<Entry.Page>, z: SettingsAccess, account: Account
             } else if (page != null) {
                 Text(path.joinToString("  ›  ") { it.title }, fontFamily = Inter, fontSize = 16.sp, fontWeight = FontWeight.Bold,
                     color = TvColors.Text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 14.dp))
-                Row(Modifier.fillMaxSize()) {
+                // Preview pages: the block is wider than the room while the rail is wide; it runs off the right edge and slides in
+                Row(if (pinned) Modifier.fillMaxSize().wrapContentWidth(Alignment.Start, unbounded = true) else Modifier.fillMaxSize()) {
                     CompositionLocalProvider(LocalLivePreview provides pinned, LocalSettingsAccess provides z,
                         LocalFocusReport provides { focusKey = it }) {
+                        // Each page keeps its own scroll position, so Back finds the entry it came from still on screen
+                        val listState = listStates.getOrPut(pageId(page)) { androidx.compose.foundation.lazy.LazyListState() }
                         LazyColumn(
-                            Modifier.weight(1f).focusRequester(right).onFocusChanged { if (it.hasFocus) inList = true }
+                            (if (pinned) Modifier.width(pinnedListWidth) else Modifier.weight(1f)).focusRequester(right).onFocusChanged { if (it.hasFocus) inList = true }
                                 .clip(TvShapes.r(12.dp)).background(TvColors.Surface),
+                            state = listState,
                             contentPadding = PaddingValues(8.dp),
                             verticalArrangement = Arrangement.spacedBy(2.dp),
                         ) {
-                            rows(page.children, z, version) { path.add(it); levelChange++ }
+                            rows(page.children, z, version, aim, { aim = Aim(null, aim.token) }) { child ->
+                                rowId(child)?.let { openedFrom[pageId(page)] = it }
+                                path.add(child)
+                                aimAt(firstKey(child))
+                            }
                             val changed = PageChanges.changedKeys(page, z)
                             if (changed.isNotEmpty()) item(key = "reset#" + page.key) { ResetRow(changed.size) { z.reset(changed) } }
                         }
-                        if (narrow) {
+                        if (pinned) {
                             val preview = page.children.filterIsInstance<Entry.Preview>().first()
                             val own = when (page.key) {
                                 "pref_chat_screen" -> PreviewScene.CHAT
@@ -234,8 +288,52 @@ val LocalLivePreview = compositionLocalOf { false }
 /** A guide (`pref_tip`): not a setting, only text. Shown behind an (i) button instead of in the list. */
 private fun isGuide(e: Entry) = e is Entry.Action && e.key == null && !e.selectable
 
+/** Which row should take the focus ([key], see [rowId]); [token] changes with every new aim so the same row can be aimed again. */
+data class Aim(val key: String?, val token: Int)
+
+/** The name of a row for [Aim]: its preference key, else its title; null for rows that cannot take the focus. */
+private fun rowId(e: Entry): String? = when {
+    e is Entry.Category || e is Entry.Preview || isGuide(e) -> null
+    e is Entry.Action && (!e.selectable || e.key == null) -> null
+    else -> e.key ?: e.title
+}
+
+private fun pageId(p: Entry.Page) = p.key ?: p.title
+
+/** The first row of [page] that can take the focus, looking into its groups. */
+private fun firstKey(page: Entry.Page): String? {
+    fun first(list: List<Entry>): String? {
+        for (e in list) {
+            if (e is Entry.Category) first(e.children)?.let { return it } else rowId(e)?.let { return it }
+        }
+        return null
+    }
+    return first(page.children)
+}
+
+/**
+ * Gives the focus to [content] when [aim] names this row; [reached] clears the aim once the row really has it. The Box is always
+ * there: switching between "with Box" and "without" rebuilt the row the moment the aim was cleared, and the focus fell back to
+ * the group list (2026-11-19 in the emulator).
+ */
+@Composable
+private fun Aimed(e: Entry, aim: Aim, reached: () -> Unit, content: @Composable () -> Unit) {
+    val id = rowId(e)
+    val focus = remember { FocusRequester() }
+    var has by remember { mutableStateOf(false) }
+    Box(Modifier.focusRequester(focus).onFocusChanged { has = it.hasFocus }) { content() }
+    if (id != null && id == aim.key) LaunchedEffect(aim.token) {
+        // requestFocus does not say whether it worked, so look at the focus afterwards
+        for (attempt in 1..12) {
+            runCatching { focus.requestFocus() }
+            kotlinx.coroutines.delay(40)
+            if (has) { reached(); break }
+        }
+    }
+}
+
 private fun androidx.compose.foundation.lazy.LazyListScope.rows(
-    children: List<Entry>, z: SettingsAccess, version: Int, open: (Entry.Page) -> Unit,
+    children: List<Entry>, z: SettingsAccess, version: Int, aim: Aim, reached: () -> Unit, open: (Entry.Page) -> Unit,
 ) {
     for (e in children) {
         when {
@@ -243,10 +341,10 @@ private fun androidx.compose.foundation.lazy.LazyListScope.rows(
                 // The group's guide moves into an (i) button next to its title
                 val guide = e.children.firstOrNull(::isGuide)
                 item { CategoryHeader(e.title, guide?.text) }
-                rows(e.children.filter { it !== guide }, z, version, open)
+                rows(e.children.filter { it !== guide }, z, version, aim, reached, open)
             }
             isGuide(e) -> item(key = "guide#" + e.hashCode()) { GuideRow(e.text) }
-            else -> item(key = (e.key ?: e.title) + "#" + e.hashCode()) { EntryRow(e, z, version, open) }
+            else -> item(key = (e.key ?: e.title) + "#" + e.hashCode()) { Aimed(e, aim, reached) { EntryRow(e, z, version, open) } }
         }
     }
 }
@@ -344,6 +442,17 @@ private fun GroupButton(title: String, subtitle: String?, selected: Boolean, mod
     )
 }
 
+/**
+ * The current value on the right of a row, at most a third of the row wide and cut with "…": a long value
+ * such as "Only under the focused button (more buttons fit)" took the whole width, and the title above stood letter by letter.
+ * The full value is in the choice dialog.
+ */
+@Composable
+private fun TrailingValue(text: String) {
+    Text(text, fontFamily = Inter, fontSize = 12.sp, color = TvColors.TextMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.widthIn(max = 170.dp))
+}
+
 @Composable
 private fun EntryRow(e: Entry, z: SettingsAccess, version: Int, open: (Entry.Page) -> Unit) {
     var dialog by remember { mutableStateOf(false) }
@@ -389,7 +498,7 @@ private fun EntryRow(e: Entry, z: SettingsAccess, version: Int, open: (Entry.Pag
             var original by remember { mutableStateOf<String?>(null) }
             ListItem(selected = false, onClick = { original = value; dialog = true }, enabled = active, colors = colors, border = border, modifier = focus, scale = scale,
                 headlineContent = header, supportingContent = subtitle(description),
-                trailingContent = { Text(name, fontFamily = Inter, fontSize = 12.sp, color = TvColors.TextMedium, maxLines = 1) })
+                trailingContent = { TrailingValue(name) })
             if (dialog) ChoiceDialog(e, value, live,
                 close = { if (live) z.setString(e.key, original ?: e.standard ?: "skin"); dialog = false },
                 tryIt = { z.setString(e.key, it) }) { z.setString(e.key, it); dialog = false }
@@ -398,14 +507,14 @@ private fun EntryRow(e: Entry, z: SettingsAccess, version: Int, open: (Entry.Pag
             val value = z.string(e.key, e.standard) ?: ""
             ListItem(selected = false, onClick = { dialog = true }, enabled = active, colors = colors, border = border, modifier = focus, scale = scale,
                 headlineContent = header, supportingContent = subtitle(e.text),
-                trailingContent = { Text(if (value.isEmpty()) "–" else if (e.key in SettingsModel.SECRET_KEYS) "••••••" else value, fontFamily = Inter, fontSize = 12.sp, color = TvColors.TextMedium, maxLines = 1) })
+                trailingContent = { TrailingValue(if (value.isEmpty()) "–" else if (e.key in SettingsModel.SECRET_KEYS) "••••••" else value) })
             if (dialog) TextDialog(e, value, { dialog = false }) { z.setString(e.key, it); dialog = false }
         }
         is Entry.NumberField -> {
             val value = NumberInput.parse(z.string(e.key, e.standard.toString()) ?: "", e.min, e.max, e.standard).toString()
             ListItem(selected = false, onClick = { dialog = true }, enabled = active, colors = colors, border = border, modifier = focus, scale = scale,
                 headlineContent = header, supportingContent = subtitle(e.text),
-                trailingContent = { Text(value, fontFamily = Inter, fontSize = 12.sp, color = TvColors.TextMedium, maxLines = 1) })
+                trailingContent = { TrailingValue(value) })
             if (dialog) NumberDialog(e, value, { dialog = false }) { z.setString(e.key, it); dialog = false }
         }
         is Entry.Action -> {

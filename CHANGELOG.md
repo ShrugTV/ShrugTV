@@ -2,6 +2,23 @@
 
 All notable changes of ShrugTV, newest first. Versions follow [SemVer](https://semver.org).
 
+## 2.4.0 – 2026-11-19
+
+### New
+- Clips page: a category button next to the periods (all categories, then the categories of the clips, most clips first) filters the list; the queue then plays only that category.
+- Clips page: the list now really keeps going. When everything of the first request is on screen, the next page of clips of every channel is fetched (up to 2000 clips); with "Play the next clip" the queue goes on through all of it.
+- Home screen: an optional second row "Surprise hits from your channels" (Settings → Home → Clips → "Show Surprise hits on the home screen", off by default): the clips of the last 7 days that stand out most from what is usual in their own channel. Its place is set under "Row order" like the others.
+- Clips in the player: a button "Live" goes to the live stream of the clip's channel; it is dimmed while the channel is offline.
+- Home Assistant: `watch` with `{"clip": "<slug>"}` plays one clip, also when no player is open, for example the clip of the day from an automation.
+
+### Changed
+- Clips page: four layouts to choose from under Settings → Home screen → Clips → Layout. **Grid with menus** (default): one row of menus for time frame, channels, category and sort over a grid of four larger cards with rank, views, a readable length (0:18) and a two-line title. **Stage with rows**: the focused clip fills the background with its title and numbers, the time frame as tabs, rows for the top ten with large numbers, new since yesterday, short ones and the biggest categories. **Charts**: a ranked list beside the focused clip, large, with views, length and place. **Clip TV**: the categories as channels on the left, the first clip of the channel across the screen and what comes next at the bottom; OK plays the channel through.
+
+### Fixed
+- Settings: entering a page with a preview (Appearance, Player, Chat, Home screen) is one smooth movement now: list and preview slide left together while the group rail narrows, instead of the list re-wrapping its text as it moved and the preview popping up at once.
+- Settings: arrow right from the groups and opening a sub-page now start at the first entry instead of the row at the same height, and Back returns to the entry that opened the sub-page instead of the top of the list.
+- Settings: a long current value (such as "Only under the focused button (more buttons fit)" under Player) took the whole row, and the title beside it stood letter by letter; the value is now cut with "…" at a third of the row, the full text is in the choice dialog.
+
 ## 2.3.0 – 2026-11-14
 
 ### New

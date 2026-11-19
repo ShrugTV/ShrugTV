@@ -196,8 +196,14 @@ object HelixApi {
 
     /** The clips of one channel, most viewed first, since [startedAt] (RFC 3339; null = all time); blocking. */
     @JvmStatic
-    fun getClipsOfBroadcasterSync(context: Context?, broadcasterId: String, startedAt: String?, first: Int): JsonObject? =
-        helixGetSync("https://api.twitch.tv/helix/clips?broadcaster_id=$broadcasterId&first=$first" + (startedAt?.let { "&started_at=$it" } ?: ""))
+    fun getClipsOfBroadcasterSync(context: Context?, broadcasterId: String, startedAt: String?, first: Int, after: String? = null): JsonObject? =
+        helixGetSync("https://api.twitch.tv/helix/clips?broadcaster_id=$broadcasterId&first=$first" + (startedAt?.let { "&started_at=$it" } ?: "") +
+            (after?.takeIf { it.isNotEmpty() }?.let { "&after=$it" } ?: ""))
+
+    /** Names of categories by id, at most 100 per call; blocking. */
+    @JvmStatic
+    fun getGamesByIds(context: Context?, ids: List<Long>): JsonObject? =
+        if (ids.isEmpty()) null else helixGetSync("https://api.twitch.tv/helix/games?" + ids.take(100).joinToString("&") { "id=$it" })
 
     @JvmStatic
     fun getClipsByGame(context: Context?, gameId: Long, cursor: String, callback: ResultCallback<JsonObject>) {

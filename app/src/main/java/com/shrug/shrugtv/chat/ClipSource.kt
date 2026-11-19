@@ -30,6 +30,21 @@ object ClipSource {
         )
     }
 
+    /** Whether the answer to `user(login) { stream { id } }` says the channel is live right now. */
+    fun parseLive(response: JsonObject?): Boolean =
+        response?.getAsJsonObject("data")?.get("user")?.takeIf { it.isJsonObject }?.asJsonObject?.get("stream")?.takeIf { it.isJsonObject } != null
+
+    /** Blocking; call from a background thread. Anonymous, like the lookup of the clip itself. */
+    fun fetchLive(context: Context?, login: String): Boolean = try {
+        val clean = login.filter { it.isLetterOrDigit() || it == '_' }
+        if (clean.isEmpty()) false else {
+            val query = JsonObject().apply { addProperty("query", "{ user(login: \"" + clean.lowercase() + "\") { stream { id } } }") }
+            parseLive(GqlApi.postQuery(context, query.toString()))
+        }
+    } catch (e: Exception) {
+        false
+    }
+
     /** Blocking; call from a background thread. */
     fun fetch(context: Context?, slug: String): Info? = try {
         val query = JsonObject().apply {

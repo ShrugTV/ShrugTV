@@ -208,7 +208,7 @@ class CompanionServerTest {
                 .associate { it.get("key").asString to it.get("place").asInt }
         }
         val before = places()
-        assertEquals(9, before.size)
+        assertEquals(10, before.size)
         assertEquals(1, before.getValue("pref_row_move_followed_live"))
         assertEquals(2, before.getValue("pref_row_move_live_history"))
         // The first one in the tree is the one in first place

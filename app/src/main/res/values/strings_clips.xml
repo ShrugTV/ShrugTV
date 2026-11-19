@@ -20,7 +20,7 @@
     <string name="home_nav_clips">Clips</string>
     <string name="settings_clips_screen">Clips</string>
     <string name="settings_clips_screen_summary">Best clips of the channels you follow</string>
-    <string name="settings_clips_tip">The Clips page (side bar, play symbol) and the home row show the best clips of your channels in one list. Choose whose clips, how far back and how they are sorted. "Relative to channel size" compares each clip with the other clips of its own channel, so a good clip of a small channel can rank next to one of a big channel. The same choices are on the page itself. The list grows while you scroll, and when a clip ends, the next one starts by itself, through the whole list.</string>
+    <string name="settings_clips_tip">The Clips page (side bar, play symbol) and the home row show the best clips of your channels in one list. Choose whose clips, how far back and how they are sorted. "Relative to channel size" compares each clip with the other clips of its own channel, so a good clip of a small channel can rank next to one of a big channel. The same choices are on the page itself. The list grows while you scroll, and when a clip ends, the next one starts by itself, through the whole list. "Layout" chooses how the page looks: a grid with menus, a stage with the focused clip large and themed rows, charts with a ranked list, or Clip TV with categories as channels.</string>
     <string name="settings_clips_source">Channels</string>
     <string name="settings_clips_period">Time frame</string>
     <string name="settings_clips_sort">Sort by</string>
@@ -32,6 +32,42 @@
     <string name="settings_clips_language">Language of the clips</string>
     <string name="settings_clips_show_title">Show the clip title</string>
     <string name="settings_clips_show_title_summary">The title of a playing clip stays in the corner; with the bar open the channel info shows it</string>
+    <string name="clips_category">Category</string>
+    <string name="clips_count">%1$d clips</string>
+    <string name="clips_views">%1$s views</string>
+    <string name="clips_title_short">Clips</string>
+    <string name="clips_row_top">Top 10</string>
+    <string name="clips_row_new">New since yesterday</string>
+    <string name="clips_row_short">Short and sweet</string>
+    <string name="clips_row_all">All clips</string>
+    <string name="clips_rank">No. %1$d</string>
+    <string name="clips_play_hint">OK plays it, then the rest of its row</string>
+    <string name="clips_tv_all">All clips</string>
+    <string name="clips_tv_length">%1$d clips · %2$d min</string>
+    <string name="clips_tv_channels">Channels</string>
+    <string name="clips_tv_next">Up next</string>
+    <string name="clips_tv_hint">OK on a channel plays it from the start, OK on a clip plays from there</string>
+    <string name="clips_charts">Clip charts</string>
+    <string name="clips_stat_views">Views</string>
+    <string name="clips_stat_length">Length</string>
+    <string name="clips_stat_place">Place</string>
+    <string name="settings_clips_layout">Layout</string>
+    <string-array name="display_clips_layout">
+        <item>Grid with menus</item>
+        <item>Stage with rows</item>
+        <item>Charts</item>
+        <item>Clip TV</item>
+    </string-array>
+    <string-array name="value_clips_layout" translatable="false">
+        <item>fine</item>
+        <item>stage</item>
+        <item>charts</item>
+        <item>tv</item>
+    </string-array>
+    <string name="clips_category_all">All categories</string>
+    <string name="home_row_clips_surprise">Surprise hits from your channels</string>
+    <string name="settings_clips_surprise_row">Show "Surprise hits" on the home screen</string>
+    <string name="settings_clips_surprise_row_summary">A second row: the clips of the last 7 days that stand out most from what is usual in their own channel</string>
     <string name="settings_clips_row">Show on the home screen</string>
     <string name="settings_clips_row_summary">A row with the best clips; the order of the rows is set under Row order</string>
     <string-array name="display_clips_source">

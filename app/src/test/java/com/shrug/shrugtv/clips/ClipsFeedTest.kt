@@ -139,6 +139,14 @@ class ClipsFeedTest {
     }
 
     @Test
+    fun `categories come most clips first, unnamed ones are left out`() {
+        fun inGame(slug: String, id: Long, name: String) = clip(slug, 1).apply { gameId = id; gameName = name }
+        val pool = listOf(inGame("a", 1, "Chess"), inGame("b", 2, "Minecraft"), inGame("c", 2, "Minecraft"), inGame("d", 3, ""), inGame("e", 0, "None"))
+        assertEquals(listOf(2L to "Minecraft", 1L to "Chess"), ClipsFeed.categories(pool))
+        assertEquals(emptyList<Pair<Long, String>>(), ClipsFeed.categories(emptyList()))
+    }
+
+    @Test
     fun `nothing in, nothing out`() {
         assertEquals(emptyList<Movie>(), ClipsFeed.merge(emptyList(), ClipsSort.VIEWS, 20))
         assertEquals(emptyList<Movie>(), ClipsFeed.channels(emptyList(), ClipsSource.FAVORITES))

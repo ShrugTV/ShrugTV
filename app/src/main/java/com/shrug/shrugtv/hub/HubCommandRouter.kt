@@ -39,6 +39,7 @@ object HubCommandRouter {
         data class AudioOnly(val on: Boolean) : Command()
         data class WatchLogin(val login: String) : Command()
         data class WatchVod(val videoId: Long, val positionSeconds: Int?) : Command()
+        data class WatchClip(val slug: String) : Command()
         data class Quality(val name: String) : Command()
         data class Chat(val visible: Boolean) : Command()
         data class ChatLayout(val value: String) : Command()
@@ -48,6 +49,7 @@ object HubCommandRouter {
     }
 
     private val LOGIN = Regex("^[A-Za-z0-9_]{1,25}$")
+    private val CLIP_SLUG = Regex("^[A-Za-z0-9_-]{5,120}$")
 
     @JvmStatic
     fun parse(name: String, payload: String): Command? {
@@ -85,6 +87,8 @@ object HubCommandRouter {
         if (p.startsWith("{")) {
             return try {
                 val o = JsonParser.parseString(p).asJsonObject
+                // {"clip": "<slug>"}: one Twitch clip, e.g. "the clip of the day" from an automation
+                o.get("clip")?.takeIf { !it.isJsonNull }?.asString?.trim()?.takeIf { CLIP_SLUG.matches(it) }?.let { return Command.WatchClip(it) }
                 val vod = o.get("vod_id")?.takeIf { !it.isJsonNull }?.asLong
                 if (vod != null && vod > 0) {
                     Command.WatchVod(vod, o.get("position_s")?.takeIf { !it.isJsonNull }?.asInt)
@@ -141,6 +145,10 @@ object HubCommandRouter {
                     setVideoIdFromString(cmd.videoId.toString())
                     itemType = Enums.ContentType.VOD
                 })
+                is Command.WatchClip -> startPlayer(context, Movie().apply {
+                    setClipSlug(cmd.slug)
+                    itemType = Enums.ContentType.VOD
+                })
                 is Command.Notice -> Toast.makeText(context, listOfNotNull(cmd.title, cmd.text).joinToString(": "), Toast.LENGTH_LONG).show()
                 else -> Log.d(TAG, "No player open for $cmd")
             }
@@ -157,6 +165,7 @@ object HubCommandRouter {
             is Command.AudioOnly -> player.setAudioOnly(cmd.on)
             is Command.WatchLogin -> player.watchLogin(cmd.login)
             is Command.WatchVod -> player.watchVod(cmd.videoId, cmd.positionSeconds)
+            is Command.WatchClip -> player.watchClip(cmd.slug)
             is Command.Quality -> player.selectQualityByName(cmd.name)
             is Command.Chat -> player.setChatVisible(cmd.visible)
             is Command.ChatLayout -> player.setChatLayout(cmd.value)

@@ -106,6 +106,7 @@ fun PlayerScreen(
     val clipSourceReady by viewModel.clipSourceReady.collectAsState()
     val clipTitle by viewModel.clipTitle.collectAsState()
     val clipNav by viewModel.clipNav.collectAsState()
+    val clipChannelLive by viewModel.clipChannelLive.collectAsState()
     val chatShown = isChatVisible && !chatUnavailable
     val lastBackAt = remember { longArrayOf(0L) }
     val sideBySide = chatShown && chatLayout == com.shrug.shrugtv.chat.ChatLayout.SIDE_BY_SIDE
@@ -856,6 +857,8 @@ fun PlayerScreen(
             onSearchClick = { viewModel.setOverlay(PlayerOverlayType.SEARCH) },
             onSpeedClick = { viewModel.setOverlay(PlayerOverlayType.SPEED) },
             onChaptersClick = { viewModel.setOverlay(PlayerOverlayType.CHAPTERS) },
+            onWatchLive = if (movie?.isClip == true) ({ viewModel.watchClipChannel() }) else null,
+            channelLive = clipChannelLive,
             onJumpToSource = if (movie?.isClip == true) ({ viewModel.jumpToClipSource() }) else null,
             sourceAvailable = clipSourceReady,
             onPreviousClip = if (clipNav != null) ({ viewModel.playClipStep(-1) }) else null,

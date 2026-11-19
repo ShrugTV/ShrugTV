@@ -36,6 +36,14 @@ class ClipSourceTest {
     }
 
     @Test
+    fun `a live channel is told from an offline one`() {
+        assertEquals(true, ClipSource.parseLive(com.google.gson.JsonParser.parseString("""{"data":{"user":{"stream":{"id":"1"}}}}""").asJsonObject))
+        assertEquals(false, ClipSource.parseLive(com.google.gson.JsonParser.parseString("""{"data":{"user":{"stream":null}}}""").asJsonObject))
+        assertEquals(false, ClipSource.parseLive(com.google.gson.JsonParser.parseString("""{"data":{"user":null}}""").asJsonObject))
+        assertEquals(false, ClipSource.parseLive(null))
+    }
+
+    @Test
     fun `a missing offset is no source`() {
         assertNull(ClipSource.parseText("""{"data":{"clip":{"video":{"id":"5"}}}}"""))
     }

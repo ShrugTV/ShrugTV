@@ -170,6 +170,9 @@ fun PlayerControlsOverlay(
     hasPreviousClip: Boolean = false,
     onNextClip: (() -> Unit)? = null,
     hasNextClip: Boolean = false,
+    /** On a clip: the live stream of its channel; dimmed while the channel is offline. */
+    onWatchLive: (() -> Unit)? = null,
+    channelLive: Boolean = false,
     // Owned by the caller so that the highlighted button survives a submenu (B34) and the menu key
     // can open "More" directly (B37)
     buttonFocusIndex: androidx.compose.runtime.MutableState<Int> = remember { mutableStateOf(0) },
@@ -222,6 +225,9 @@ fun PlayerControlsOverlay(
         }
         if (onNextClip != null) {
             items.add(BarItem(R.drawable.exo_icon_next, stringResource(R.string.player_btn_next_clip), onNextClip).also { it.enabled = hasNextClip })
+        }
+        if (onWatchLive != null) {
+            items.add(BarItem(R.drawable.ic_clip_live, stringResource(R.string.player_btn_clip_live), onWatchLive).also { it.enabled = channelLive })
         }
         if (onJumpToSource != null) {
             items.add(BarItem(R.drawable.ic_clip_source, stringResource(R.string.player_btn_clip_source), onJumpToSource).also { it.enabled = sourceAvailable })

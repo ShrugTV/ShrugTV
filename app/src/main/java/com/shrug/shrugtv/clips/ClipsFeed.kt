@@ -78,6 +78,7 @@ data class ClipsSettings(
         const val PREF_SORT = "pref_clips_sort"
         const val PREF_COUNT = "pref_clips_count"
         const val PREF_ROW = "pref_clips_row"
+        const val PREF_SURPRISE_ROW = "pref_clips_surprise_row"
         const val PREF_SEEN = "pref_clips_seen"
         const val PREF_AUTOPLAY = "pref_clips_autoplay"
         const val PREF_QUEUE_SEEN = "pref_clips_queue_seen"
@@ -101,6 +102,12 @@ data class ClipsSettings(
         }
 
         fun rowOn(ctx: Context) = PreferenceManager.getDefaultSharedPreferences(ctx).getBoolean(PREF_ROW, true)
+
+        /** The row "Surprise hits": the clips of the last 7 days that stand out most from the usual of their own channel (off by default). */
+        fun surpriseRowOn(ctx: Context) = PreferenceManager.getDefaultSharedPreferences(ctx).getBoolean(PREF_SURPRISE_ROW, false)
+
+        /** The choices behind that row: the settings of the page, but always last week and relative to the channel. */
+        fun surprise(ctx: Context) = load(ctx).copy(period = ClipsPeriod.WEEK, sort = ClipsSort.RELATIVE)
     }
 }
 
@@ -173,58 +180,153 @@ object ClipsFeed {
         return out
     }
 
+    /** What the pages added up to for one set of choices: the clips per channel, where the next page of each channel starts. */
+    private class PoolState(
+        val at: Long,
+        val settings: ClipsSettings,
+        val from: String?,
+        val channels: List<Movie>,
+        val lists: MutableMap<Int, List<Movie>> = HashMap(),
+        val cursors: MutableMap<Int, String> = HashMap(),
+        var pool: List<Movie> = emptyList(),
+        var limit: Int = POOL_LIMIT,
+    )
+
+    /** The pool never grows past this many clips, however far the list is scrolled. */
+    const val HARD_LIMIT = 2000
+
     /** The last few pools by settings, so switching back and forth between the choices on the page is instant. */
-    private val cache = object : LinkedHashMap<String, Pair<Long, List<Movie>>>(8, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Pair<Long, List<Movie>>>?) = size > 4
+    private val cache = object : LinkedHashMap<String, PoolState>(8, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, PoolState>?) = size > 4
     }
     @Volatile private var lastPool: List<Movie> = emptyList()
+    private val gameNames = java.util.concurrent.ConcurrentHashMap<Long, String>()
 
     /** The same settings within ten minutes answer from memory (the home screen and the page share it). */
     fun forget() { synchronized(cache) { cache.clear() } }
 
-    /** The pool of the last [load] (empty before): the queue of the home row plays on through all of it. */
+    /** The pool of the last [load] (empty before). */
     fun pool(): List<Movie> = lastPool
 
-    suspend fun load(ctx: Context, s: ClipsSettings, force: Boolean = false): List<Movie> {
+    /** The pool for [s] if it was loaded (and not forgotten) before; no network. The queue of a home row plays on through it. */
+    fun cachedPool(ctx: Context, s: ClipsSettings): List<Movie> = synchronized(cache) { cache[keyOf(ctx, s)] }?.pool ?: emptyList()
+
+    /** Categories that clips of the pool belong to, the one with most clips first: the choices of the category button. */
+    fun categories(pool: List<Movie>): List<Pair<Long, String>> =
+        pool.filter { it.gameId > 0 && it.gameName.isNotBlank() }
+            .groupBy { it.gameId }
+            .entries.sortedByDescending { it.value.size }
+            .map { it.key to it.value.first().gameName }
+
+    private fun languageOf(s: ClipsSettings) = if (s.onlyAppLanguage) com.shrug.shrugtv.session.AppState.streamLanguageCode.orEmpty() else ""
+
+    private fun keyOf(ctx: Context, s: ClipsSettings): String {
+        val seenSize = if (s.seen != ClipsSeenMode.SHOW) ClipsSeen.all(ctx).size else 0
+        return "${com.shrug.shrugtv.session.AppState.userId}|${s.source}|${s.period}|${s.sort}|${languageOf(s)}|${s.seen}|$seenSize"
+    }
+
+    /** The pool out of what was fetched so far: merged, filtered, sorted, cut to the limit, with the dimming marks. */
+    private fun rebuild(ctx: Context, st: PoolState) {
+        val s = st.settings
         val seenAll = if (s.seen != ClipsSeenMode.SHOW) ClipsSeen.all(ctx) else emptySet()
         val seen = if (s.seen == ClipsSeenMode.HIDE) seenAll else emptySet()
-        val language = if (s.onlyAppLanguage) com.shrug.shrugtv.session.AppState.streamLanguageCode.orEmpty() else ""
-        val key = "${com.shrug.shrugtv.session.AppState.userId}|${s.source}|${s.period}|${s.sort}|$language|${s.seen}|${seenAll.size}"
+        val pool = merge(st.lists.values.toList(), s.sort, st.limit, seen, languageOf(s))
+        for (c in pool) c.clipSeen = s.seen == ClipsSeenMode.DIM && c.clipSlug in seenAll
+        st.pool = pool
+    }
+
+    /** Looks up the names of the categories of [pool] (one call per hundred) and writes them into the clips. */
+    private suspend fun nameGames(ctx: Context, pool: List<Movie>) {
+        val missing = pool.map { it.gameId }.filter { it > 0 && !gameNames.containsKey(it) }.distinct()
+        if (missing.isNotEmpty()) withContext(Dispatchers.IO) {
+            runCatching {
+                missing.chunked(100).forEach { chunk ->
+                    HelixApi.getGamesByIds(ctx, chunk)?.getAsJsonArray("data")?.forEach { e ->
+                        val o = e.asJsonObject
+                        val id = o.get("id")?.asString?.toLongOrNull()
+                        val name = o.get("name")?.asString
+                        if (id != null && !name.isNullOrBlank()) gameNames[id] = name
+                    }
+                }
+            }
+        }
+        for (c in pool) gameNames[c.gameId]?.let { c.gameName = it }
+    }
+
+    /** One page of clips of one channel and where the next one starts (null = no more). */
+    private fun fetchPage(ctx: Context, ch: Movie, from: String?, first: Int, after: String?): Pair<List<Movie>, String?> = try {
+        val json = HelixApi.getClipsOfBroadcasterSync(ctx, ch.userId.toString(), from, first, after)
+        val data = json?.get("data")
+        val clips = if (data != null && data.isJsonArray) HelixParser.parseClips(data.asJsonArray, Enums.RowType.VOD_CHANNEL_HIGHLIGHTS, ch.avatarUrl ?: "") else emptyList<Movie>()
+        val cursor = json?.get("pagination")?.takeIf { it.isJsonObject }?.asJsonObject?.get("cursor")?.takeIf { it.isJsonPrimitive }?.asString?.takeIf { it.isNotEmpty() }
+        clips to (if (clips.size >= first) cursor else null)
+    } catch (e: Exception) {
+        emptyList<Movie>() to null
+    }
+
+    suspend fun load(ctx: Context, s: ClipsSettings, force: Boolean = false): List<Movie> {
+        val key = keyOf(ctx, s)
         val now = android.os.SystemClock.elapsedRealtime()
-        synchronized(cache) { cache[key] }?.let { (at, list) ->
-            if (!force && now - at < CACHE_MS) { lastPool = list; return list }
+        synchronized(cache) { cache[key] }?.let { st ->
+            if (!force && now - st.at < CACHE_MS) { lastPool = st.pool; return st.pool }
         }
         val followed = suspendCancellableCoroutine<List<Movie>> { cont ->
             FollowedChannels.getList(ctx) { list -> if (cont.isActive) cont.resume(list?.toList() ?: emptyList()) }
         }
         val asked = channels(followed, s.source)
-        val from = startedAt(s.period, Instant.now())
+        val st = PoolState(now, s, startedAt(s.period, Instant.now()), asked)
         val gate = Semaphore(PARALLEL)
-        val lists = withContext(Dispatchers.IO) {
+        val first = if (s.sort == ClipsSort.RELATIVE) PER_CHANNEL_RELATIVE else PER_CHANNEL
+        val pages = withContext(Dispatchers.IO) {
+            coroutineScope { asked.map { ch -> async { gate.withPermit { fetchPage(ctx, ch, st.from, first, null) } } }.awaitAll() }
+        }
+        asked.zip(pages).forEach { (ch, page) ->
+            st.lists[ch.userId] = page.first
+            page.second?.let { st.cursors[ch.userId] = it }
+        }
+        rebuild(ctx, st)
+        nameGames(ctx, st.pool)
+        // A failed run (no answer from any channel) is not kept, the next call asks again
+        if (st.pool.isNotEmpty()) {
+            synchronized(cache) { cache[key] = st }
+            lastPool = st.pool
+        }
+        return st.pool
+    }
+
+    /** Whether the channels have more pages of clips to fetch for [s] (and the pool may still grow). */
+    fun canLoadMore(ctx: Context, s: ClipsSettings): Boolean =
+        synchronized(cache) { cache[keyOf(ctx, s)] }?.let { it.cursors.isNotEmpty() && it.limit < HARD_LIMIT } == true
+
+    /**
+     * The next page of every channel that has one, added to the pool: "keeps going" does not stop at the
+     * best clips of the first request. Returns the new pool; the old one if there is nothing more.
+     */
+    suspend fun more(ctx: Context, s: ClipsSettings): List<Movie> {
+        val st = synchronized(cache) { cache[keyOf(ctx, s)] } ?: return emptyList()
+        if (st.cursors.isEmpty() || st.limit >= HARD_LIMIT) return st.pool
+        val gate = Semaphore(PARALLEL)
+        val ids = st.cursors.keys.toList()
+        val pages = withContext(Dispatchers.IO) {
             coroutineScope {
-                asked.map { ch ->
+                ids.map { id ->
                     async {
                         gate.withPermit {
-                            runCatching {
-                                val data = HelixApi.getClipsOfBroadcasterSync(ctx, ch.userId.toString(), from, if (s.sort == ClipsSort.RELATIVE) PER_CHANNEL_RELATIVE else PER_CHANNEL)?.get("data")
-                                if (data != null && data.isJsonArray) {
-                                    HelixParser.parseClips(data.asJsonArray, Enums.RowType.VOD_CHANNEL_HIGHLIGHTS, ch.avatarUrl ?: "")
-                                } else emptyList<Movie>()
-                            }.getOrDefault(emptyList())
+                            val ch = st.channels.firstOrNull { it.userId == id }
+                            if (ch == null) emptyList<Movie>() to null else fetchPage(ctx, ch, st.from, PER_CHANNEL, st.cursors[id])
                         }
                     }
                 }.awaitAll()
             }
         }
-        // The whole pool, best first; the page shows [ClipsSettings.count] of it and grows while you scroll
-        val result = merge(lists, s.sort, POOL_LIMIT, seen, language)
-        // Dimming: every clip knows whether it was opened before (the card draws it dimmer)
-        for (c in result) c.clipSeen = s.seen == ClipsSeenMode.DIM && c.clipSlug in seenAll
-        // A failed run (no answer from any channel) is not kept, the next call asks again
-        if (result.isNotEmpty()) {
-            synchronized(cache) { cache[key] = now to result }
-            lastPool = result
+        ids.zip(pages).forEach { (id, page) ->
+            st.lists[id] = st.lists[id].orEmpty() + page.first
+            if (page.second != null) st.cursors[id] = page.second!! else st.cursors.remove(id)
         }
-        return result
+        st.limit = minOf(HARD_LIMIT, st.limit + POOL_LIMIT)
+        rebuild(ctx, st)
+        nameGames(ctx, st.pool)
+        lastPool = st.pool
+        return st.pool
     }
 }

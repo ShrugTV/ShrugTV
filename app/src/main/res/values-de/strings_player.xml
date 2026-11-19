@@ -8,6 +8,7 @@
     <string name="player_btn_chat">Chat</string>
     <string name="player_btn_prev_clip">Vorheriger Clip</string>
     <string name="player_btn_next_clip">Nächster Clip</string>
+    <string name="player_btn_clip_live">Live</string>
     <string name="player_btn_clip_source">Aufnahme</string>
     <string name="player_btn_chat_layout">Chat-Layout</string>
     <string name="player_btn_channel">Kanal</string>

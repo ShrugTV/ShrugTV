@@ -565,6 +565,9 @@ class PlayerViewModel(private val appContext: Context) : ViewModel(), com.shrug.
     val isChatVisible: StateFlow<Boolean> = _isChatVisible.asStateFlow()
     /** The clip on screen has no chat to show (its recording is gone, or recorded chat is off): the panel stays away. */
     /** The recording a clip was cut from is known and still there: the button "Recording" works. */
+    /** The channel of the clip is live right now: the button "Live" works. */
+    private val _clipChannelLive = MutableStateFlow(false)
+    val clipChannelLive: StateFlow<Boolean> = _clipChannelLive.asStateFlow()
     private val _clipSourceReady = MutableStateFlow(false)
     val clipSourceReady: StateFlow<Boolean> = _clipSourceReady.asStateFlow()
     private val _chatUnavailable = MutableStateFlow(false)
@@ -837,6 +840,16 @@ class PlayerViewModel(private val appContext: Context) : ViewModel(), com.shrug.
         play(movie, resumeAtMs = positionSeconds?.takeIf { it > 0 }?.let { it * 1000L })
     }
 
+    override fun watchClip(slug: String) {
+        if (slug.isBlank()) return
+        val clip = Movie().apply {
+            setClipSlug(slug)
+            itemType = Enums.ContentType.VOD
+        }
+        com.shrug.shrugtv.clips.ClipQueue.set(listOf(clip))
+        play(clip)
+    }
+
     override fun selectQualityByName(name: String) {
         val q = _qualities.value.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: return
         selectQuality(q)
@@ -940,6 +953,8 @@ class PlayerViewModel(private val appContext: Context) : ViewModel(), com.shrug.
         releasePreloaded()
         if (movie.isClip) preloadNextClip(movie)
         _clipTitle.value = if (movie.isClip) movie.title else null
+        _clipChannelLive.value = false
+        if (movie.isClip) checkClipChannelLive(movie)
         _clipNav.value = if (movie.isClip) com.shrug.shrugtv.clips.ClipQueue.position(movie) else null
         health.reset(newItem = !healthReload)
         // A reload by the stall watch must not end "Audio only" (someone may be asleep to it)
@@ -1820,13 +1835,38 @@ class PlayerViewModel(private val appContext: Context) : ViewModel(), com.shrug.
                 movie.clipOffsetSeconds = info.offsetSeconds
                 if (movie.userId <= 0 && info.broadcasterId > 0) movie.userId = info.broadcasterId
                 if (movie.login.isNullOrEmpty()) info.login?.let { movie.login = it }
+                val hadLogin = !movie.login.isNullOrBlank()
                 if (movie.displayName.isNullOrEmpty()) info.displayName?.let { movie.displayName = it }
+                if (!hadLogin && !movie.login.isNullOrBlank()) checkClipChannelLive(movie)
                 if (movie.title.isNullOrEmpty()) info.title?.takeIf { it.isNotEmpty() }?.let { movie.title = it; _clipTitle.value = it }
                 // A clip opened by link started its watch session without a channel: fill it in
                 watchTracker.updateChannel(movie.userId, movie.login ?: "", movie.displayName.ifBlank { movie.login ?: "" })
                 startVodChat(movie)
             }
         }
+    }
+
+    /** Asks whether the channel of the clip is live; a clip opened by link has no channel until its source is known. */
+    private fun checkClipChannelLive(movie: Movie) {
+        val login = movie.login?.takeIf { it.isNotBlank() } ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            val live = com.shrug.shrugtv.chat.ClipSource.fetchLive(appContext, login)
+            withContext(Dispatchers.Main) { if (_currentMovie.value === movie) _clipChannelLive.value = live }
+        }
+    }
+
+    /** The button "Live" on a clip: the channel's live stream. */
+    fun watchClipChannel() {
+        val clip = _currentMovie.value?.takeIf { it.isClip && !it.login.isNullOrBlank() } ?: return
+        val stream = Movie().apply {
+            login = clip.login
+            userId = clip.userId
+            displayName = clip.displayName
+            itemType = Enums.ContentType.STREAM
+        }
+        // The queue of clips ends here
+        com.shrug.shrugtv.clips.ClipQueue.clear()
+        play(stream)
     }
 
     /** The button "Recording" on a clip: the recording it was cut from, at the second where the clip starts. */

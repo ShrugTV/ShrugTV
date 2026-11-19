@@ -125,6 +125,9 @@ interface PlayerCommands {
     fun close()
     fun watchLogin(login: String)
     fun watchVod(videoId: Long, positionSeconds: Int?)
+
+    /** One Twitch clip by its slug; a player that cannot do it ignores the command. */
+    fun watchClip(slug: String) {}
     fun selectQualityByName(name: String)
     fun setChatVisible(visible: Boolean)
     fun setChatLayout(value: String)

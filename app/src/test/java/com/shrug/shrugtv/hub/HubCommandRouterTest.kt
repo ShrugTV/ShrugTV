@@ -29,6 +29,14 @@ class HubCommandRouterTest {
     }
 
     @Test
+    fun `watch accepts a clip by its slug`() {
+        assertEquals(Command.WatchClip("SpunkyCharmingMarrowSquadGoals-QL6i6NKeABzgc3JP"),
+            HubCommandRouter.parse("watch", """{"clip":"SpunkyCharmingMarrowSquadGoals-QL6i6NKeABzgc3JP"}"""))
+        assertEquals(null, HubCommandRouter.parse("watch", """{"clip":"bad slug!"}"""))
+        assertEquals(null, HubCommandRouter.parse("watch", """{"clip":"abc"}"""))
+    }
+
+    @Test
     fun `watch accepts a login or JSON, nothing else`() {
         assertEquals(Command.WatchLogin("papaplatte"), HubCommandRouter.parse("watch", "Papaplatte"))
         assertEquals(Command.WatchLogin("papaplatte"), HubCommandRouter.parse("watch", "@papaplatte"))
