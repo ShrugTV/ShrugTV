@@ -85,9 +85,7 @@ class ChatMessageRenderer(
         val colors = ThemeSettings.theme.value.colors
         darkBackgroundColor = colors.surface.toArgb()
         mentionHighlightColor = colors.accent.toArgb()
-        nameColorMode = NameColorMode.of(ctx?.let {
-            androidx.preference.PreferenceManager.getDefaultSharedPreferences(it).getString("pref_chat_name_colors", null)
-        })
+        nameColorMode = NameColorMode.of(ctx?.let { com.shrug.shrugtv.prefs.Prefs.chatNameColors.get(it) })
     }
 
     private fun renderGiftSub(chatMessage: ChatMessage): SpannableStringBuilder {

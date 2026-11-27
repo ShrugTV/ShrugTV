@@ -41,7 +41,6 @@ import com.shrug.shrugtv.ui.tv.Inter
 import com.shrug.shrugtv.ui.tv.TvColors
 import com.shrug.shrugtv.ui.tv.TvShapes
 import com.shrug.shrugtv.ui.tv.components.number
-import com.shrug.shrugtv.ui.tv.home.NetImage
 
 /** A "channel" of Clip TV: a slice of the clip list that plays as one programme. */
 private class Station(val key: String, val name: String, val clips: List<Movie>)
@@ -51,8 +50,10 @@ private class Station(val key: String, val name: String, val clips: List<Movie>)
  * biggest categories, short ones), the first clip of the chosen channel fills the screen, at the bottom what comes next.
  * OK on a channel plays it from the start, OK on a clip of the strip from there; the queue then runs through the channel.
  *
- * The design has the clip running right on this page; here the page shows its picture and OK starts the player, because a
- * second player on this page has not been measured on the Fire TV yet.
+ * With the setting "Play the focused clip" the clip runs muted over the whole screen, as in the design,
+ * and the channel plays by itself: at the end of a clip the next one of the channel follows (after the last, the first again).
+ * While a clip of the strip has the focus, that clip repeats instead, so the picture does not run away from the focus. OK still
+ * starts the player with sound; without the setting the page shows the picture.
  */
 @Composable
 fun ClipTvScreen(ui: ClipsUi) {
@@ -67,10 +68,16 @@ fun ClipTvScreen(ui: ClipsUi) {
     var stationKey by remember { mutableStateOf("all") }
     val station = stations.firstOrNull { it.key == stationKey } ?: stations.first()
     var focusedClip by remember { mutableStateOf<Movie?>(null) }
-    val hero = focusedClip?.takeIf { f -> station.clips.any { it.clipSlug == f.clipSlug } } ?: station.clips.firstOrNull()
+    // The clip the channel has come to by playing on by itself; a new channel starts at its first clip
+    var onAir by remember(station.key) { mutableStateOf<String?>(null) }
+    val hero = focusedClip?.takeIf { f -> station.clips.any { it.clipSlug == f.clipSlug } }
+        ?: station.clips.firstOrNull { it.clipSlug == onAir } ?: station.clips.firstOrNull()
+    val playOn: (() -> Unit)? = if (focusedClip == null && hero != null) {
+        { onAir = (com.shrug.shrugtv.clips.ClipQueue.nextIn(station.clips, hero.clipSlug, emptySet()) ?: station.clips.firstOrNull())?.clipSlug }
+    } else null
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        if (hero != null) NetImage(hero.cardImageUrl, Modifier.fillMaxSize(), width = 800, height = 450)
+        if (hero != null) ClipVideo(hero, Modifier.fillMaxSize(), onEnded = playOn)
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.6f), 0.25f to Color.Transparent, 0.45f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.92f))))
         Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(0f to Color.Black.copy(alpha = 0.88f), 0.3f to Color.Transparent)))
 

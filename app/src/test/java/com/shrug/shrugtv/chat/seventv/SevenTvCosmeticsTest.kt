@@ -63,4 +63,21 @@ class SevenTvCosmeticsTest {
         assertTrue(e.isZeroWidth)
         assertEquals("https://cdn.7tv.app/emote/abc/2x.webp", e.url)
     }
+
+    @Test
+    fun `7TV loads the smallest file that is high enough for the chat (michael-shrugtv-338)`() {
+        val files = com.google.gson.JsonParser.parseString("""[
+            {"name":"1x.webp","width":32,"height":32,"format":"WEBP"},{"name":"2x.webp","width":64,"height":64,"format":"WEBP"},
+            {"name":"3x.webp","width":96,"height":96,"format":"WEBP"},{"name":"4x.webp","width":128,"height":128,"format":"WEBP"},
+            {"name":"1x.avif","width":32,"height":32,"format":"AVIF"},{"name":"4x.gif","width":128,"height":128,"format":"GIF"}]""").asJsonArray
+        assertEquals("2x.webp", EmoteManager.pickSevenTvFile(files, 50))
+        assertEquals("2x.webp", EmoteManager.pickSevenTvFile(files, 64))
+        assertEquals("3x.webp", EmoteManager.pickSevenTvFile(files, 65))
+        assertEquals("1x.webp", EmoteManager.pickSevenTvFile(files, 20))
+        assertEquals("larger than every file: the largest", "4x.webp", EmoteManager.pickSevenTvFile(files, 300))
+        assertEquals("no size known: the largest, as before", "4x.webp", EmoteManager.pickSevenTvFile(files, null))
+        val noHeights = com.google.gson.JsonParser.parseString("""[{"name":"1x.webp","format":"WEBP"},{"name":"2x.webp","format":"WEBP"}]""").asJsonArray
+        assertEquals("2x.webp", EmoteManager.pickSevenTvFile(noHeights, 50))
+        assertEquals("", EmoteManager.pickSevenTvFile(null, 50))
+    }
 }

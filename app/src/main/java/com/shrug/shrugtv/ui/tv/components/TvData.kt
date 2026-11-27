@@ -1,34 +1,33 @@
 package com.shrug.shrugtv.ui.tv.components
 
 import android.content.Context
-import com.shrug.shrugtv.apihelpers.FavoriteChangedCallback
 import com.shrug.shrugtv.apihelpers.FavoriteChannels
 import com.shrug.shrugtv.apihelpers.FollowedGames
-import com.shrug.shrugtv.apihelpers.IsFavoritedCallback
-import com.shrug.shrugtv.apihelpers.IsFollowedCallback
 import com.shrug.shrugtv.apihelpers.LiveStreamHistory
 import com.shrug.shrugtv.apihelpers.Search
-import com.shrug.shrugtv.apihelpers.SearchCallback
+import com.shrug.shrugtv.model.Movie
 
-/** Data-layer entry points for the Compose screens. */
+/**
+ * Data-layer entry points for the Compose screens. Suspend functions since :
+ * the screens call them from their own scope, so closing a screen cancels its requests.
+ */
 object TvData {
 
-    fun searchLive(c: Context, text: String, cb: SearchCallback) = Search.getLiveStreams(c, text, cb)
+    suspend fun searchLive(c: Context, text: String): List<Movie> = Search.getLiveStreams(c, text)
 
-    fun searchChannels(c: Context, text: String, cb: SearchCallback) = Search.getChannels(c, text, cb)
+    suspend fun searchChannels(c: Context, text: String): List<Movie> = Search.getChannels(c, text)
 
-    fun searchGames(c: Context, text: String, cb: SearchCallback) = Search.getGames(c, text, cb)
+    suspend fun searchGames(c: Context, text: String): List<Movie> = Search.getGames(c, text)
 
-    fun isFavorite(c: Context, channelId: String, cb: IsFavoritedCallback) =
-        FavoriteChannels.isFavorited(c, channelId, cb)
+    suspend fun isFavorite(c: Context, channelId: String): Boolean = FavoriteChannels.isFavorited(c, channelId)
 
-    fun setFavorite(c: Context, channelId: String, on: Boolean, cb: FavoriteChangedCallback) {
-        if (on) FavoriteChannels.setFavorite(c, channelId, cb)
-        else FavoriteChannels.removeFavorite(c, channelId, cb)
+    /** Stores the favorite; the write finishes even if the calling screen closes meanwhile. */
+    suspend fun setFavorite(c: Context, channelId: String, on: Boolean) {
+        if (on) FavoriteChannels.setFavorite(c, channelId)
+        else FavoriteChannels.removeFavorite(c, channelId)
     }
 
-    fun gameFollowed(c: Context, gameId: Long, cb: IsFollowedCallback) =
-        FollowedGames.isFollowed(c, gameId, cb)
+    suspend fun gameFollowed(c: Context, gameId: Long): Boolean = FollowedGames.isFollowed(c, gameId)
 
     /** Add the channel to the live history or remove it. */
     fun history(c: Context, channelId: Int, on: Boolean) {

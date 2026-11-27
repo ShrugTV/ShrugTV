@@ -14,7 +14,6 @@ object AppState {
     var storedScopes: List<String> = emptyList()
     fun loadScopes(context: Context) { storedScopes = context.getSharedPreferences("User", 0).getStringSet("SCOPES", emptySet())?.toList() ?: emptyList() }
 
-    @JvmField var showDevErrors: Boolean = false
     @JvmField var previewImageWidth: Int = 800
     @JvmField var previewImageHeight: Int = 450
     @JvmField var boxArtWidth: Int = 245
@@ -92,10 +91,7 @@ object AppState {
 
     @JvmStatic
     fun loadAccessToken(context: Context) {
-        val prefs = context.getSharedPreferences("User", 0)
-        if (prefs != null) {
-            accessToken = prefs.getString("TOKEN", "") ?: ""
-        }
+        accessToken = com.shrug.shrugtv.security.SecretStore.get(context, com.shrug.shrugtv.security.SecretStore.USER_FILE, com.shrug.shrugtv.security.SecretStore.TOKEN)
     }
 
     @JvmStatic

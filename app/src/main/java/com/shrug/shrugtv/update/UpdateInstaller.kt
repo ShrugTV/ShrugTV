@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import com.shrug.shrugtv.net.Http
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
 import java.io.File
 import java.security.MessageDigest
@@ -52,7 +53,7 @@ object UpdateInstaller {
 
     /** Opens the system screen where the user allows this app to install apps; false when the TV has no such screen. */
     fun openPermissionScreen(ctx: Context): Boolean = try {
-        ctx.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + ctx.packageName)))
+        ctx.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + ctx.packageName)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         true
     } catch (e: Exception) {
         false
@@ -63,8 +64,15 @@ object UpdateInstaller {
      * [Outcome.Started] means the system took over (its dialog follows or is shown already); failures after that arrive
      * through [register].
      */
+    /** The APK only comes over https (a plain-http link could be swapped on the way); local test servers excepted. */
+    internal fun isSafeUrl(url: String): Boolean {
+        val u = url.toHttpUrlOrNull() ?: return false
+        return u.isHttps || u.host == "localhost" || u.host == "127.0.0.1"
+    }
+
     fun install(ctx: Context, release: UpdateCheck.Release, progress: (Int) -> Unit): Outcome {
         if (release.apkUrl.isEmpty() || release.sha256.isEmpty()) return Outcome.NoFile
+        if (!isSafeUrl(release.apkUrl)) return Outcome.NoFile
         if (!mayInstall(ctx)) return if (openPermissionScreen(ctx)) Outcome.NeedPermission else Outcome.PermissionScreenMissing
         val dir = File(ctx.cacheDir, "update").apply { mkdirs() }
         dir.listFiles()?.forEach { it.delete() }

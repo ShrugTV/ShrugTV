@@ -76,6 +76,24 @@ class TranslationsTest {
         assertTrue(problems.joinToString("\n"), problems.isEmpty())
     }
 
+    /**
+     * German is the second language every visible text is written in (CLAUDE.md), so it may not lack one
+     *. Values, formats and keys that are not text carry `translatable="false"` and are skipped.
+     */
+    @Test
+    fun `German has every visible text`() {
+        val en = load("values")
+        val de = load("values-de")
+        val missing = (en.strings.keys - de.strings.keys).map { "string $it" } +
+            (en.arrays.keys - de.arrays.keys).map { "array $it" } +
+            (en.plurals.keys - de.plurals.keys).map { "plurals $it" }
+        assertTrue(
+            "values-de lacks ${missing.size} texts (translate them, or mark values and keys translatable=\"false\"):\n" +
+                missing.joinToString("\n"),
+            missing.isEmpty(),
+        )
+    }
+
     @Test
     fun `the language list has a name and a code for every language`() {
         val names = load("values").arrays["app_language_names"]

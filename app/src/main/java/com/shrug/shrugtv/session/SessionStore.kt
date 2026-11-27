@@ -25,13 +25,22 @@ data class Session(
 }
 
 object SessionStore {
+    /** The display name ("ReRedman") of the last profile, with the login it belongs to. */
+    const val PREF_DISPLAY_NAME = "USER_DISPLAY_NAME"
+    const val PREF_DISPLAY_LOGIN = "USER_DISPLAY_LOGIN"
+
+    /** The kept display name if it belongs to [login]; another account's name never shows. */
+    @JvmStatic
+    fun keptDisplayName(login: String, keptName: String?, keptLogin: String?): String =
+        if (login.isNotEmpty() && keptLogin.equals(login, ignoreCase = true)) keptName.orEmpty() else ""
+
     private val _state = MutableStateFlow(Session())
     val state: StateFlow<Session> = _state.asStateFlow()
 
     @JvmStatic
     fun loadFromPrefs(context: Context) {
         val prefs = context.applicationContext.getSharedPreferences("User", 0)
-        val token = prefs.getString("TOKEN", "") ?: ""
+        val token = com.shrug.shrugtv.security.SecretStore.get(context, com.shrug.shrugtv.security.SecretStore.USER_FILE, com.shrug.shrugtv.security.SecretStore.TOKEN)
         val uid = prefs.getString("USER_ID", "") ?: AppState.userId ?: ""
         val login = prefs.getString("USER_NAME", "") ?: AppState.userLogin ?: ""
         val loggedOut = prefs.getBoolean("USER_LOGGED_OUT", false)
@@ -39,7 +48,12 @@ object SessionStore {
         if (uid.isNotEmpty()) AppState.userId = uid
         if (login.isNotEmpty()) AppState.userLogin = login
         AppState.userLoggedOut = loggedOut
+        // Twitch logins are lower case; the display name with its capitals comes from the profile request seconds
+        // later. The one kept from last time shows at once (the greeting of the start screen).
+        val display = if (loggedOut) "" else keptDisplayName(login, prefs.getString(PREF_DISPLAY_NAME, null), prefs.getString(PREF_DISPLAY_LOGIN, null))
+        if (display.isNotEmpty() && AppState.userDisplayName.isEmpty()) AppState.userDisplayName = display
         _state.value = _state.value.copy(
+            displayName = _state.value.displayName.ifEmpty { display },
             accessToken = token,
             userId = uid,
             userLogin = login,

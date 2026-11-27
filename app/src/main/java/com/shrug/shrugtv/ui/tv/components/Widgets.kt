@@ -148,7 +148,7 @@ fun WideCard(
         Card(
             onClick = click,
             onLongClick = longPress,
-            modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f).onFocusChanged { if (it.isFocused) focus() },
+            modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f).onFocusChanged { if (it.isFocused) focus() }.menuKey(longPress),
             shape = CardDefaults.shape(TvShapes.r(10.dp)),
             scale = CardDefaults.scale(focusedScale = TvStyle.focusScale),
             border = focusFrame(),
@@ -206,8 +206,10 @@ fun StreamCard(m: Movie, click: () -> Unit, focus: () -> Unit = {}, longPress: (
 
 @Composable
 fun VodCard(m: Movie, click: () -> Unit, longPress: (() -> Unit)? = null, width: Dp = 160.dp, focus: () -> Unit = {}) {
-    // A clip that was opened before is drawn dimmed, if the setting asks for it
-    androidx.compose.foundation.layout.Box(Modifier.alpha(if (m.clipSeen) 0.4f else 1f)) {
+    // A clip that was opened before, or a recording watched to 90 %, is drawn dimmed if the setting asks for it
+    //
+    val vodSeen = rememberVodSeenMode()
+    androidx.compose.foundation.layout.Box(Modifier.alpha(if (m.clipSeen || VodSeen.dimmed(vodSeen, m)) 0.4f else 1f)) {
         WideCard(m, click, focus = focus, longPress = longPress, width = width, corner = {}, bottom = m.durationText ?: "", row2 = m.title ?: "",
             bottom2 = if (m.isClip && m.viewCount > 0) number(m.viewCount) else "", progress = m.resumeProgressPercent)
     }
@@ -219,7 +221,7 @@ fun ChannelCard(m: Movie, click: () -> Unit, longPress: (() -> Unit)? = null) {
         Card(
             onClick = click,
             onLongClick = longPress,
-            modifier = Modifier.size(96.dp),
+            modifier = Modifier.size(96.dp).menuKey(longPress),
             shape = CardDefaults.shape(CircleShape),
             scale = CardDefaults.scale(focusedScale = TvStyle.focusScale),
             border = CardDefaults.border(focusedBorder = Border(TvStyle.focusStroke, shape = CircleShape)),
@@ -237,7 +239,7 @@ fun GameCard(m: Movie, click: () -> Unit, longPress: (() -> Unit)? = null) {
     Card(
         onClick = click,
         onLongClick = longPress,
-        modifier = Modifier.width(96.dp).aspectRatio(272f / 380f),
+        modifier = Modifier.width(96.dp).aspectRatio(272f / 380f).menuKey(longPress),
         shape = CardDefaults.shape(TvShapes.r(10.dp)),
         scale = CardDefaults.scale(focusedScale = TvStyle.focusScale),
         border = focusFrame(),

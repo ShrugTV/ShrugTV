@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -121,6 +122,8 @@ private fun StatsScreen() {
     var version by remember { mutableStateOf(0) }
     var loaded by remember { mutableStateOf<Loaded?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
+    // The look of the page; the button next to the periods switches it and keeps the choice
+    var style by remember { mutableStateOf(prefs.style) }
 
     val range: StatsRange = when (tab) {
         Tab.WEEK -> StatsRange.WEEK
@@ -128,10 +131,20 @@ private fun StatsScreen() {
         Tab.YEAR -> StatsRange.YEAR
         Tab.MONTH -> StatsRange.Month(month)
     }
+    // A broken store is an error with "Try again", not an empty page
+    var failed by remember { mutableStateOf(false) }
     LaunchedEffect(tab, month, version) {
-        loaded = withContext(Dispatchers.IO) {
-            val (rows, oldest) = WatchStatsStore.load(context, range, today)
-            Loaded(WatchStats.compute(rows, range, today, oldest, prefs.topCount, prefs.rankBy), oldest)
+        try {
+            loaded = withContext(Dispatchers.IO) {
+                val (rows, oldest) = WatchStatsStore.load(context, range, today)
+                Loaded(WatchStats.compute(rows, range, today, oldest, prefs.topCount, prefs.rankBy), oldest)
+            }
+            failed = false
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            android.util.Log.w("Stats", "Loading failed", e)
+            failed = true
         }
     }
 
@@ -139,8 +152,20 @@ private fun StatsScreen() {
     val firstTab = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { firstTab.requestFocus() } }
 
+    fun nextStyle() {
+        style = com.shrug.shrugtv.stats.StatsStyle.values().let { all -> all[(style.ordinal + 1) % all.size] }
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(context).edit().putString(StatsPrefs.STYLE, style.value).apply()
+    }
     Column(
-        Modifier.fillMaxSize().themeBackground().verticalScroll(rememberScrollState())
+        Modifier.fillMaxSize().themeBackground()
+            // The menu key switches the look too, wherever the focus is
+            .onPreviewKeyEvent { e ->
+                if (e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_MENU) {
+                    if (e.nativeKeyEvent.action == android.view.KeyEvent.ACTION_UP) nextStyle()
+                    true
+                } else false
+            }
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 48.dp, vertical = 26.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -156,12 +181,16 @@ private fun StatsScreen() {
                         onFocus = { tab = t }
                     )
                 }
+                Chip(
+                    text = stringResource(R.string.stats_style_button, stringResource(styleName(style))), selected = false,
+                    onClick = { nextStyle() }
+                )
                 if (tab == Tab.MONTH) {
                     val months = WatchStats.months(loaded?.oldest, today)
                     val i = months.indexOf(month).coerceAtLeast(0)
                     Chip("◀", false, onClick = { months.getOrNull(i - 1)?.let { month = it } })
                     Text(
-                        "${month.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())} ${month.year}",
+                        "${month.month.getDisplayName(TextStyle.SHORT, androidx.compose.ui.platform.LocalConfiguration.current.locales[0])} ${month.year}",
                         fontFamily = Inter, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = TvColors.Text
                     )
                     Chip("▶", false, onClick = { months.getOrNull(i + 1)?.let { month = it } })
@@ -170,14 +199,20 @@ private fun StatsScreen() {
         }
 
         val l = loaded
-        if (l == null) {
-            Text(stringResource(R.string.stats_loading), fontFamily = Inter, fontSize = 15.sp, color = TvColors.TextMuted)
-        } else if (l.stats.isEmpty) {
+        if (failed || l == null || l.stats.isEmpty) {
+            val st = if (failed) com.shrug.shrugtv.ui.tv.components.ListStatus.ERROR
+                else if (l == null) com.shrug.shrugtv.ui.tv.components.ListStatus.LOADING else com.shrug.shrugtv.ui.tv.components.ListStatus.EMPTY
             Card(Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.stats_empty), fontFamily = Inter, fontSize = 15.sp, color = TvColors.TextMuted)
+                com.shrug.shrugtv.ui.tv.components.StatusNote(st, stringResource(R.string.stats_empty), retry = { version++ })
             }
         } else {
-            Content(l.stats, prefs)
+            when (style) {
+                com.shrug.shrugtv.stats.StatsStyle.TILES -> Content(l.stats, prefs)
+                com.shrug.shrugtv.stats.StatsStyle.GRID -> GridContent(l.stats, prefs)
+                com.shrug.shrugtv.stats.StatsStyle.MAGAZINE -> MagazineContent(l.stats, prefs)
+                com.shrug.shrugtv.stats.StatsStyle.CLOCK -> ClockContent(l.stats, prefs)
+                com.shrug.shrugtv.stats.StatsStyle.ARCADE -> ArcadeContent(l.stats, prefs)
+            }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -506,6 +541,15 @@ private fun Legend(color: Color, name: String, time: String) {
     }
 }
 
+/** Name of a look of the page, for its button. */
+internal fun styleName(s: com.shrug.shrugtv.stats.StatsStyle): Int = when (s) {
+    com.shrug.shrugtv.stats.StatsStyle.TILES -> R.string.stats_style_tiles
+    com.shrug.shrugtv.stats.StatsStyle.GRID -> R.string.stats_style_grid
+    com.shrug.shrugtv.stats.StatsStyle.MAGAZINE -> R.string.stats_style_magazine
+    com.shrug.shrugtv.stats.StatsStyle.CLOCK -> R.string.stats_style_clock
+    com.shrug.shrugtv.stats.StatsStyle.ARCADE -> R.string.stats_style_arcade
+}
+
 /** "Tue 3 Nov" for a day, "May 2026" for a month. */
 private fun bucketName(start: LocalDate, unit: BucketUnit): String = when (unit) {
     BucketUnit.DAY -> "${start.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())} ${start.dayOfMonth} ${start.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())}"
@@ -518,6 +562,7 @@ private fun axisLabel(start: LocalDate, unit: BucketUnit, count: Int): String = 
     else -> start.dayOfMonth.toString()
 }
 
+/** The shared pill; [onBlur] lets the delete button forget its confirmation. */
 @Composable
 private fun Chip(
     text: String,
@@ -526,17 +571,9 @@ private fun Chip(
     onClick: () -> Unit = {},
     onFocus: () -> Unit = {},
     onBlur: () -> Unit = {}
-) {
-    Button(
-        onClick = onClick,
-        modifier = modifier.onFocusChanged { if (it.isFocused) onFocus() else onBlur() },
-        colors = ButtonDefaults.colors(
-            containerColor = if (selected) TvColors.Accent else TvColors.Surface, contentColor = if (selected) TvColors.OnAccent else TvColors.TextMedium,
-            focusedContainerColor = TvColors.Ink, focusedContentColor = TvColors.Background
-        ),
-        border = ButtonDefaults.border(border = androidx.tv.material3.Border(androidx.compose.foundation.BorderStroke(1.dp, Color.Transparent)))
-    ) { Text(text, fontFamily = Inter, fontWeight = FontWeight.SemiBold, fontSize = 13.sp) }
-}
+) = com.shrug.shrugtv.ui.tv.components.ShrugChip(
+    text, selected, modifier.onFocusChanged { if (it.isFocused) onFocus() else onBlur() }, onClick = onClick
+)
 
 /** 95 min -> "1 h 35 min", 40 s -> "< 1 min"; the page does not show seconds. Used where no setting applies (the home card). */
 internal fun duration(sec: Long): String = formatDuration(sec, TimeFormat.HOURS_MINUTES)

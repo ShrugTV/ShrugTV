@@ -15,6 +15,7 @@ import com.shrug.shrugtv.model.Enums
 import com.shrug.shrugtv.model.Movie
 import com.shrug.shrugtv.session.AppState
 import com.shrug.shrugtv.session.UserSession
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -36,22 +37,25 @@ object HomeData {
     /** Loads the profile (AppState.userId etc.); without it the follow queries stay empty. */
     suspend fun loadProfile(context: Context): Login {
         if (AppState.accessToken.isNullOrEmpty()) return Login.LoggedOut
-        return suspendCancellableCoroutine { cont ->
-            UserSession.loadUserProfile(context, object : UserSession.ProfileCallback {
-                override fun onError(str: String) { if (cont.isActive) cont.resume(Login.Error(str)) }
-                override fun onUnauthorized() { if (cont.isActive) cont.resume(Login.LoggedOut) }
-                override fun onEmptyResponse() {
-                    if (cont.isActive) cont.resume(if (AppState.userProfileLoaded) Login.LoggedIn else Login.LoggedOut)
-                }
-                override fun onRequestFailed() { if (cont.isActive) cont.resume(Login.Error(context.getString(com.shrug.shrugtv.R.string.home_twitch_unreachable))) }
-            })
-        }
+        // Suspending since : leaving home cancels the request itself, not only the wait for it.
+        var login: Login = Login.LoggedOut
+        UserSession.awaitUserProfile(context, object : UserSession.ProfileCallback {
+            override fun onError(str: String) { login = Login.Error(str) }
+            override fun onUnauthorized() { login = Login.LoggedOut }
+            override fun onEmptyResponse() { login = if (AppState.userProfileLoaded) Login.LoggedIn else Login.LoggedOut }
+            override fun onRequestFailed() { login = Login.Error(context.getString(com.shrug.shrugtv.R.string.home_twitch_unreachable)) }
+        })
+        return login
     }
 
-    private suspend fun helix(call: (com.shrug.shrugtv.net.ResultCallback<JsonObject>) -> Unit): JsonObject? =
-        suspendCancellableCoroutine { cont ->
-            call(com.shrug.shrugtv.net.ResultCallback { e, json -> if (cont.isActive) cont.resume(if (e == null) json else null) })
-        }
+    /** A Helix query; null on any failure. Cancelling the caller cancels the OkHttp call. */
+    private suspend fun helix(query: suspend () -> JsonObject): JsonObject? = try {
+        query()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
+    }
 
     /**
      * Parse in the background: parseStreams loads the channel avatars; on the main thread that happens
@@ -66,15 +70,15 @@ object HomeData {
         }
 
     suspend fun followedLive(context: Context): List<Movie> =
-        streamsFrom(context, helix { HelixApi.getFollowedStreams(context, it) }, Enums.RowType.FOLLOWED)
+        streamsFrom(context, helix { HelixApi.awaitFollowedStreams(context) }, Enums.RowType.FOLLOWED)
 
     suspend fun topStreams(context: Context): List<Movie> =
-        streamsFrom(context, helix { HelixApi.getTopStreams(context, "", it) }, Enums.RowType.TOP_STREAMS)
+        streamsFrom(context, helix { HelixApi.awaitTopStreams(context, "") }, Enums.RowType.TOP_STREAMS)
 
     /** Live streams of one category, optionally only in the app language (channel switcher). */
     suspend fun gameStreams(context: Context, gameId: Long, byLanguage: Boolean): List<Movie> =
-        if (byLanguage) streamsFrom(context, helix { HelixApi.getStreamsByGameAndLanguage(context, gameId, "", it) }, Enums.RowType.GAME_LANGUAGE)
-        else streamsFrom(context, helix { HelixApi.getStreamsByGame(context, gameId, "", it) }, Enums.RowType.GAME)
+        if (byLanguage) streamsFrom(context, helix { HelixApi.awaitStreamsByGameAndLanguage(context, gameId, "") }, Enums.RowType.GAME_LANGUAGE)
+        else streamsFrom(context, helix { HelixApi.awaitStreamsByGame(context, gameId, "") }, Enums.RowType.GAME)
 
     /** Category id of a live channel by its login; 0 if it is offline or unknown (a channel opened by link has none yet). */
     suspend fun gameIdOfLogin(context: Context, login: String): Long = withContext(Dispatchers.IO) {
@@ -89,27 +93,18 @@ object HomeData {
 
     /** Top live streams in the app language. */
     suspend fun languageStreams(context: Context): List<Movie> =
-        streamsFrom(context, helix { HelixApi.getStreamsByLanguage(context, "", it) }, Enums.RowType.LANGUAGE)
+        streamsFrom(context, helix { HelixApi.awaitStreamsByLanguage(context, "") }, Enums.RowType.LANGUAGE)
 
-    suspend fun followedChannels(context: Context): List<Movie> = suspendCancellableCoroutine { cont ->
-        FollowedChannels.getList(context) { list -> if (cont.isActive) cont.resume(list?.toList() ?: emptyList()) }
-    }
+    // The helpers are suspend functions since : leaving home cancels them with the caller's scope.
+    suspend fun followedChannels(context: Context): List<Movie> = FollowedChannels.getList(context)
 
-    suspend fun topGames(context: Context): List<Movie> = suspendCancellableCoroutine { cont ->
-        TopGames.getList(context, "") { list, _ -> if (cont.isActive) cont.resume(list ?: emptyList()) }
-    }
+    suspend fun topGames(context: Context): List<Movie> = TopGames.getList(context, "").first
 
-    suspend fun followedGames(context: Context): List<Movie> = suspendCancellableCoroutine { cont ->
-        FollowedGames.getList(context) { list -> if (cont.isActive) cont.resume(list ?: emptyList()) }
-    }
+    suspend fun followedGames(context: Context): List<Movie> = FollowedGames.getList(context)
 
-    suspend fun liveHistory(context: Context): List<Movie> = suspendCancellableCoroutine { cont ->
-        LiveStreamHistory.getLiveChannels(context) { list -> if (cont.isActive) cont.resume(list ?: emptyList()) }
-    }
+    suspend fun liveHistory(context: Context): List<Movie> = LiveStreamHistory.getLiveChannels(context)
 
-    suspend fun pastBroadcasts(context: Context): List<Movie> = suspendCancellableCoroutine { cont ->
-        PastBroadcast.getList(context, { list -> if (cont.isActive) cont.resume(list?.toList() ?: emptyList()) }, emptyList())
-    }
+    suspend fun pastBroadcasts(context: Context): List<Movie> = PastBroadcast.getList(context)
 
     /** Continue watching: VOD history from Room, newest first (sorted in SQL, re-sorted defensively). */
     suspend fun continueWatching(context: Context): List<Movie> = withContext(Dispatchers.IO) {
@@ -126,19 +121,19 @@ object HomeData {
     suspend fun previewUrl(context: Context, m: Movie): String? {
         // Keep URL and qualities on the Movie: the player uses them if they are
         // younger than 15 min (getPlaybackUrlIfFresh) and saves the token request on opening (Fire TV:
-        // about 0.5 s). Only with the same token kind as in the player (developer setting).
+        // about 0.5 s). Preview and player ask for the same token kind (the developer switch for it is gone).
         m.playbackUrlIfFresh?.let { return it }
-        val likeInPlayer = !androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
-            .getBoolean("pref_dev_use_stream_token", false)
         return suspendCancellableCoroutine { cont ->
             val r = com.shrug.shrugtv.player.PlaybackUrlResolver(context, m.playbackId, m.playbackType) { qualities, cluster ->
-                if (likeInPlayer && !qualities.isNullOrEmpty()) {
+                if (!qualities.isNullOrEmpty()) {
                     m.manifestCluster = cluster
                     m.qualities = qualities
                     m.setPlaybackUrl(qualities[0].url)
                 }
                 if (cont.isActive) cont.resume(qualities?.firstOrNull()?.url)
             }
+            // Leaving the hero preview aborts the token and playlist requests
+            cont.invokeOnCancellation { r.cancel() }
             r.setUseStreamToken(false)
             r.start()
         }

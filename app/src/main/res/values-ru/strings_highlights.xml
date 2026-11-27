@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Highlights of the running stream in the player -->
+<resources>
+    <string name="player_btn_highlights">Лучшее</string>
+    <string name="player_highlights_title">Лучшее из этой трансляции</string>
+    <string name="player_highlights_hint">Самые просматриваемые клипы с начала трансляции. OK запускает клип, Назад возвращает в эфир.</string>
+    <string name="player_highlights_empty">Клипов из этой трансляции пока нет</string>
+    <string name="player_highlights_error">Не удалось загрузить клипы</string>
+    <string name="player_highlights_after">через %1$s</string>
+    <string name="settings_player_highlights">Лучшее в плеере</string>
+    <string name="settings_player_highlights_summary">Кнопка «Лучшее» на панели плеера прямой трансляции: пять самых просматриваемых клипов с её начала.</string>
+</resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Highlights of the running stream in the player -->
+<resources>
+    <string name="player_btn_highlights">Öne çıkanlar</string>
+    <string name="player_highlights_title">Bu yayının öne çıkanları</string>
+    <string name="player_highlights_hint">Yayın başladığından beri en çok izlenen klipler. Tamam bir klibi oynatır, Geri canlı yayına döner.</string>
+    <string name="player_highlights_empty">Bu yayından henüz klip yok</string>
+    <string name="player_highlights_error">Klipler yüklenemedi</string>
+    <string name="player_highlights_after">%1$s sonra</string>
+    <string name="settings_player_highlights">Oynatıcıda öne çıkanlar</string>
+    <string name="settings_player_highlights_summary">Canlı yayının oynatıcı çubuğundaki “Öne çıkanlar” düğmesi: yayın başladığından beri en çok izlenen beş klip.</string>
+</resources>

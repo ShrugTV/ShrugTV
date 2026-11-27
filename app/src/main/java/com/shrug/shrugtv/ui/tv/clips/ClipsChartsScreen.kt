@@ -1,5 +1,6 @@
 package com.shrug.shrugtv.ui.tv.clips
 
+import com.shrug.shrugtv.ui.tv.components.menuKey
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,8 +46,9 @@ import com.shrug.shrugtv.ui.tv.home.NetImage
  * Layout "Charts" (design 3): the clips as a ranked list on the left (place, small picture, title, channel,
  * views, length), on the right the focused clip large with its numbers. The time frame sits as tabs above the list.
  *
- * Not yet from the design: the arrows for rising and falling places (they need yesterday's list, which the app does not keep)
- * and the muted preview playing on the right (not measured on the Fire TV yet); the right side shows the picture.
+ * With the setting "Play the focused clip" the right side runs the clip muted, otherwise it shows the
+ * picture. Not yet from the design: the arrows for rising and falling places (they need yesterday's list, which the app does
+ * not keep).
  */
 @Composable
 fun ClipsChartsScreen(ui: ClipsUi) {
@@ -78,7 +80,7 @@ fun ClipsChartsScreen(ui: ClipsUi) {
             }
             if (hero != null) {
                 Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(TvShapes.r(16.dp))) {
-                    ClipPicture(hero, big = true, showLength = false)
+                    ClipPicture(hero, big = true, showLength = false, video = true)
                 }
                 Text(hero.title ?: "", fontFamily = Inter, fontSize = 20.sp, lineHeight = 24.sp, fontWeight = FontWeight.ExtraBold, color = TvColors.Text, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 ChannelLine(hero, 18.dp, 11.sp, extra = ago(hero))
@@ -109,7 +111,8 @@ private fun ChartRow(ui: ClipsUi, m: Movie, i: Int, modifier: Modifier, onFocus:
     val sub = if (hasFocus) TvColors.Background.copy(alpha = 0.75f) else TvColors.TextMuted
     Card(
         onClick = { ui.play(m, ui.shown.drop(i)) }, onLongClick = { ui.menu(m) },
-        modifier = modifier.fillMaxWidth().height(46.dp).seenAlpha(m).onFocusChanged { hasFocus = it.isFocused; if (it.isFocused) onFocus() },
+        modifier = modifier.fillMaxWidth().height(46.dp).seenAlpha(m).onFocusChanged { hasFocus = it.isFocused; if (it.isFocused) onFocus() }
+            .menuKey { ui.menu(m) },
         shape = CardDefaults.shape(TvShapes.r(10.dp)),
         scale = CardDefaults.scale(focusedScale = 1f),
         colors = CardDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent, focusedContainerColor = TvColors.Ink),

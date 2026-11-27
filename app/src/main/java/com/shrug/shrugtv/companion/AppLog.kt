@@ -39,6 +39,7 @@ object AppLog {
     private val SECRETS = listOf(
         Regex("(?i)(bearer|oauth)[ :]+[A-Za-z0-9._~+/=-]{8,}") to "$1 ***",
         Regex("(?i)\\b(access_token|refresh_token|client_secret|password|passwd|token)([\"']?\\s*[=:]\\s*[\"']?)[^\\s\"'&,;}]+") to "$1$2***",
+        Regex("(?i)\\b(client[_-]?id|authorization)([\"']?\\s*[=:]\\s*[\"']?)(?!bearer)(?:(?:basic|digest|token)\\s+)?[^\\s\"'&,;}]+") to "$1$2***",
         Regex("(?i)(shrugtv_sid=)[^;\\s]+") to "$1***",
         Regex("(?i)(/p/)[A-Za-z0-9_-]{16,}") to "$1***"
     )

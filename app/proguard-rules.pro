@@ -34,10 +34,26 @@
 -dontwarn org.conscrypt.**
 -dontwarn org.openjsse.**
 
-# Paho MQTT loads its network modules via ServiceLoader and its messages via ResourceBundle
-# (Home Assistant integration, docs/mqtt_ha_plan.md)
--keep class org.eclipse.paho.client.mqttv3.** { *; }
--dontwarn org.eclipse.paho.client.mqttv3.**
-# NanoHTTPD (phone companion) – small, keep it whole
--keep class fi.iki.elonen.** { *; }
--dontwarn fi.iki.elonen.**
+# Ktor server (phone companion): its debugger check reads java.lang.management, which Android
+# lacks; Ktor catches the error and takes "no debugger" (IntellijIdeaDebugDetector), so it only needs silencing.
+-dontwarn java.lang.management.ManagementFactory
+-dontwarn java.lang.management.RuntimeMXBean
+# kotlin-reflect is left out on purpose (app/build.gradle): Ktor references it only for loading
+# modules by name and in development mode, both unused here. Its own rules went with it; the attributes they kept
+# stay, so nothing that reads generic signatures or inner classes by reflection changes.
+-dontwarn kotlin.reflect.full.**
+-dontwarn kotlin.reflect.jvm.**
+-keepattributes InnerClasses,Signature,RuntimeVisible*Annotations,EnclosingMethod
+# HiveMQ MQTT client: optional Netty parts (epoll, HTTP/WebSocket, proxy, tcnative,
+# log4j, Jetty ALPN) that the client only uses after a check; not packed on purpose.
+-dontwarn io.netty.channel.epoll.**
+-dontwarn io.netty.handler.codec.http.**
+-dontwarn io.netty.handler.proxy.**
+-dontwarn io.netty.internal.tcnative.**
+-dontwarn org.apache.log4j.**
+-dontwarn org.apache.logging.log4j.**
+-dontwarn org.eclipse.jetty.**
+# The client's own Android rules (hivemq.github.io/hivemq-mqtt-client, installation/android): Netty finds handler
+# methods and JCTools its queue fields by name, so their members must neither be renamed nor removed.
+-keepclassmembernames class io.netty.** { *; }
+-keepclassmembers class org.jctools.** { *; }

@@ -224,9 +224,9 @@ class StreamZapper(context: Context?, private val listener: Listener) {
     private fun loadLiveHistory() {
         val ctx = contextRef.get() ?: return
         try {
-            LiveStreamHistory.getLiveChannels(ctx) { arrayList ->
-                onListLoaded(arrayList ?: ArrayList())
-            }
+            // Runs on the zapper's background thread (resolveInBackground), so waiting here blocks no UI
+            // (: the helper is a suspend function now)
+            onListLoaded(kotlinx.coroutines.runBlocking { LiveStreamHistory.getLiveChannels(ctx) })
         } catch (e3: Exception) {
             e3.printStackTrace()
             CrashReporter.recordException(e3)

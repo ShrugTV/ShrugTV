@@ -1,6 +1,7 @@
 package com.shrug.shrugtv.ui.tv.home
 
 import android.content.SharedPreferences
+import com.shrug.shrugtv.prefs.Prefs
 
 /**
  * Rules of the start splash, without Compose so they run in unit tests.
@@ -9,10 +10,6 @@ import android.content.SharedPreferences
  * (so it does not just flicker) and at most [MAX_MS] (offline or a slow network must not hold the app).
  */
 object SplashRules {
-    const val PREF_STYLE = "pref_splash_style"
-    const val PREF_GREETING = "pref_splash_greeting"
-    const val PREF_MIN_MS = "pref_splash_min_ms"
-
     const val MAX_MS = 5_000L
 
     enum class Style(val value: String) {
@@ -31,9 +28,9 @@ object SplashRules {
     data class Settings(val style: Style = Style.FULL, val greeting: Boolean = true, val minMs: Long = 600L)
 
     fun read(p: SharedPreferences) = Settings(
-        style = Style.of(p.getString(PREF_STYLE, null)),
-        greeting = p.getBoolean(PREF_GREETING, true),
-        minMs = (p.getString(PREF_MIN_MS, null)?.toLongOrNull() ?: 600L).coerceIn(0L, MAX_MS),
+        style = Style.of(Prefs.splashStyle.get(p)),
+        greeting = Prefs.splashGreeting.get(p),
+        minMs = Prefs.splashMinMs.get(p).toLong().coerceIn(0L, MAX_MS),
     )
 
     /** Hide now? [ready] = the home screen has rows or finished loading. */

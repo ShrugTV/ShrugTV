@@ -22,7 +22,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.preference.PreferenceManager
 import com.shrug.shrugtv.BuildConfig
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,7 +44,9 @@ import com.shrug.shrugtv.ui.tv.TvHomeTheme
 import com.shrug.shrugtv.ui.tv.TvShapes
 import com.shrug.shrugtv.ui.tv.components.glassButton
 import com.shrug.shrugtv.util.AppLanguage
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -67,7 +68,7 @@ class UpdateActivity : ComponentActivity() {
         val notes = UpdateCheck.shortNotes(rawNotes)
         val release = UpdateCheck.Release("v$version", version, url, rawNotes, intent.getStringExtra(APK).orEmpty(), intent.getStringExtra(SHA).orEmpty())
         // The install button needs the public edition and the switch "Install updates in the app"
-        val canInstall = BuildConfig.UPDATE_INSTALL && PreferenceManager.getDefaultSharedPreferences(this).getBoolean("pref_update_install", false)
+        val canInstall = BuildConfig.UPDATE_INSTALL && com.shrug.shrugtv.prefs.Prefs.updateInstall.get(this)
         if (canInstall) {
             receiver = UpdateInstaller.register(this, onFailure = { status.value = getString(R.string.update_install_failed, it); busy.value = false },
                 launch = { startActivity(it) })
@@ -90,24 +91,26 @@ class UpdateActivity : ComponentActivity() {
         if (busy.value) return
         busy.value = true
         status.value = ""
-        Thread {
-            val outcome = UpdateInstaller.install(applicationContext, release) { pct ->
-                runOnUiThread { status.value = getString(R.string.update_downloading, pct) }
-            }
-            runOnUiThread {
-                // Started: the system dialog or the confirmation follows through the receiver; the others end here
-                if (outcome != UpdateInstaller.Outcome.Started) busy.value = false
-                status.value = when (outcome) {
-                    UpdateInstaller.Outcome.Started -> getString(R.string.update_verifying)
-                    UpdateInstaller.Outcome.NeedPermission -> getString(R.string.update_need_permission)
-                    UpdateInstaller.Outcome.PermissionScreenMissing -> getString(R.string.update_permission_unavailable)
-                    UpdateInstaller.Outcome.NoFile -> getString(R.string.update_no_file)
-                    UpdateInstaller.Outcome.BadChecksum -> getString(R.string.update_bad_checksum)
-                    UpdateInstaller.Outcome.DownloadFailed -> getString(R.string.update_download_failed)
-                    is UpdateInstaller.Outcome.Failed -> getString(R.string.update_install_failed, outcome.message)
+        // In the page's scope since  (before a bare thread): the result is shown only while the page
+        // exists; the download itself is blocking and ends as before
+        lifecycleScope.launch {
+            val outcome = withContext(Dispatchers.IO) {
+                UpdateInstaller.install(applicationContext, release) { pct ->
+                    runOnUiThread { status.value = getString(R.string.update_downloading, pct) }
                 }
             }
-        }.start()
+            // Started: the system dialog or the confirmation follows through the receiver; the others end here
+            if (outcome != UpdateInstaller.Outcome.Started) busy.value = false
+            status.value = when (outcome) {
+                UpdateInstaller.Outcome.Started -> getString(R.string.update_verifying)
+                UpdateInstaller.Outcome.NeedPermission -> getString(R.string.update_need_permission)
+                UpdateInstaller.Outcome.PermissionScreenMissing -> getString(R.string.update_permission_unavailable)
+                UpdateInstaller.Outcome.NoFile -> getString(R.string.update_no_file)
+                UpdateInstaller.Outcome.BadChecksum -> getString(R.string.update_bad_checksum)
+                UpdateInstaller.Outcome.DownloadFailed -> getString(R.string.update_download_failed)
+                is UpdateInstaller.Outcome.Failed -> getString(R.string.update_install_failed, outcome.message)
+            }
+        }
     }
 
     override fun onDestroy() {

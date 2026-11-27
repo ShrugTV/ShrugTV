@@ -117,10 +117,10 @@ fun PlayerStatsOverlay(
                 } else 0f
                 StatRow(
                     stringResource(R.string.player_stats_dropped),
-                    "${stats.droppedFrames} / ${stats.totalFrames} (${String.format(java.util.Locale.getDefault(), "%.1f", dropPercent)} %)"
+                    "${stats.droppedFrames} / ${stats.totalFrames} (${String.format(androidx.compose.ui.platform.LocalConfiguration.current.locales[0], "%.1f", dropPercent)} %)"
                 )
 
-                StatRow(stringResource(R.string.player_stats_buffer), "${String.format(java.util.Locale.getDefault(), "%.1f", stats.bufferSeconds)} s")
+                StatRow(stringResource(R.string.player_stats_buffer), "${String.format(androidx.compose.ui.platform.LocalConfiguration.current.locales[0], "%.1f", stats.bufferSeconds)} s")
                 if (stats.bufferHistory.size >= 2) {
                     Sparkline(
                         values = stats.bufferHistory,
@@ -136,15 +136,15 @@ fun PlayerStatsOverlay(
                     val each = stats.emoteFps / stats.emoteCount
                     StatRow(
                         stringResource(R.string.player_stats_emotes),
-                        String.format(java.util.Locale.getDefault(), "%d × %.1f fps = %.0f /s", stats.emoteCount, each, stats.emoteFps)
+                        String.format(androidx.compose.ui.platform.LocalConfiguration.current.locales[0], "%d × %.1f fps = %.0f /s", stats.emoteCount, each, stats.emoteFps)
                     )
                 }
 
                 if (stats.latencySeconds >= 0f) {
-                    StatRow(stringResource(R.string.player_stats_latency), "${String.format(java.util.Locale.getDefault(), "%.1f", stats.latencySeconds)} s")
+                    StatRow(stringResource(R.string.player_stats_latency), "${String.format(androidx.compose.ui.platform.LocalConfiguration.current.locales[0], "%.1f", stats.latencySeconds)} s")
                 }
                 if (stats.chatDelaySeconds >= 0f) {
-                    StatRow(stringResource(R.string.player_stats_chat_delay), "${String.format(java.util.Locale.getDefault(), "%.1f", stats.chatDelaySeconds)} s")
+                    StatRow(stringResource(R.string.player_stats_chat_delay), "${String.format(androidx.compose.ui.platform.LocalConfiguration.current.locales[0], "%.1f", stats.chatDelaySeconds)} s")
                 }
                 StatRow(stringResource(R.string.player_stats_memory), "${stats.memoryMb} MB")
             }

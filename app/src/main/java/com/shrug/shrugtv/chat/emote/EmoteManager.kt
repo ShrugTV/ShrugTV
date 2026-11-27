@@ -90,22 +90,31 @@ class EmoteManager @JvmOverloads constructor(
             return (flags and 1) != 0 || (dataFlags and 256) != 0
         }
 
-        fun parseSevenTvEmote(e: JsonObject): Emote? {
+        /**
+         * The WebP file to load: the smallest one at least [minHeight] high (7TV lists 1x to 4x: 32 to 128 px), the
+         * largest when none is high enough or no height is given. Before, the largest was always taken: an animated
+         * emote shown about 50 px high was decoded, kept and uploaded at 128 px, four times the pixels per frame
+         *.
+         */
+        @JvmStatic
+        fun pickSevenTvFile(files: JsonArray?, minHeight: Int?): String {
+            val webp = files?.mapNotNull { it.takeIf { f -> f.isJsonObject }?.asJsonObject }
+                ?.filter { it.get("format")?.asString == "WEBP" && it.has("name") } ?: return ""
+            if (webp.isEmpty()) return ""
+            fun h(f: JsonObject) = f.get("height")?.takeIf { it.isJsonPrimitive }?.asInt ?: 0
+            if (minHeight == null || webp.any { h(it) == 0 }) return webp.last().get("name").asString
+            val enough = webp.filter { h(it) >= minHeight }
+            return (enough.minByOrNull { h(it) } ?: webp.maxBy { h(it) }).get("name").asString
+        }
+
+        /** [minHeight]: the chat's emote size in px, see [pickSevenTvFile]. */
+        fun parseSevenTvEmote(e: JsonObject, minHeight: Int? = null): Emote? {
             return try {
                 val name = e.get("name").asString
                 val data = e.getAsJsonObject("data")
                 val animated = data.get("animated").asBoolean
                 val host = data.getAsJsonObject("host")
-                var file = ""
-                val files = host.getAsJsonArray("files")
-                if (files != null) {
-                    for (f in files) {
-                        val fileObj = f.asJsonObject
-                        if ("WEBP" == fileObj.get("format").asString) {
-                            file = fileObj.get("name").asString
-                        }
-                    }
-                }
+                val file = pickSevenTvFile(host.getAsJsonArray("files"), minHeight)
                 if (file.isEmpty()) return null
                 Emote.Builder()
                     .provider(Emote.Provider.SEVEN_TV)
@@ -231,22 +240,28 @@ class EmoteManager @JvmOverloads constructor(
         if (url.isNullOrEmpty()) return null
         val ctx = contextRef?.get() ?: return null
         return try {
-            val drawable = Glide.with(ctx)
-                .asDrawable()
-                .load(url)
-                .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
-                .submit(Int.MIN_VALUE, height)
-                .get(IMAGE_TIMEOUT_S, java.util.concurrent.TimeUnit.SECONDS)
-            if (drawable is WebpDrawable || drawable.intrinsicHeight >= height) {
-                drawable
-            } else {
-                val bmp = (drawable as? BitmapDrawable)?.bitmap
-                if (bmp != null) {
-                    val scaledWidth = (drawable.intrinsicWidth * height) / drawable.intrinsicHeight
-                    BitmapDrawable(ctx.resources, Bitmap.createScaledBitmap(bmp, scaledWidth, height, false))
-                } else {
+            // One loaded image per address and height, each message a copy that shares its frames
+            SharedEmoteDrawables.get("$url|$height", ctx.resources) {
+                val target = Glide.with(ctx)
+                    .asDrawable()
+                    .load(url)
+                    .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                    .submit(Int.MIN_VALUE, height)
+                val drawable = target.get(IMAGE_TIMEOUT_S, java.util.concurrent.TimeUnit.SECONDS)
+                val shown = if (drawable is WebpDrawable || drawable.intrinsicHeight >= height) {
                     drawable
+                } else {
+                    val bmp = (drawable as? BitmapDrawable)?.bitmap
+                    if (bmp != null) {
+                        val scaledWidth = (drawable.intrinsicWidth * height) / drawable.intrinsicHeight
+                        // One scaled bitmap per address and height for all messages
+                        BitmapDrawable(ctx.resources, ScaledBitmaps.get("$url|$height", bmp, scaledWidth, height))
+                    } else {
+                        drawable
+                    }
                 }
+                // The target keeps Glide's resource acquired, so it is not recycled while messages show it
+                SharedEmoteDrawables.Held(target, shown)
             }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to load emote $url: ${e.message}")
@@ -265,7 +280,9 @@ class EmoteManager @JvmOverloads constructor(
                 .submit()
                 .get(IMAGE_TIMEOUT_S, java.util.concurrent.TimeUnit.SECONDS)
             if (bytes != null && bytes.size > 3 && bytes[0] == 71.toByte() && bytes[1] == 73.toByte() && bytes[2] == 70.toByte()) {
-                GifDrawable(bytes)
+                // A new GifDrawable is running and renders on the one shared GIF thread as soon as anything
+                // invalidates it, drawn or not; only the chat row that shows it starts it
+                GifDrawable(bytes).apply { stop() }
             } else {
                 null
             }
@@ -307,7 +324,7 @@ class EmoteManager @JvmOverloads constructor(
             for (i in 0 until jsonArray.size()) {
                 // One broken emote is skipped, not the whole list (#108)
                 val item = jsonArray.get(i).takeIf { it.isJsonObject }?.asJsonObject ?: continue
-                parseSevenTvEmote(item)?.let { map[it.code] = it }
+                parseSevenTvEmote(item, emoteSize)?.let { map[it.code] = it }
             }
         } catch (e: Exception) {
             CrashReporter.recordException(e)
@@ -341,7 +358,7 @@ class EmoteManager @JvmOverloads constructor(
 
     @Synchronized
     fun sevenTvEmoteSet(emote: JsonObject, oldName: String?): String? {
-        val updated = parseSevenTvEmote(emote) ?: return null
+        val updated = parseSevenTvEmote(emote, emoteSize) ?: return null
         val map = HashMap(sevenTvChannelEmotes)
         if (oldName != null) {
             map.remove(oldName)
@@ -468,7 +485,7 @@ class EmoteManager @JvmOverloads constructor(
             val map = HashMap<String, Emote>()
             for (e in json.getAsJsonArray("emotes") ?: return) {
                 val o = e.takeIf { it.isJsonObject }?.asJsonObject ?: continue
-                parseSevenTvEmote(o)?.let { map[it.code] = it }
+                parseSevenTvEmote(o, emoteSize)?.let { map[it.code] = it }
             }
             personalSets[setId] = map to buildEmotePattern(map)
             Log.d(TAG, "7TV personal set $setId: ${map.size}")
@@ -742,9 +759,9 @@ class EmoteManager @JvmOverloads constructor(
                     val urls = item.getAsJsonObject("urls")
                     var imgUrl = ""
                     if (urls != null) {
-                        if (urls.has("4")) imgUrl = urls.get("4").asString
-                        else if (urls.has("2")) imgUrl = urls.get("2").asString
-                        else if (urls.has("1")) imgUrl = urls.get("1").asString
+                        // FFZ: 1, 2 and 4 are 32, 64 and 128 px high; the smallest that is high enough
+                        val order = if (emoteSize <= 64) listOf("2", "4", "1") else listOf("4", "2", "1")
+                        order.firstOrNull { urls.has(it) }?.let { imgUrl = urls.get(it).asString }
                     }
                     map[name] = Emote.Builder()
                         .provider(Emote.Provider.FFZ)

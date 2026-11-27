@@ -13,6 +13,7 @@ import com.shrug.shrugtv.model.Movie
 import com.shrug.shrugtv.notification.NotificationSettings
 import com.shrug.shrugtv.notification.OverlaySettings
 import com.shrug.shrugtv.notification.ToastNotification
+import com.shrug.shrugtv.prefs.Prefs
 import com.shrug.shrugtv.ui.tv.dialogs.ClearHistoryActivity
 
 internal object SettingsActions {
@@ -143,7 +144,7 @@ internal object SettingsActions {
 
     private fun developerMode(a: Activity, on: Boolean) {
         val ctx = a.applicationContext
-        PreferenceManager.getDefaultSharedPreferences(ctx).edit().putBoolean("pref_developer_mode", on).apply()
+        Prefs.developerMode.set(ctx, on)
         hint(ctx, a.getString(if (on) R.string.settings_developer_mode_on else R.string.settings_developer_mode_off))
     }
 
@@ -154,12 +155,12 @@ internal object SettingsActions {
     private fun testNotification(a: Activity) {
         val ctx = a.applicationContext
         val p = PreferenceManager.getDefaultSharedPreferences(ctx) ?: return
-        val type = p.getString("prefs_notification_type", "0")?.toIntOrNull() ?: 0
+        val type = Prefs.notificationType.get(p)
         val s = OverlaySettings(
-            p.getString("prefs_notification_font_size", "20")?.toFloatOrNull() ?: 20.0f,
-            p.getString("prefs_notification_position", "1")?.toIntOrNull() ?: 1,
-            p.getString("pref_notification_duration", "3000")?.toLongOrNull() ?: 3000L,
-            p.getString("pref_notification_animation", "1")?.toIntOrNull() ?: 1
+            Prefs.notificationFontSize.get(p).toFloat(),
+            Prefs.notificationPosition.get(p),
+            Prefs.notificationDuration.get(p).toLong(),
+            Prefs.notificationAnimation.get(p)
         )
         val movie = Movie().apply {
             login = "TestMessage"

@@ -6,7 +6,7 @@ package com.shrug.shrugtv.ui.tv.settings
  */
 object PageChanges {
     /** Kept when a page is reset: secrets and the app language (it restarts the app). */
-    val KEEP = SettingsModel.SECRET_KEYS + "pref_app_language"
+    val KEEP = SettingsModel.SECRET_KEYS + com.shrug.shrugtv.prefs.Prefs.appLanguage.key
 
     /** The settings of [children]: categories are looked into, sub-pages only when [deep]. */
     fun leaves(children: List<Entry>, deep: Boolean): List<Entry> = children.flatMap {

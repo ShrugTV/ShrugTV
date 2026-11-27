@@ -26,6 +26,7 @@
     <string name="home_row_past_broadcasts">Past broadcasts</string>
     <string name="home_row_top_categories">Top categories</string>
     <string name="home_row_top_streams">Top streams</string>
+    <string name="home_row_language_streams">Top streams in your language</string>
     <!-- Components -->
     <string name="home_live_badge">LIVE</string>
     <!-- Errors -->

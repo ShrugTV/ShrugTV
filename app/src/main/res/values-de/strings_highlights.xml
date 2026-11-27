@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Highlights of the running stream in the player -->
+<resources>
+    <string name="player_btn_highlights">Highlights</string>
+    <string name="player_highlights_title">Highlights dieser Sendung</string>
+    <string name="player_highlights_hint">Die meistgesehenen Clips seit Sendestart. OK spielt einen Clip ab, Zurück führt wieder live.</string>
+    <string name="player_highlights_empty">Noch keine Clips aus dieser Sendung</string>
+    <string name="player_highlights_error">Die Clips konnten nicht geladen werden</string>
+    <string name="player_highlights_after">nach %1$s</string>
+    <string name="settings_player_highlights">Highlights im Player</string>
+    <string name="settings_player_highlights_summary">Der Knopf „Highlights“ in der Player-Leiste eines Livestreams: die fünf meistgesehenen Clips seit Sendestart.</string>
+</resources>

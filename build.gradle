@@ -4,12 +4,14 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.10.1'
+        classpath 'com.android.tools.build:gradle:9.5.3'
         // Kotlin and Compose compiler for the Compose-for-TV interface;
         // beide Plugins immer in derselben Version
         classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21'
         classpath 'org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.4.21'
         classpath 'org.jetbrains.kotlin:kotlin-serialization:2.4.21'
+        // KSP for Room; since KSP 2.3 the version no longer follows Kotlin
+        classpath 'com.google.devtools.ksp:symbol-processing-gradle-plugin:2.3.14'
     }
 }
 

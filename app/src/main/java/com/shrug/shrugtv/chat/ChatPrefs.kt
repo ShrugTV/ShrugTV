@@ -3,7 +3,7 @@ package com.shrug.shrugtv.chat
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.TypedValue
-import androidx.preference.PreferenceManager
+import com.shrug.shrugtv.prefs.Prefs
 import java.util.regex.Pattern
 
 /**
@@ -111,10 +111,11 @@ data class ChatPrefs(
     companion object {
         @JvmStatic
         fun from(context: Context): ChatPrefs {
-            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+            val prefs = Prefs.of(context)
             // px per sp (scaledDensity is deprecated; applyDimension also honours non-linear font scaling)
             val pxPerSp = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 1f, context.resources.displayMetrics)
             migrateDelay(prefs)
+            com.shrug.shrugtv.prefs.PrefsMigration.run(prefs)
             return from(prefs, pxPerSp)
         }
 
@@ -136,74 +137,76 @@ data class ChatPrefs(
         private fun migrateDelay(prefs: SharedPreferences) {
             if (prefs.getBoolean("prefs_chat_delay_auto_migrated", false)) return
             val e = prefs.edit()
-            if (prefs.getString("prefs_chat_delay", "0") == "0") e.putString("prefs_chat_delay", AUTO_DELAY)
+            // Unset counts as the old default "0" here, on purpose: that is what the migration is about
+            if (prefs.getString(Prefs.chatDelay.key, "0") == "0") Prefs.chatDelay.put(e, AUTO_DELAY)
             e.putBoolean("prefs_chat_delay_auto_migrated", true).apply()
         }
 
         @JvmStatic
         fun from(prefs: SharedPreferences, scaledDensity: Float): ChatPrefs {
-            val textSp = textSizeSp(prefs.getString("prefs_chat_font_size", "2"))
+            val textSp = textSizeSp(Prefs.chatFontSize.text(prefs))
             val textPx = textSp * scaledDensity
             return ChatPrefs(
-                joinChat = prefs.getBoolean("pref_join_chat", true),
-                showChat = prefs.getBoolean("pref_show_chat", true),
-                vodChat = prefs.getBoolean("pref_chat_vod", true),
+                joinChat = Prefs.joinChat.get(prefs),
+                showChat = Prefs.showChat.get(prefs),
+                vodChat = Prefs.chatVod.get(prefs),
                 textSizeSp = textSp,
-                emoteSizePx = emoteSizePx(prefs.getString("pref_chat_emote_size", "1"), textPx, scaledDensity),
+                emoteSizePx = emoteSizePx(Prefs.chatEmoteSize.text(prefs), textPx, scaledDensity),
                 badgeSizePx = (textPx * 1.15f).toInt().coerceAtLeast(1),
-                animatedEmotes = prefs.getBoolean("pref_chat_usegifs", true),
-                messageDelayMs = prefs.getString("prefs_chat_delay", AUTO_DELAY)?.toIntOrNull()?.coerceAtLeast(0) ?: 0,
-                autoDelay = prefs.getString("prefs_chat_delay", AUTO_DELAY) == AUTO_DELAY,
-                showPrimeBadge = prefs.getBoolean("pref_show_prime", false),
+                animatedEmotes = Prefs.chatUsegifs.get(prefs),
+                messageDelayMs = Prefs.chatDelay.get(prefs).toIntOrNull()?.coerceAtLeast(0) ?: 0,
+                autoDelay = Prefs.chatDelay.get(prefs) == AUTO_DELAY,
+                showPrimeBadge = Prefs.showPrime.get(prefs),
                 filterSettings = ChatFilterSettings.Builder()
-                    .blockedUsers(splitList(prefs.getString("pref_filter_users", "")).toTypedArray().takeIf { it.isNotEmpty() })
-                    .blockedWordsRegex(wordsRegex(splitList(prefs.getString("pref_filter_words", ""))))
-                    .showSubMessages(prefs.getBoolean("pref_show_sub_messages", false))
-                    .showGiftedSubs(prefs.getBoolean("pref_show_giftedsubs", true))
-                    .filterBots(prefs.getBoolean("pref_filter_bots", false))
-                    .filterModBots(prefs.getBoolean("pref_filter_predit_bots", false))
-                    .filterCommands(prefs.getBoolean("pref_filter_commands", false))
+                    .blockedUsers(splitList(Prefs.filterUsers.get(prefs)).toTypedArray().takeIf { it.isNotEmpty() })
+                    .blockedWordsRegex(wordsRegex(splitList(Prefs.filterWords.get(prefs))))
+                    .showSubMessages(Prefs.showSubMessages.get(prefs))
+                    .showGiftedSubs(Prefs.showGiftedsubs.get(prefs))
+                    .filterBots(Prefs.filterBots.get(prefs))
+                    // One switch for both bot filters since  (PrefsMigration)
+                    .filterModBots(Prefs.filterBots.get(prefs))
+                    .filterCommands(Prefs.filterCommands.get(prefs))
                     .build(),
                 highlights = ChatHighlights(
-                    words = splitList(prefs.getString("pref_chat_highlight_words", "")),
-                    users = splitList(prefs.getString("pref_chat_highlight_users", "")),
+                    words = splitList(Prefs.chatHighlightWords.get(prefs)),
+                    users = splitList(Prefs.chatHighlightUsers.get(prefs)),
                     roles = buildSet {
-                        if (prefs.getBoolean("pref_chat_highlight_broadcaster", false)) add(ChatHighlights.Role.BROADCASTER)
-                        if (prefs.getBoolean("pref_chat_highlight_mods", false)) add(ChatHighlights.Role.MOD)
-                        if (prefs.getBoolean("pref_chat_highlight_vips", false)) add(ChatHighlights.Role.VIP)
+                        if (Prefs.chatHighlightBroadcaster.get(prefs)) add(ChatHighlights.Role.BROADCASTER)
+                        if (Prefs.chatHighlightMods.get(prefs)) add(ChatHighlights.Role.MOD)
+                        if (Prefs.chatHighlightVips.get(prefs)) add(ChatHighlights.Role.VIP)
                     },
-                    color = ChatHighlights.colorOf(prefs.getString("pref_chat_highlight_color", null))
+                    color = ChatHighlights.colorOf(Prefs.chatHighlightColor.get(prefs))
                 ),
                 extras = ChatExtras(
                     providers = buildSet {
                         add(com.shrug.shrugtv.chat.emote.Emote.Provider.TWITCH)
-                        if (prefs.getBoolean("pref_chat_emotes_7tv", true)) add(com.shrug.shrugtv.chat.emote.Emote.Provider.SEVEN_TV)
-                        if (prefs.getBoolean("pref_chat_emotes_bttv", true)) add(com.shrug.shrugtv.chat.emote.Emote.Provider.BTTV)
-                        if (prefs.getBoolean("pref_chat_emotes_ffz", true)) add(com.shrug.shrugtv.chat.emote.Emote.Provider.FFZ)
+                        if (Prefs.chatEmotes7tv.get(prefs)) add(com.shrug.shrugtv.chat.emote.Emote.Provider.SEVEN_TV)
+                        if (Prefs.chatEmotesBttv.get(prefs)) add(com.shrug.shrugtv.chat.emote.Emote.Provider.BTTV)
+                        if (Prefs.chatEmotesFfz.get(prefs)) add(com.shrug.shrugtv.chat.emote.Emote.Provider.FFZ)
                     },
-                    zeroWidth = prefs.getBoolean("pref_chat_zero_width", true),
-                    showBadges = prefs.getBoolean("pref_chat_show_badges", true),
-                    sevenTvPaints = prefs.getBoolean("pref_chat_7tv_paints", true),
-                    sevenTvBadges = prefs.getBoolean("pref_chat_7tv_badges", true),
-                    sevenTvPersonal = prefs.getBoolean("pref_chat_7tv_personal", true),
-                    recentMessages = prefs.getBoolean("pref_chat_recent_messages", false),
+                    zeroWidth = Prefs.chatZeroWidth.get(prefs),
+                    showBadges = Prefs.chatShowBadges.get(prefs),
+                    sevenTvPaints = Prefs.chat7tvPaints.get(prefs),
+                    sevenTvBadges = Prefs.chat7tvBadges.get(prefs),
+                    sevenTvPersonal = Prefs.chat7tvPersonal.get(prefs),
+                    recentMessages = Prefs.chatRecentMessages.get(prefs),
                     replyChars = // The TV slider stores a number, the browser a text: read either (getString crashed the player on the number)
-                    replyCharsOf(prefs.all["pref_chat_reply_chars"]?.toString())
+                    replyCharsOf(Prefs.chatReplyChars.raw(prefs))
                 ),
                 look = ChatLook(
-                    alternate = prefs.getBoolean("pref_chat_alternate", false),
-                    separators = prefs.getBoolean("pref_chat_separators", false),
-                    compact = prefs.getBoolean("pref_chat_compact", false),
-                    timestamps = prefs.getBoolean("pref_show_timestamp", false),
-                    deletedStyle = DeletedStyle.of(prefs.getString("pref_chat_deleted_style", null)),
-                    animation = ChatAnimation.of(prefs.getString("pref_chat_animation", null)),
-                    textShadow = prefs.getString("pref_chat_text_shadow", "auto") ?: "auto"
+                    alternate = Prefs.chatAlternate.get(prefs),
+                    separators = Prefs.chatSeparators.get(prefs),
+                    compact = Prefs.chatCompact.get(prefs),
+                    timestamps = Prefs.showTimestamp.get(prefs),
+                    deletedStyle = DeletedStyle.of(Prefs.chatDeletedStyle.get(prefs)),
+                    animation = ChatAnimation.of(Prefs.chatAnimation.get(prefs)),
+                    textShadow = Prefs.chatTextShadow.get(prefs)
                 ),
-                layout = ChatLayout.of(prefs.getString("pref_chat_layout", null)),
-                widthDp = widthDp(prefs.getString("pref_chat_width", "0"), textSp),
-                backgroundAlpha = (prefs.getString("pref_chat_background_opacity", "6")?.toIntOrNull() ?: 6).coerceIn(0, 9) / 10f,
+                layout = ChatLayout.of(Prefs.chatLayout.get(prefs)),
+                widthDp = widthDp(Prefs.chatWidth.text(prefs), textSp),
+                backgroundAlpha = Prefs.chatBackgroundOpacity.get(prefs).coerceIn(0, 9) / 10f,
                 // value_chat_position: 4-6 are the left side
-                onLeft = (prefs.getString("pref_chat_position", "2")?.toIntOrNull() ?: 2) in 4..6
+                onLeft = Prefs.chatPosition.get(prefs) in 4..6
             )
         }
 

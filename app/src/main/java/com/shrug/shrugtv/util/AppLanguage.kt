@@ -3,7 +3,7 @@ package com.shrug.shrugtv.util
 import android.app.Activity
 import android.content.Context
 import android.content.res.Configuration
-import androidx.preference.PreferenceManager
+import com.shrug.shrugtv.prefs.Prefs
 import java.util.Locale
 
 /**
@@ -16,13 +16,12 @@ import java.util.Locale
  * (attachBaseContext), and the Application does the same for app-level strings.
  */
 object AppLanguage {
-    const val PREF_KEY = "pref_app_language"
     private const val SYSTEM = "system"
 
     /** Language tag chosen in the settings, or null to follow the device. */
     @JvmStatic
     fun chosenTag(context: Context): String? {
-        val value = PreferenceManager.getDefaultSharedPreferences(context).getString(PREF_KEY, SYSTEM) ?: SYSTEM
+        val value = Prefs.appLanguage.get(context)
         return if (value == SYSTEM) null else value
     }
 

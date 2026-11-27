@@ -1,5 +1,9 @@
 package com.shrug.shrugtv.ui.tv.channel
 
+import com.shrug.shrugtv.ui.tv.components.VodSeen
+import com.shrug.shrugtv.ui.tv.components.StatusNote
+import com.shrug.shrugtv.ui.tv.components.listStatus
+import com.shrug.shrugtv.ui.tv.components.ShrugButton
 import android.content.Intent
 import com.shrug.shrugtv.ui.tv.themeBackground
 import android.os.Bundle
@@ -73,6 +77,7 @@ import com.shrug.shrugtv.ui.tv.components.glassButton
 import com.shrug.shrugtv.ui.tv.components.whiteButton
 import com.shrug.shrugtv.util.UiUtils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -97,7 +102,7 @@ class ChannelActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         window.setFlags(1024, 1024)
         window.setBackgroundDrawable(null)
-        val channel = intent.getSerializableExtra(getString(com.shrug.shrugtv.R.string.movie)) as? Movie
+        val channel = androidx.core.content.IntentCompat.getSerializableExtra(intent, getString(com.shrug.shrugtv.R.string.movie), Movie::class.java)
         if (channel == null) { finish(); return }
         setContent {
             TvHomeTheme {
@@ -119,6 +124,8 @@ private class ContentRow(@androidx.annotation.StringRes val title: Int, val kind
     var cursor by mutableStateOf<String?>("")
     var loading by mutableStateOf(false)
     var done by mutableStateOf(false)
+    /** The last request failed (no answer), not the same as a channel without videos. */
+    var failed by mutableStateOf(false)
 }
 
 private suspend fun json(f: (ResultCallback<JsonObject>) -> Unit): JsonObject? = suspendCancellableCoroutine { c ->
@@ -134,6 +141,7 @@ private suspend fun more(ctx: android.content.Context, channelId: String, avatar
     } else {
         json { HelixApi.getVideos(ctx, channelId, c, z.kind, it) }
     }
+    z.failed = j == null
     val data = j?.get("data")
     if (data != null && data.isJsonArray) {
         // Saved positions come from Room, which refuses the main thread (crashed on 2026-10-22).
@@ -189,12 +197,15 @@ private fun ChannelScreen(channel: Movie, live: (Movie) -> Unit, vod: (Movie) ->
         if (r.resultCode == FOLLOW_RESULT) scope.launch {
             val before = follows
             loadFollow()
-            if (before != follows) Events.send(AppEvent(AppEvent.Type.FOLLOW_CHANNEL_CHANGED))
+            if (before != follows) {
+                com.shrug.shrugtv.apihelpers.FollowedChannels.invalidate()
+                Events.send(AppEvent(AppEvent.Type.FOLLOW_CHANNEL_CHANGED))
+            }
         }
     }
 
     LaunchedEffect(Unit) {
-        TvData.isFavorite(ctx, channelId) { favorite = it }
+        launch { favorite = TvData.isFavorite(ctx, channelId) }
         launch { loadFollow() }
         launch {
             val data = json { HelixApi.getStreamByUserId(ctx, channel.userId.toLong(), it) }?.get("data")
@@ -249,42 +260,49 @@ private fun ChannelScreen(channel: Movie, live: (Movie) -> Unit, vod: (Movie) ->
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     val s = stream
-                    Button(onClick = { live(s ?: offlineStream(channel)) }, colors = whiteButton(), modifier = Modifier.focusRequester(first)) {
+                    ShrugButton(onClick = { live(s ?: offlineStream(channel)) }, primary = true, modifier = Modifier.focusRequester(first)) {
                         Icon(HomeIcons.Play, contentDescription = null, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(stringResource(if (s != null) R.string.channel_watch_live else R.string.channel_open), fontFamily = Inter, fontWeight = FontWeight.Bold)
                     }
                     if (AppState.userProfileLoaded) {
-                        Button(onClick = {
+                        ShrugButton(onClick = {
                             followDialog.launch(com.shrug.shrugtv.ui.tv.dialogs.FollowQrActivity.intent(ctx, channel))
-                        }, colors = glassButton()) { Text(stringResource(if (follows == true) R.string.channel_unfollow else R.string.channel_follow), fontFamily = Inter) }
+                        }) { Text(stringResource(if (follows == true) R.string.channel_unfollow else R.string.channel_follow), fontFamily = Inter) }
                     }
-                    Button(onClick = {
+                    ShrugButton(onClick = {
                         val updated = !favorite
-                        TvData.setFavorite(ctx, channelId, updated) {
+                        // Undispatched: the write starts at once and runs NonCancellable, so closing the page right away keeps it
+                        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                            TvData.setFavorite(ctx, channelId, updated)
                             favorite = updated
                             Events.send(AppEvent(AppEvent.Type.FAVORITE_CHANGED))
                         }
-                    }, colors = if (favorite) whiteButton() else glassButton()) {
+                    }, selected = favorite) {
                         Text(stringResource(if (favorite) R.string.channel_favorite_on else R.string.channel_favorite_off), fontFamily = Inter)
                     }
                 }
             }
             rows.forEach { z ->
-                if (z.videos.isNotEmpty()) item(key = z.kind) {
+                if (VodSeen.filter(ctx, z.videos).isNotEmpty()) item(key = z.kind) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(stringResource(z.title), fontFamily = Inter, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TvColors.Text)
                         LazyRow(Modifier.focusRestorer().rowKeepsRight().focusEdgeLeft(), horizontalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(start = FocusBorder, end = 48.dp)) {
-                            itemsIndexed(z.videos) { i, m ->
-                                if (i >= z.videos.size - 4 && z.cursor != null) LaunchedEffect(z.videos.size) { more(ctx, channelId, channel.avatarUrl, z) }
+                            // Watched recordings left out if the setting says so
+                            val shown = VodSeen.filter(ctx, z.videos)
+                            itemsIndexed(shown) { i, m ->
+                                if (i >= shown.size - 4 && z.cursor != null) LaunchedEffect(z.videos.size) { more(ctx, channelId, channel.avatarUrl, z) }
                                 VodCard(m, click = { vod(m) }, longPress = { contextMenu(m) })
                             }
                         }
                     }
                 }
             }
-            if (rows.all { it.done && it.videos.isEmpty() }) item {
-                Text(stringResource(R.string.channel_no_videos), fontFamily = Inter, fontSize = 13.sp, color = TvColors.TextMuted)
+            if (rows.all { it.videos.isEmpty() }) item {
+                val st = listStatus(loading = rows.any { !it.done }, failed = rows.any { it.failed }, empty = true)
+                if (st != null) StatusNote(st, stringResource(R.string.channel_no_videos), retry = {
+                    rows.forEach { z -> z.cursor = ""; z.done = false; scope.launch { more(ctx, channelId, channel.avatarUrl, z) } }
+                })
             }
         }
     }

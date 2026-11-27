@@ -1,5 +1,68 @@
 <!-- Generated from CHANGELOG.md by tools/changelog_app.py; do not edit by hand. -->
 
+## 2.5.0 – 2026-11-27
+
+### New
+- Home row "Top streams in your language" (Settings → Home → Rows, off by default); the switch for it existed but showed no row.
+- Phone companion: search also finds categories; a category lists its live channels, and a channel card opens its recordings and clips to start on the TV.
+- Phone companion: the Version tab shows a short view of the watch statistics (today and the last 7 days).
+- Clips page: the setting "Play the focused clip" (Settings → Home → Clips, off by default) runs the focused clip muted in the stage, charts and Clip TV views; Clip TV then plays the channel clip after clip by itself.
+- "Highlights" in the player bar of a live stream: the five most viewed clips since the stream started; OK plays one, Back returns to live (setting under Player → Controls).
+- Phone page: type on the TV (the text field of the Remote tab writes into the field that has the focus on the TV, e.g. the search), open a Twitch link or a channel name on the TV, rewind, fast forward and captions buttons, a position slider for recordings, held arrow buttons repeat, and on a computer the arrow keys, Enter, Backspace and Space steer the TV.
+- When a recording ends, the next recording of the same channel starts after a 15-second countdown (the next newer broadcast, after the newest one the one before; recordings watched to 90 % are skipped). It is preloaded during the countdown; OK starts it at once, Back stays. Setting "Next recording at the end" in the player settings, group "Recordings".
+- Recordings you watched to 90 % or more are dimmed on the channel page and in the home rows, like opened clips; Settings → Home → "Recordings I watched" shows them normally, dims them (default) or hides them.
+- Statistics: five looks for the page — tiles, a week grid of the hours you watch, a magazine, a 24-hour clock and a highscore board. The "View" button next to the periods or the menu key switches between them right on the page; Settings → Statistics → View sets it too.
+- Clips: the menu key switches the layout right on the page; a small note in the corner names the current one.
+
+### Changed
+- ShrugTV is now licensed under the GNU GPL v3.0 instead of the Apache License 2.0.
+- With "Press BACK twice to close the stream", the hint after the first press says what the second does: "Press BACK once more to leave the stream".
+- Leaving a page now stops its loading requests, and the followed channels are kept for a minute, so home, clips and Home Assistant no longer load them separately.
+- Settings the TV keeps to itself without a PIN are greyed out on the phone page with a hint to pair with the PIN.
+- Settings → Home → Rows holds every home screen row in one place: show or hide it and move it up, in the order of the home screen.
+- Every settings page has a short guide and long guides were shortened; the two time settings are named "Duration format" and "Clock format".
+- The two chat bot filters are one switch "Hide bots"; an enabled "predict bots" switch carries over.
+- Build type, build variant and user ID moved from About to the developer page.
+- Without the companion PIN, the settings that decide who reaches or steers the TV (companion, installing updates, MQTT broker, account and commands) can only be changed on the TV; a phone paired with the PIN may still change them from the browser.
+- The Twitch sign-in (access and refresh token) and the MQTT password are stored encrypted with a key in the Android Keystore (AES-256-GCM) instead of as plain text; an existing sign-in is kept on the update, and a lost key only asks for a new sign-in.
+- TV: the clips screen, the statistics and the other texts added since the last translation are now in all twelve languages instead of English (161 texts and 16 lists per language).
+- Phone page: brings its own font (Inter, as on the TV) and a large and a maskable icon for the home screen; the TV no longer reads its settings file anew for every request of the settings tab; fast typing in the search sends at most two searches at a time.
+- Phone page loads much faster after the first visit: files are compressed and kept by the browser, and only the language of the browser is loaded.
+- Phone page: the log tab needs a paired phone even without PIN; remembered devices expire after 90 days without use and are renewed on every visit.
+- The menu key works the same on every page: on a card, channel, category or clip it opens its menu, like holding OK; where the focus has no menu it switches the page view (Statistics, Clips). Each press acts once, when the key is released.
+- One word for each thing in English and German: "recording" instead of VOD, "home screen" and "splash screen" kept apart, "View" for the switchable look of Statistics and Clips, "Text size" everywhere. Settings texts that were jokes now say what the switch does.
+- Buttons: the chosen tab, period or filter has an accent frame, the focused button is the light one, so the two never look alike. Buttons follow the focus style of Settings → Appearance like cards do.
+- Search, category, channel, home and statistics tell a failed request apart from an empty list: "Could not load this" with a "Try again" button instead of "No results". Every page shows loading, empty and error the same way.
+
+### Fixed
+- Statistics: a channel no longer appears twice in the ranking when some of its sessions were saved before the channel was looked up.
+- Phone companion: when Twitch does not answer, lists and search show the error with "Try again" instead of "nothing found".
+- A stream started by a link (Home Assistant, a launcher row) returns to the home screen on Back instead of closing the app.
+- Opening the app after Android had closed it in the background no longer shows a black stream: shortly after leaving the stream starts again, later the app opens on the home screen.
+- Leaving a stream with Back answers at once (sound off, "Leaving the stream …"), and a Back pressed right after it no longer leaves the app.
+- The phone page shows loading, empty and error states with "Try again" on the Find and Version tabs, ignores answers of an older list or search, always returns to pairing when the TV no longer knows the phone, no longer adds log lines twice, and checks for updates only while the tab is visible.
+- A clip opened by link shows the button "Live" again when its channel is live.
+- Recordings: when the length of a video was not known yet, a nonsense length could be saved.
+- Chat: animated emotes are decoded at normal thread priority instead of background priority, so they keep their speed while a stream plays.
+- Chat: an animated emote is decoded once for all messages that show it, not once per message: the same emote many times in the chat no longer slows every emote down.
+- Chat: 7TV and FFZ emotes load in the size the chat shows (2x, 64 px, instead of 4x, 128 px): a quarter of the pixels to decode, keep and draw per frame; scaled emote images are shared by all messages instead of copied per message.
+- Phone page: the connection is closed and reopened when the TV has not been heard from for 50 s (the server now sends a sign of life every 20 s); the small pin buttons in the settings are no longer faint; saved/error notes are announced by screen readers.
+- The update only downloads the APK over https; the settings endpoint answers a body without length with 411; the phone page is told only about changes of its own settings.
+- Phone page: the chat no longer shows messages twice after switching tabs or after a lost connection; typed messages stay in the field while the TV is not reachable, and the page reconnects at once when the network is back.
+- Phone page: tab buttons have names for screen readers also on narrow screens, the chat is a log region, the tabs work with the arrow keys.
+- A web page on another site can no longer open the phone page's connection to steer the TV.
+- Clips: when the list of followed channels cannot be loaded, the page shows the error with "Try again" instead of "No clips found"; signed out it still says "No clips found".
+- The greeting on the start screen shows your name with its capitals right away instead of first in lower case; the name is kept from the last start.
+- Companion: a web page opened in the home network can no longer reach the companion through DNS rebinding; only requests addressed to the TV's own IP address or localhost are served.
+- Companion: a connection that sends nothing is closed after a minute instead of holding a thread for ever; the phone page stays connected.
+- Delayed chat messages no longer arrive after the player was closed.
+- The channel switcher in the player shows the chosen list with a frame, so it no longer looks like the focused one.
+- Clips: in the stage view, the note of an empty list no longer lies over "Top 10".
+- Clips: holding the menu key no longer races through the layouts; each press switches once.
+
+### Removed
+- The developer switches "Use TOKEN for streams" and "Show errors and exceptions", which had no effect.
+
 ## 2.4.0 – 2026-11-19
 
 ### New

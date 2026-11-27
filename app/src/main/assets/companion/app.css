@@ -5,6 +5,9 @@
 *{box-sizing:border-box}
 html,body{max-width:100%;overflow-x:hidden}
 html{color-scheme:dark}[data-theme="light"]{color-scheme:light}
+@font-face{font-family:Inter;font-weight:400;font-display:swap;src:url(/fonts/inter-400.woff2) format("woff2")}
+@font-face{font-family:Inter;font-weight:600;font-display:swap;src:url(/fonts/inter-600.woff2) format("woff2")}
+@font-face{font-family:Inter;font-weight:700 900;font-display:swap;src:url(/fonts/inter-700.woff2) format("woff2")}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom)}
 h1{font-size:28px;margin:32px 0 8px;display:flex;align-items:center;gap:12px}.logo{border-radius:22%;flex:none}h2{font-size:16px;color:var(--muted);margin:16px 0 8px}
 button,select,input{font:inherit;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:14px;min-height:48px;padding:0 14px}
@@ -101,7 +104,7 @@ details.set-group[open]{padding-bottom:8px}
 .set-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.set-title{font-weight:600}
 .pin{min-height:28px;height:28px;width:28px;padding:0;border:0;background:none;color:var(--muted);font-size:16px;border-radius:8px;opacity:.55}
 .pin[aria-pressed="true"]{color:var(--accent2);opacity:1}.set-row:hover .pin,.pin:focus-visible{opacity:1}
-.set-row.inactive,.set-group.inactive{opacity:.45}
+.set-row.inactive,.set-group.inactive,.set-row.tv-only{opacity:.45}
 .set-info{font-variant-numeric:tabular-nums;text-align:right;margin:0}
 .set-tip{background:var(--tip-bg);border-left:3px solid var(--accent);border-radius:8px;padding:2px 12px;margin:8px 0;font-size:14px;color:var(--tip-text)}
 .crumb{grid-column:1/-1;margin:0;font-size:12px;color:var(--muted)}
@@ -265,7 +268,9 @@ button.small{min-height:34px;font-size:13px;padding:0 12px;flex:none}
 .lists button{flex:none;padding:0 14px;white-space:nowrap}
 .lists button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent,#fff)}
 .lists:empty{display:none}
-#cards-empty{margin:8px 2px}
+/* Loading, empty and error in place of a list (docs/ui_rules.md) */
+.status-note{margin:8px 2px;color:var(--muted);font-size:14px;display:grid;gap:8px;justify-items:start}
+.status-note p{margin:0}.status-note.error p{color:var(--error)}.status-note[hidden]{display:none}
 
 /* Stars: favorites decide what a Home Assistant dashboard shows first */
 .star{width:44px;height:44px;min-height:44px;padding:0;border-radius:50%;border:0;background:none;font-size:24px;line-height:1;color:var(--muted);flex:none}
@@ -275,6 +280,18 @@ button.small{min-height:34px;font-size:13px;padding:0 12px;flex:none}
 #cards li{position:relative}
 #cards .star{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:44px;min-width:44px;height:44px;min-height:44px;padding:0;justify-content:center;gap:0}
 #cards li.has-star button:first-child{padding-right:56px}
+/* Recordings and clips of a channel, categories of a search */
+#cards .more-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:44px;min-width:44px;height:44px;min-height:44px;padding:0;justify-content:center;gap:0;border-radius:50%;border:0;background:none;font-size:22px;line-height:1;color:var(--muted)}
+#cards li.has-star.has-more .more-btn{right:56px}
+#cards li.has-star.has-more button:first-child{padding-right:104px}
+#cards img.thumb{width:96px;height:54px;border-radius:6px}
+#cards img.box{width:36px;height:48px;border-radius:4px}
+#cards li.sep{margin:10px 2px 0;font-weight:700;font-size:14px;color:var(--muted)}
+.stats-short{margin-top:20px}
+.stats-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.stats-tile{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:grid;gap:2px;min-width:0}
+.stats-tile .big{font-size:24px;font-weight:700}
+.stats-tile .line{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* Version tab */
 .new-dot{position:absolute;top:6px;right:calc(50% - 20px);width:9px;height:9px;border-radius:50%;background:var(--live);border:2px solid var(--surface)}
@@ -297,3 +314,13 @@ button.small{min-height:34px;font-size:13px;padding:0 12px;flex:none}
 /* Skin of the TV on the page */
 #theme[hidden]{display:none}
 .install-hint ol{margin:6px 0 0;padding-left:20px;font-size:14px;color:var(--muted)}
+
+/* Banner stays in view while the connection is down */
+#offline{position:sticky;top:0;z-index:20;margin:0;padding:8px 12px;background:var(--bg,#0B0B0E);border-bottom:1px solid var(--error)}
+/* Text and link fields of the remote */
+.type-row{display:flex;gap:8px;margin:8px 0}
+.type-row input{flex:1;min-width:0}
+/* Touch targets of at least 44 px, a little more contrast on the small pin */
+@media (pointer:coarse){.pin,.info,#theme,.mode button,#reply-x{min-width:44px;min-height:44px}}
+.pin{opacity:1}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

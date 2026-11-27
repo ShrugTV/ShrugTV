@@ -5,11 +5,14 @@ import android.content.Context
 import android.os.Build
 import android.provider.Settings
 import androidx.preference.PreferenceManager
+import com.shrug.shrugtv.prefs.Prefs
+import com.shrug.shrugtv.security.SecretStore
 import java.security.MessageDigest
 
 /**
  * Settings group "Home Assistant (MQTT)". The password is moved out of the normal settings into
- * `Mqtt.xml` (excluded from backups like `User.xml`); the settings then only show [MASK].
+ * `Mqtt.xml`, encrypted by [SecretStore] and excluded from backups like `User.xml`;
+ * the settings then only show [MASK].
  */
 data class MqttSettings(
     val enabled: Boolean,
@@ -39,34 +42,33 @@ data class MqttSettings(
         @JvmStatic
         fun load(context: Context): MqttSettings {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-            val secret = context.getSharedPreferences(SECRET_FILE, Context.MODE_PRIVATE)
             // A newly typed password replaces the stored one; the mask means "unchanged"
             val typed = prefs.getString("pref_mqtt_password", "") ?: ""
             if (typed.isNotEmpty() && typed != MASK) {
-                secret.edit().putString("password", typed).apply()
+                SecretStore.put(context, SECRET_FILE, SecretStore.MQTT_PASSWORD, typed)
                 prefs.edit().putString("pref_mqtt_password", MASK).apply()
-            } else if (typed.isEmpty() && secret.contains("password")) {
-                secret.edit().remove("password").apply()
+            } else if (typed.isEmpty() && SecretStore.contains(context, SECRET_FILE, SecretStore.MQTT_PASSWORD)) {
+                SecretStore.remove(context, SECRET_FILE, SecretStore.MQTT_PASSWORD)
             }
-            val name = (prefs.getString("pref_mqtt_device_name", "") ?: "").trim()
+            val name = Prefs.mqttDeviceName.get(prefs).trim()
             val hash = deviceHash(context)
             return MqttSettings(
-                enabled = prefs.getBoolean("pref_mqtt_enabled", false),
-                url = normaliseUrl(prefs.getString("pref_mqtt_url", "") ?: ""),
-                user = (prefs.getString("pref_mqtt_user", "") ?: "").trim(),
-                password = secret.getString("password", "") ?: "",
+                enabled = Prefs.mqttEnabled.get(prefs),
+                url = normaliseUrl(Prefs.mqttUrl.get(prefs)),
+                user = Prefs.mqttUser.get(prefs).trim(),
+                password = SecretStore.get(context, SECRET_FILE, SecretStore.MQTT_PASSWORD),
                 deviceId = HaDiscovery.deviceIdFrom(name, hash),
                 deviceName = name.ifEmpty { "ShrugTV ${Build.MODEL}" },
-                commandsEnabled = prefs.getBoolean("pref_mqtt_commands", true),
-                topicPrefix = topicPrefix(prefs.getString("pref_mqtt_topic_prefix", null)),
-                discoveryPrefix = discoveryPrefix(prefs.getString("pref_mqtt_discovery_prefix", null)),
-                intervalS = (prefs.getString("pref_mqtt_interval", null)?.toIntOrNull() ?: DEFAULT_INTERVAL_S).coerceIn(5, 3_600),
+                commandsEnabled = Prefs.mqttCommands.get(prefs),
+                topicPrefix = topicPrefix(Prefs.mqttTopicPrefix.get(prefs)),
+                discoveryPrefix = discoveryPrefix(Prefs.mqttDiscoveryPrefix.get(prefs)),
+                intervalS = Prefs.mqttInterval.get(prefs).coerceIn(5, 3_600),
                 groups = buildSet {
-                    if (prefs.getBoolean("pref_mqtt_entities_info", true)) add(HaDiscovery.INFO)
-                    if (prefs.getBoolean("pref_mqtt_entities_avatar", true)) add(HaDiscovery.AVATAR)
-                    if (prefs.getBoolean("pref_mqtt_entities_preview", true)) add(HaDiscovery.PREVIEW)
-                    if (prefs.getBoolean("pref_mqtt_entities_events", true)) add(HaDiscovery.EVENTS)
-                    if (prefs.getBoolean("pref_mqtt_entities_followed", false)) add(HaDiscovery.FOLLOWED)
+                    if (Prefs.mqttEntitiesInfo.get(prefs)) add(HaDiscovery.INFO)
+                    if (Prefs.mqttEntitiesAvatar.get(prefs)) add(HaDiscovery.AVATAR)
+                    if (Prefs.mqttEntitiesPreview.get(prefs)) add(HaDiscovery.PREVIEW)
+                    if (Prefs.mqttEntitiesEvents.get(prefs)) add(HaDiscovery.EVENTS)
+                    if (Prefs.mqttEntitiesFollowed.get(prefs)) add(HaDiscovery.FOLLOWED)
                     add(HaDiscovery.CONTROLS) // switched by "Allow control from Home Assistant"
                 },
                 deviceHash = hash

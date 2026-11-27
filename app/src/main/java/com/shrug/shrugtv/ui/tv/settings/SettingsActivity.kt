@@ -13,6 +13,7 @@ import androidx.preference.PreferenceManager
 import com.shrug.shrugtv.BuildConfig
 import com.shrug.shrugtv.R
 import com.shrug.shrugtv.activities.LoginActivity
+import com.shrug.shrugtv.prefs.Prefs
 import com.shrug.shrugtv.session.AppState
 import com.shrug.shrugtv.ui.tv.TvHomeTheme
 
@@ -43,6 +44,8 @@ class SettingsActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         window.setFlags(1024, 1024)
         prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        // Folded settings show their carried-over value even before the chat has read them
+        com.shrug.shrugtv.prefs.PrefsMigration.run(prefs)
         prefs.registerOnSharedPreferenceChangeListener(prefListener)
         val root = SettingsModel.load(this, R.xml.settings, standards)
         val access = SettingsAccess(
@@ -57,7 +60,7 @@ class SettingsActivity : ComponentActivity() {
                 prefs.edit().putString(k, v).apply()
                 version++
                 // App language changed: restart so every screen switches
-                if (k == com.shrug.shrugtv.util.AppLanguage.PREF_KEY) com.shrug.shrugtv.util.AppLanguage.apply(this)
+                if (k == Prefs.appLanguage.key) com.shrug.shrugtv.util.AppLanguage.apply(this)
             },
             action = { k -> SettingsActions.execute(this, k); version++ },
             active = { dep -> version; dep == null || prefs.getBoolean(dep, standards[dep] as? Boolean ?: false) },
@@ -91,8 +94,9 @@ class SettingsActivity : ComponentActivity() {
         version++ // back from sign-in or sign-out
     }
 
-    private fun visibleGroups(root: Entry.Page): List<Entry.Page> =
-        SettingsModel.visible(root, prefs.getBoolean("pref_developer_mode", false), prefs.getBoolean("pref_show_advanced", false))
+    private fun visibleGroups(root: Entry.Page): List<Entry.Page> = SettingsModel.inRowOrder(
+        SettingsModel.visible(root, Prefs.developerMode.get(prefs), Prefs.showAdvanced.get(prefs)),
+        prefs.getString(com.shrug.shrugtv.ui.tv.home.HomeRowOrder.PREF, null))
 
     /** Page "Changes" from assets/changelog.md (tools/changelog_app.py). */
     private fun changes(): List<Changelog.Version> = runCatching {

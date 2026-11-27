@@ -49,7 +49,13 @@ import com.shrug.shrugtv.ui.tv.Inter
 import com.shrug.shrugtv.ui.tv.TvColors
 import com.shrug.shrugtv.ui.tv.TvHomeTheme
 import com.shrug.shrugtv.util.QrCode
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 /**
  * Sign-in with a device code: twitch.tv/activate, the code and a QR code with
@@ -73,8 +79,8 @@ class LoginActivity : ComponentActivity() {
 
     private val main = Handler(Looper.getMainLooper())
 
-    @Volatile
-    private var running = false
+    /** The code/poll loop; runs while the page is visible (a coroutine since , before a thread). */
+    private var polling: Job? = null
     private var code by mutableStateOf<TwitchDeviceAuth.DeviceCode?>(null)
     private var status by mutableIntStateOf(R.string.login_status_requesting)
 
@@ -91,18 +97,19 @@ class LoginActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        running = true
-        Thread { loop() }.start()
+        polling?.cancel()
+        polling = lifecycleScope.launch(Dispatchers.IO) { loop() }
     }
 
     override fun onStop() {
-        running = false
+        polling?.cancel()
+        polling = null
         super.onStop()
     }
 
     /** Runs in the background: fetch the code, show it, poll; expired code -> new code. */
-    private fun loop() {
-        while (running) {
+    private suspend fun loop() {
+        while (currentCoroutineContext().isActive) {
             val c = TwitchDeviceAuth.requestCode()
             if (c == null) {
                 report(R.string.login_status_unreachable)
@@ -111,7 +118,7 @@ class LoginActivity : ComponentActivity() {
             }
             main.post { code = c; status = R.string.login_status_waiting }
             var spacing = maxOf(c.intervalSec, 2)
-            while (running) {
+            while (currentCoroutineContext().isActive) {
                 if (!pause(spacing)) return
                 when (TwitchDeviceAuth.poll(applicationContext, c)) {
                     TwitchDeviceAuth.PollState.OK -> {
@@ -131,13 +138,10 @@ class LoginActivity : ComponentActivity() {
 
     private fun report(s: Int) = main.post { status = s }
 
-    private fun pause(seconds: Int): Boolean {
-        try {
-            Thread.sleep(seconds * 1000L)
-        } catch (e: InterruptedException) {
-            return false
-        }
-        return running
+    /** Waits; false once the page is left (the cancelled delay ends the loop). */
+    private suspend fun pause(seconds: Int): Boolean {
+        delay(seconds * 1000L)
+        return currentCoroutineContext().isActive
     }
 }
 

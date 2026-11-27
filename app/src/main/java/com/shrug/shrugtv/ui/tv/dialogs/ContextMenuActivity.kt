@@ -3,7 +3,7 @@ package com.shrug.shrugtv.ui.tv.dialogs
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -24,7 +24,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -48,6 +51,8 @@ import com.shrug.shrugtv.events.LiveHistoryChannelRemovedEvent
 import com.shrug.shrugtv.filter.FilterSettings
 import com.shrug.shrugtv.model.Enums
 import com.shrug.shrugtv.model.Movie
+import com.shrug.shrugtv.prefs.BoolPref
+import com.shrug.shrugtv.prefs.Prefs
 import com.shrug.shrugtv.session.AppState
 import com.shrug.shrugtv.ui.tv.Inter
 import com.shrug.shrugtv.ui.tv.TvColors
@@ -105,21 +110,24 @@ private fun ContextMenuPanel(m: Movie, channel: () -> Unit, close: () -> Unit) {
     var follows by remember { mutableStateOf<Boolean?>(null) }
     var favorite by remember { mutableStateOf(false) }
     var info by remember { mutableStateOf<String?>(null) }
-    var filterOn by remember { mutableStateOf(prefs.getBoolean("pref_filtering_use_filtering", false)) }
-    var reruns by remember { mutableStateOf(prefs.getBoolean("pref_filtering_reruns", false)) }
+    var filterOn by remember { mutableStateOf(Prefs.filteringUseFiltering.get(prefs)) }
+    var reruns by remember { mutableStateOf(Prefs.filteringReruns.get(prefs)) }
     var channelFiltered by remember { mutableStateOf(FilterSettings.isChannelFiltered(m.displayName)) }
     var categoryFiltered by remember { mutableStateOf(FilterSettings.isCategoryFiltered(m.gameName)) }
     var message by remember { mutableStateOf<String?>(null) }
     val first = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
 
     fun loadFollow(afterDialog: Boolean) {
         val before = follows
         val report = { updated: Boolean ->
             follows = updated
-            if (afterDialog && before != updated) Events.send(AppEvent(
-                if (game) AppEvent.Type.FOLLOW_GAME_CHANGED else AppEvent.Type.FOLLOW_CHANNEL_CHANGED))
+            if (afterDialog && before != updated) {
+                if (!game) com.shrug.shrugtv.apihelpers.FollowedChannels.invalidate()
+                Events.send(AppEvent(if (game) AppEvent.Type.FOLLOW_GAME_CHANGED else AppEvent.Type.FOLLOW_CHANNEL_CHANGED))
+            }
         }
-        if (game) TvData.gameFollowed(ctx, m.gameId) { report(it) }
+        if (game) scope.launch { report(TvData.gameFollowed(ctx, m.gameId)) }
         else if (AppState.userProfileLoaded) FollowStatusChecker.check(ctx, channelId) { f, _ -> report(f) }
     }
     val followDialog = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
@@ -129,7 +137,7 @@ private fun ContextMenuPanel(m: Movie, channel: () -> Unit, close: () -> Unit) {
     LaunchedEffect(Unit) {
         loadFollow(false)
         if (!game) {
-            TvData.isFavorite(ctx, channelId) { favorite = it }
+            launch { favorite = TvData.isFavorite(ctx, channelId) }
             GqlApi.getUserProfile(ctx, m.userId) { _, j: JsonObject? ->
                 val u = runCatching { j?.getAsJsonObject("data")?.getAsJsonObject("user") }.getOrNull() ?: return@getUserProfile
                 val followers = runCatching { u.getAsJsonObject("followers").get("totalCount").asInt }.getOrNull()
@@ -140,7 +148,7 @@ private fun ContextMenuPanel(m: Movie, channel: () -> Unit, close: () -> Unit) {
         runCatching { first.requestFocus() }
     }
 
-    fun toggle(key: String, value: Boolean) = prefs.edit().putBoolean(key, value).apply()
+    fun toggle(pref: BoolPref, value: Boolean) = pref.put(prefs.edit(), value).apply()
     val added = stringResource(R.string.dialog_menu_history_added)
     val removed = stringResource(R.string.dialog_menu_history_removed)
     val followEntry = Entry(stringResource(when (follows) {
@@ -155,7 +163,9 @@ private fun ContextMenuPanel(m: Movie, channel: () -> Unit, close: () -> Unit) {
             add(Entry(stringResource(R.string.dialog_menu_channel_profile), click = channel))
             if (follows == true) add(Entry(stringResource(if (favorite) R.string.dialog_menu_favorite_remove else R.string.dialog_menu_favorite_add), switchValue = favorite) {
                 val updated = !favorite
-                TvData.setFavorite(ctx, channelId, updated) {
+                // Undispatched: the write starts at once and runs NonCancellable, so closing the page right away keeps it
+                scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                    TvData.setFavorite(ctx, channelId, updated)
                     favorite = updated
                     Events.send(AppEvent(AppEvent.Type.FAVORITE_CHANGED))
                 }
@@ -167,7 +177,7 @@ private fun ContextMenuPanel(m: Movie, channel: () -> Unit, close: () -> Unit) {
                 message = removed
             })
         }
-        add(Entry(stringResource(R.string.dialog_menu_use_filters), switchValue = filterOn) { filterOn = !filterOn; toggle("pref_filtering_use_filtering", filterOn) })
+        add(Entry(stringResource(R.string.dialog_menu_use_filters), switchValue = filterOn) { filterOn = !filterOn; toggle(Prefs.filteringUseFiltering, filterOn) })
         if (!game) add(Entry(stringResource(R.string.dialog_menu_hide_channel), m.displayName, switchValue = channelFiltered) {
             channelFiltered = !channelFiltered
             if (channelFiltered) FilterSettings.addChannel(ctx, m.displayName) else FilterSettings.removeChannel(ctx, m.displayName)
@@ -179,7 +189,7 @@ private fun ContextMenuPanel(m: Movie, channel: () -> Unit, close: () -> Unit) {
             })
         }
         if (m.itemType == Enums.ContentType.STREAM || m.itemType == Enums.ContentType.VOD) {
-            add(Entry(stringResource(R.string.dialog_menu_hide_reruns), switchValue = reruns) { reruns = !reruns; toggle("pref_filtering_reruns", reruns) })
+            add(Entry(stringResource(R.string.dialog_menu_hide_reruns), switchValue = reruns) { reruns = !reruns; toggle(Prefs.filteringReruns, reruns) })
         }
     }
 

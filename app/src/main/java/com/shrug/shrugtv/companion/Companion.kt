@@ -13,6 +13,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.preference.PreferenceManager
 import com.shrug.shrugtv.R
+import com.shrug.shrugtv.prefs.Prefs
 import java.net.Inet4Address
 
 /**
@@ -53,7 +54,7 @@ object Companion : DefaultLifecycleObserver {
         PreferenceManager.getDefaultSharedPreferences(appContext).registerOnSharedPreferenceChangeListener(prefListener)
     }
 
-    fun isEnabled(): Boolean = PreferenceManager.getDefaultSharedPreferences(appContext).getBoolean("pref_companion_enabled", false)
+    fun isEnabled(): Boolean = Prefs.companionEnabled.get(appContext)
 
     override fun onStart(owner: LifecycleOwner) {
         main.removeCallbacks(stopRunnable)
@@ -70,7 +71,7 @@ object Companion : DefaultLifecycleObserver {
         if (server != null || !isEnabled()) return
         try {
             val s = CompanionServer(appContext, PORT, pairing, devices, { main.postDelayed({ restart() }, 500L) }) { phone -> onPaired(phone) }
-            s.start(0, true) // no read timeout: WebSockets stay open
+            s.start(CompanionServer.readTimeoutMs) // pings every 20 s keep the WebSocket open; the timeout only ends silent HTTP connections
             server = s
             Log.i(TAG, "Listening on port $PORT")
         } catch (e: Exception) {

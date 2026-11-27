@@ -51,12 +51,12 @@ import androidx.tv.material3.ButtonDefaults
 import androidx.tv.material3.Text
 import com.shrug.shrugtv.R
 import com.shrug.shrugtv.model.Movie
+import com.shrug.shrugtv.prefs.BoolPref
+import com.shrug.shrugtv.prefs.Prefs
 import com.shrug.shrugtv.ui.tv.TvColors
 import com.shrug.shrugtv.ui.tv.components.ContentCard
 import com.shrug.shrugtv.ui.tv.components.cardImageUrlFor
 import com.shrug.shrugtv.ui.tv.home.ImageCache
-import com.shrug.shrugtv.ui.tv.components.glassButton
-import com.shrug.shrugtv.ui.tv.components.whiteButton
 import com.shrug.shrugtv.ui.tv.home.HomeData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -72,14 +72,14 @@ import kotlinx.coroutines.withContext
  * 3. 16:9 cards as on the home screen with LIVE badge and viewer count. The current channel is missing from the list,
  *    empty lists are skipped when stepping.
  */
-/** [key] is the switch in the settings that shows or hides the list. */
-enum class ChannelSwitcherTab(val titleRes: Int, val key: String) {
-    FOLLOWED(R.string.peek_tab_followed, "pref_switcher_list_followed"),
-    SAME_GAME(R.string.switcher_tab_same_game, "pref_switcher_list_same_game"),
-    SAME_GAME_LANGUAGE(R.string.peek_tab_game_language, "pref_switcher_list_same_game_language"),
-    HISTORY(R.string.peek_tab_recent, "pref_switcher_list_history"),
-    TOP_STREAMS(R.string.peek_tab_top_streams, "pref_switcher_list_top_streams"),
-    TOP_LANGUAGE(R.string.switcher_tab_top_language, "pref_switcher_list_top_language"),
+/** [pref] is the switch in the settings that shows or hides the list. */
+enum class ChannelSwitcherTab(val titleRes: Int, val pref: BoolPref) {
+    FOLLOWED(R.string.peek_tab_followed, Prefs.switcherListFollowed),
+    SAME_GAME(R.string.switcher_tab_same_game, Prefs.switcherListSameGame),
+    SAME_GAME_LANGUAGE(R.string.peek_tab_game_language, Prefs.switcherListSameGameLanguage),
+    HISTORY(R.string.peek_tab_recent, Prefs.switcherListHistory),
+    TOP_STREAMS(R.string.peek_tab_top_streams, Prefs.switcherListTopStreams),
+    TOP_LANGUAGE(R.string.switcher_tab_top_language, Prefs.switcherListTopLanguage),
 }
 
 @Composable
@@ -100,9 +100,9 @@ fun ChannelSwitcherOverlay(
     ) {
         val context = LocalContext.current
         val prefs = remember { androidx.preference.PreferenceManager.getDefaultSharedPreferences(context) }
-        val stepKeys = remember { prefs.getBoolean("pref_switcher_updown", true) }
+        val stepKeys = remember { Prefs.switcherUpdown.get(prefs) }
         // Only the lists switched on in the settings; read once per opening
-        val tabs = remember(visible) { SwitcherNav.enabled { prefs.getBoolean(it.key, true) } }
+        val tabs = remember(visible) { SwitcherNav.enabled { it.pref.get(prefs) } }
         var currentTab by remember { mutableStateOf(tabs.first()) }
         // Every list is loaded when the switcher opens, so a list that turns out empty is known at once
         val lists = remember { mutableStateMapOf<ChannelSwitcherTab, List<Movie>>() }
@@ -260,9 +260,9 @@ fun ChannelSwitcherOverlay(
                                 )
                             }
                         } else {
-                            Button(
+                            com.shrug.shrugtv.ui.tv.components.ShrugButton(
                                 onClick = { currentTab = tab },
-                                colors = if (isSelected) whiteButton() else glassButton(),
+                                selected = isSelected,
                                 modifier = Modifier
                                     .padding(end = 12.dp)
                                     .focusRequester(tabFocusRequesters[index])

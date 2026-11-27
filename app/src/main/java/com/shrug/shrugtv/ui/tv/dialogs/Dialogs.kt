@@ -1,5 +1,6 @@
 package com.shrug.shrugtv.ui.tv.dialogs
 
+import com.shrug.shrugtv.ui.tv.components.ShrugButton
 import android.os.Bundle
 import com.shrug.shrugtv.ui.tv.TvShapes
 import android.widget.Toast
@@ -56,8 +57,8 @@ fun Confirmation(question: String, text: String, yes: String, execute: () -> Uni
             Text(question, fontFamily = Inter, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TvColors.Text)
             if (text.isNotEmpty()) Text(text, fontFamily = Inter, fontSize = 12.sp, color = TvColors.TextMuted)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 12.dp)) {
-                Button(onClick = execute, colors = glassButton()) { Text(yes, fontFamily = Inter, fontWeight = FontWeight.Bold) }
-                Button(onClick = cancel, colors = glassButton(), modifier = Modifier.focusRequester(no)) { Text(stringResource(R.string.dialog_cancel), fontFamily = Inter) }
+                ShrugButton(onClick = execute) { Text(yes, fontFamily = Inter, fontWeight = FontWeight.Bold) }
+                ShrugButton(onClick = cancel, modifier = Modifier.focusRequester(no)) { Text(stringResource(R.string.dialog_cancel), fontFamily = Inter) }
             }
         }
     }
@@ -83,18 +84,18 @@ class LogoutActivity : ComponentActivity() {
 
     private fun logOut() {
         // Revoke the tokens at Twitch ( item 5); keeps running even after the dialog has closed
-        val prefs = getSharedPreferences("User", 0)
-        val access = prefs.getString("TOKEN", "") ?: ""
-        val refresh = prefs.getString("REFRESH_TOKEN", "") ?: ""
+        val (access, refresh) = com.shrug.shrugtv.login.TwitchDeviceAuth.forgetTokens(this)
         Thread { com.shrug.shrugtv.login.TwitchDeviceAuth.revoke(access, refresh) }.start()
-        prefs.edit().remove("REFRESH_TOKEN").remove("TOKEN_EXPIRES_AT").apply()
         AppState.userLogin = ""
+        AppState.userDisplayName = ""
         AppState.userId = ""
         AppState.accessToken = ""
         AppState.isTurbo = false
         AppState.userLoggedOut = true
         getSharedPreferences("User", 0).edit()
-            .putString("TOKEN", "").putString("USER_ID", "").putString("USER_NAME", "")
+            .putString("USER_ID", "").putString("USER_NAME", "")
+            .putString(com.shrug.shrugtv.session.SessionStore.PREF_DISPLAY_NAME, "")
+            .putString(com.shrug.shrugtv.session.SessionStore.PREF_DISPLAY_LOGIN, "")
             .putBoolean("IS_TURBO", false).putBoolean("USER_LOGGED_OUT", true).apply()
     }
 }

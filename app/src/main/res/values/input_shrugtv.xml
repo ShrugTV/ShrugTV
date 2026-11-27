@@ -3,8 +3,4 @@
      German texts: values-de/strings_player.xml. -->
 <resources>
     <string name="input_send">send</string>
-    <string name="input_search">search</string>
-    <string name="input_search_hint">Search for a channel or category</string>
-    <string name="input_message_to">Message to %1$s</string>
-    <string name="input_message">Message to the chat</string>
 </resources>

@@ -42,7 +42,6 @@ import com.shrug.shrugtv.ui.tv.Inter
 import com.shrug.shrugtv.ui.tv.TvColors
 import com.shrug.shrugtv.ui.tv.TvShapes
 import com.shrug.shrugtv.ui.tv.components.number
-import com.shrug.shrugtv.ui.tv.home.NetImage
 
 /** One themed row of the stage layout. */
 private class StageRow(val key: String, val title: String, val clips: List<Movie>, val numbered: Boolean = false, val watched: Boolean = false)
@@ -50,7 +49,8 @@ private class StageRow(val key: String, val title: String, val clips: List<Movie
 /**
  * Layout "Stage" (design 2): the focused clip fills the upper right as a backdrop with its title and numbers
  * beside it; the time frame sits as tabs on top; below, rows by theme: the top ten with large numbers, new since yesterday,
- * short ones, the three biggest categories and all clips. OK plays a clip, and the rest of its row follows.
+ * short ones, the three biggest categories and all clips. OK plays a clip, and the rest of its row follows. With the setting
+ * "Play the focused clip" the backdrop runs the clip muted.
  */
 @Composable
 fun ClipsStageScreen(ui: ClipsUi) {
@@ -78,7 +78,7 @@ fun ClipsStageScreen(ui: ClipsUi) {
         // The backdrop: the focused clip, faded into the page on the left and at the bottom
         if (hero != null) {
             Box(Modifier.align(Alignment.TopEnd).width(680.dp).height(382.dp)) {
-                NetImage(hero.cardImageUrl, Modifier.fillMaxSize(), width = 800, height = 450)
+                ClipVideo(hero, Modifier.fillMaxSize())
                 Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(0f to TvColors.Background, 0.45f to TvColors.Background.copy(alpha = 0.55f), 1f to Color.Transparent)))
                 Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.55f to Color.Transparent, 1f to TvColors.Background)))
             }
@@ -116,8 +116,9 @@ fun ClipsStageScreen(ui: ClipsUi) {
                 }
             }
             Box(Modifier.fillMaxSize()) {
-                EmptyNote(ui, Modifier.padding(start = 56.dp))
-                LazyColumn(contentPadding = PaddingValues(bottom = 60.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                // Without clips the row titles ("Top 10", "All clips") stay away; they lay over the note
+                if (ui.shown.isEmpty()) EmptyNote(ui, Modifier.padding(start = 56.dp))
+                else LazyColumn(contentPadding = PaddingValues(bottom = 60.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     items(rows, key = { it.key }) { row ->
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(row.title, fontFamily = Inter, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = TvColors.Text, modifier = Modifier.padding(start = 56.dp))

@@ -34,6 +34,8 @@ class AppLogTest {
         assertFalse(r.contains("hunter2"))
         assertFalse(r.contains("AbCdEfGhIjKlMnOpQrStUv"))
         assertTrue(r.contains("Bearer ***"))
+        val c = AppLog.redact("client_id=abcd1234efgh5678 Authorization: Basic dXNlcjpwdw== x-client-id: zzzz9999")
+        assertFalse(c, c.contains("abcd1234efgh5678") || c.contains("dXNlcjpwdw") || c.contains("zzzz9999"))
         // Normal diagnostics stay readable
         assertEquals("HTTP 429 code: 7 broadcaster=123", AppLog.redact("HTTP 429 code: 7 broadcaster=123"))
     }

@@ -34,6 +34,14 @@ class PairingTest {
     }
 
     @Test
+    fun `one address cannot use up the offer for the others`() {
+        val o = p.newOffer()
+        repeat(Pairing.MAX_PIN_TRIES) { assertNull(p.redeemPin("000000", "UA", "192.168.0.66")) }
+        assertNull("that address is locked out, also with the right PIN", p.redeemPin(o.pin, "UA", "192.168.0.66"))
+        assertNotNull("another address still pairs", p.redeemPin(o.pin, "UA", "192.168.0.23"))
+    }
+
+    @Test
     fun `right PIN pairs`() {
         val o = p.newOffer()
         assertNotNull(p.redeemPin(" ${o.pin} ", "UA"))

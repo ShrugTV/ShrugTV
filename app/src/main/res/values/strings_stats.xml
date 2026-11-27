@@ -20,14 +20,14 @@
     <string name="stats_legend_recordings">Recordings</string>
     <string name="settings_stats_screen">Statistics page</string>
     <string name="settings_stats_screen_summary">Cards, charts, time format and top lists</string>
-    <string name="settings_stats_tip">Shapes the statistics page (the Statistics button on the home screen): which period it opens with, which cards show, how long the top lists are, how the charts look and how times are written. Cards you switch off make room for the others. "Keep data for" deletes older sessions at the next start of the app.</string>
+    <string name="settings_stats_tip">Shapes the statistics page (Statistics button on the home screen): starting period, which cards show, length of the top lists, chart styles and the duration format. \"View\" picks one of five looks; on the page the \"View\" button or the menu key (≡) switches it. \"Keep data for\" deletes older sessions at the next start.</string>
     <string name="settings_stats_cat_page">Page</string>
     <string name="settings_stats_cat_cards">Cards</string>
     <string name="settings_stats_cat_lists">Top lists</string>
     <string name="settings_stats_cat_charts">Charts</string>
     <string name="settings_stats_cat_data">Data</string>
     <string name="settings_stats_period">Opens with</string>
-    <string name="settings_stats_time_format">Time format</string>
+    <string name="settings_stats_time_format">Duration format</string>
     <string name="settings_stats_compare">Compare with the period before</string>
     <string name="settings_stats_compare_summary">An arrow and the difference under the total time</string>
     <string name="settings_stats_show_tiles">Figures</string>
@@ -135,26 +135,11 @@
     <string name="stats_tab_30_days">Last 30 days</string>
     <string name="stats_tab_year">Last year</string>
     <string name="stats_tab_month">Month</string>
-    <string name="stats_loading">Loading …</string>
     <string name="stats_empty">Nothing recorded for this period yet. Recording started with version 1.21; the page fills as you watch (a session counts from one minute).</string>
     <!-- %1$s = difference such as "+2 h 05 min" -->
     <string name="stats_vs_before">%1$s compared with the period before</string>
-    <plurals name="stats_days">
-        <item quantity="one">Watched on %d day</item>
-        <item quantity="other">Watched on %d days</item>
-    </plurals>
-    <plurals name="stats_sessions">
-        <item quantity="one">%d session</item>
-        <item quantity="other">%d sessions</item>
-    </plurals>
-    <string name="stats_longest">Longest: %1$s</string>
     <string name="stats_top_channels">Most watched channels</string>
     <string name="stats_top_categories">Most watched categories</string>
-    <!-- %1$d, %2$d = percent -->
-    <string name="stats_live_share">Live %1$d %% · Recordings %2$d %%</string>
-    <string name="stats_time_of_day">Time of day (start of a session)</string>
-    <!-- %1$s = hour such as "20:00" -->
-    <string name="stats_time_of_day_peak">Time of day (start of a session), most at %1$s</string>
     <string name="stats_delete">Delete statistics</string>
     <string name="stats_delete_confirm">Really delete? OK again</string>
     <string name="stats_hint">Stored only on this device, not in backups. Switch off in the settings.</string>
@@ -163,4 +148,55 @@
     <string name="home_stats_card_title">Your last 30 days: %1$s</string>
     <string name="home_stats_card_top">Most watched: %1$s</string>
     <string name="home_stats_card_hint">More under Statistics on the left</string>
+    <string name="stats_style_button">View: %1$s</string>
+    <string name="stats_style_tiles">Tiles</string>
+    <string name="stats_style_grid">Week grid</string>
+    <string name="stats_style_magazine">Magazine</string>
+    <string name="stats_style_clock">Clock</string>
+    <string name="stats_style_arcade">Highscore</string>
+    <string name="stats_style_peak">Your hour</string>
+    <string name="stats_style_share">Live · recordings · clips</string>
+    <string name="stats_style_clips">Clips</string>
+    <string name="stats_style_clips_count">%1$d clips</string>
+    <string name="stats_hour_value">%1$d:00</string>
+    <string name="stats_grid_title">When you watch</string>
+    <string name="stats_grid_hint">one cell per hour · brighter means longer</string>
+    <string name="stats_grid_less">less</string>
+    <string name="stats_grid_more">more</string>
+    <string name="stats_mag_time">Time in front of the TV</string>
+    <string name="stats_mag_films">About %1$d films\' worth</string>
+    <string name="stats_mag_channel">Your channel</string>
+    <string name="stats_mag_share">%1$d %% of your time</string>
+    <string name="stats_mag_hour">Your hour</string>
+    <string name="stats_mag_category">Your category</string>
+    <string name="stats_mag_days">%1$d of %2$d days</string>
+    <string name="stats_clock_title">Your clock</string>
+    <string name="stats_clock_hint">Each ray is one hour of the day; the longer it is, the more you watched at that hour. Clips are the inner ring.</string>
+    <string name="stats_clock_orbit">Your orbit</string>
+    <string name="stats_arc_title">HIGHSCORE</string>
+    <string name="stats_arc_you">YOU</string>
+    <string name="stats_arc_rank">RANK</string>
+    <string name="stats_arc_channel">CHANNEL</string>
+    <string name="stats_arc_time">TIME</string>
+    <string name="stats_arc_total">TOTAL</string>
+    <string name="stats_arc_sessions">SESSIONS</string>
+    <string name="stats_arc_days">DAYS</string>
+    <string name="stats_arc_levels">LEVEL PER DAY</string>
+    <string name="stats_arc_record">RECORD DAY: %1$s</string>
+    <string name="stats_arc_hint">≡ NEXT VIEW</string>
+    <string name="settings_stats_style">View</string>
+    <string-array name="display_stats_style">
+        <item>Tiles</item>
+        <item>Week grid</item>
+        <item>Magazine</item>
+        <item>Clock</item>
+        <item>Highscore</item>
+    </string-array>
+    <string-array name="value_stats_style" translatable="false">
+        <item>tiles</item>
+        <item>grid</item>
+        <item>magazine</item>
+        <item>clock</item>
+        <item>arcade</item>
+    </string-array>
 </resources>

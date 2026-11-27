@@ -55,8 +55,7 @@ class MqttBridgeTest {
         override fun showNotice(title: String, text: String?, imageUrl: String?, seconds: Int) { calls += "notice $title" }
     }
 
-    @Before
-    fun setUp() {
+    private fun startBroker() {
         broker = Server()
         broker.startServer(MemoryConfig(Properties().apply {
             setProperty("port", port.toString())
@@ -64,9 +63,25 @@ class MqttBridgeTest {
             setProperty("allow_anonymous", "true")
             setProperty("persistence_enabled", "false")
         }))
+    }
+
+    private fun connectListener() {
         listener = MqttClient("tcp://127.0.0.1:$port", "test-listener", MemoryPersistence())
         listener.connect(MqttConnectOptions().apply { isCleanSession = true })
         listener.subscribe("#", 1) { topic, msg: MqttMessage -> received[topic] = String(msg.payload) }
+    }
+
+    /** The bridge's client id, to take its session over like a second connection would. */
+    private fun bridgeClientId(): String {
+        val field = MqttBridge::class.java.getDeclaredField("client").apply { isAccessible = true }
+        val client = field.get(MqttBridge) as com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient
+        return client.config.clientIdentifier.get().toString()
+    }
+
+    @Before
+    fun setUp() {
+        startBroker()
+        connectListener()
 
         val ctx: Context = ApplicationProvider.getApplicationContext()
         PreferenceManager.getDefaultSharedPreferences(ctx).edit()
@@ -115,6 +130,43 @@ class MqttBridgeTest {
 
         MqttBridge.stop()
         waitFor("offline") { received["shrugtv/testzimmer/availability"] == "offline" }
+    }
+
+    @Test
+    fun `the Last Will marks the TV offline when its connection breaks`() {
+        MqttBridge.start()
+        waitFor("online") { received["shrugtv/testzimmer/availability"] == "online" }
+        // A second connection with the same client id makes the broker drop the bridge without a DISCONNECT
+        val intruder = MqttClient("tcp://127.0.0.1:$port", bridgeClientId(), MemoryPersistence())
+        intruder.connect(MqttConnectOptions().apply { isCleanSession = true })
+        waitFor("Last Will") { received["shrugtv/testzimmer/availability"] == "offline" }
+        intruder.disconnect()
+        intruder.close()
+        // The bridge reconnects by itself and announces the TV again
+        waitFor("online again", 20_000) { received["shrugtv/testzimmer/availability"] == "online" && MqttBridge.status == "connected" }
+    }
+
+    @Test
+    fun `reconnects after the broker restarts and announces the TV again`() {
+        MqttBridge.start()
+        waitFor("online") { received["shrugtv/testzimmer/availability"] == "online" }
+        try { listener.disconnect() } catch (_: Exception) {}
+        broker.stopServer()
+        waitFor("connection lost") { MqttBridge.status.startsWith("connection lost") }
+        received.clear()
+        startBroker()
+        connectListener()
+        // The new broker keeps nothing: online, discovery and state must come again
+        waitFor("online again", 20_000) { received["shrugtv/testzimmer/availability"] == "online" }
+        waitFor("discovery again") { received.keys.any { it == "homeassistant/sensor/shrugtv_testzimmer/status/config" } }
+        waitFor("state again") { received["shrugtv/testzimmer/state"]?.contains("Papaplatte") == true }
+        assertEquals("connected", MqttBridge.status)
+        // Commands work again, each exactly once (no second subscription left from the first connection)
+        listener.publish("shrugtv/testzimmer/cmd/play_pause", MqttMessage("PRESS".toByteArray()))
+        waitFor("command after reconnect") { calls.isNotEmpty() }
+        Thread.sleep(500)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(listOf("play_pause"), calls)
     }
 
     @Test

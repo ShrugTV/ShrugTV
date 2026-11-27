@@ -19,17 +19,14 @@
     <string name="player_more_chat_position">Adjust chat</string>
     <string name="player_more_multiview">Adjust multiview</string>
     <string name="player_more_video_size">Video and chat side by side</string>
-    <string name="player_more_fastforward">Jump to live</string>
-    <string name="player_more_preview_audio">Preview audio</string>
     <string name="player_more_save_vod">Save VOD position</string>
     <string name="player_more_reload_emotes">Reload emotes</string>
     <string name="player_more_stats">Statistics</string>
 
     <!-- Panel headings -->
     <string name="player_panel_quality">Quality</string>
-    <string name="player_panel_volume">Volume</string>
     <string name="player_panel_chapters">Chapters</string>
-    <string name="player_press_back_again">Press BACK again to leave</string>
+    <string name="player_press_back_again">Press BACK once more to leave the stream</string>
     <string name="player_audio_only_hint">Audio only · OK brings the picture back · chat stays on</string>
     <string name="player_rest_hint">Paused · press any key to continue</string>
     <string name="player_btn_prev_category">Prev. category</string>
@@ -56,18 +53,13 @@
         <item quantity="one">%1$s viewer</item>
         <item quantity="other">%1$s viewers</item>
     </plurals>
-    <string name="peek_followers">%1$s followers</string>
 
     <!-- Chat -->
-    <string name="player_chat_welcome">Welcome to %1$s\'s chat!</string>
     <string name="player_chat_followers_only">Followers-only chat</string>
     <string name="player_chat_emote_only">Emote-only mode</string>
     <string name="player_chat_subs_only">Subscriber-only mode</string>
     <string name="player_chat_slow_mode">Slow mode %1$d s</string>
     <string name="player_chat_unique">Unique chat</string>
-    <string name="player_chat_paused">Chat is paused</string>
-    <string name="player_chat_resumed">Chat is resumed</string>
-    <string name="player_chat_banned">Dude, you are BANNED here! But don\'t worry, I\'ve got you!</string>
     <string name="player_chat_message_removed">message removed</string>
     <string name="player_chat_sign_in">Sign in to see the chat</string>
     <string name="player_chat_reconnecting">Chat connection lost, reconnecting…</string>
@@ -75,11 +67,9 @@
     <string name="player_chat_history_end">Earlier messages above · live from here</string>
     <string name="player_chat_subscribe_failed">Chat could not connect to Twitch: %1$s</string>
     <string name="player_chat_send_failed">Message not sent: %1$s</string>
-    <string name="player_raid_hosting">%1$s is hosting %2$s</string>
     <string name="player_playback_error">Playback error!</string>
     <string name="player_stream_ended">The stream has ended</string>
     <string name="player_status_hint">OK: try again · Back: leave</string>
-    <string name="player_open_with">Open with</string>
     <string name="player_ad_blocking">Blocking ads</string>
     <string name="player_ad_stripping">Removing ads – picture is waiting</string>
     <string name="player_btn_play">Play</string>
@@ -109,6 +99,12 @@
     <string name="player_next_channel">Next: %1$s in %2$d s</string>
     <string name="player_next_channel_suggest">Next: %1$s</string>
     <string name="player_next_hint">OK: switch now · Back: stay</string>
+    <!-- End of a recording -->
+    <string name="player_vod_ended">The recording has ended</string>
+    <string name="cat_recordings">Recordings</string>
+    <string name="settings_player_vod_next">Next recording at the end</string>
+    <string name="settings_player_vod_next_summary">When a recording ends, the next one of the channel starts after a countdown</string>
+    <string name="settings_recordings_tip" formatted="false">At the end of a recording the next one of the same channel follows after 15 seconds: the next newer broadcast, after the newest one the one before it. Recordings watched to 90 % are skipped. OK starts it at once, Back stays. While the countdown runs, the next recording is already loading.</string>
     <string name="companion_qr_steps">1. Phone in the same Wi-Fi. 2. Scan the code with the camera. Or open this address in the browser of a phone or computer and enter the PIN:</string>
     <string name="companion_pin">PIN %1$s</string>
     <string name="companion_qr_valid">Valid for 2 minutes and one phone. Back closes.</string>
@@ -131,31 +127,14 @@
     <string name="switcher_tab_top_language">Top in your language</string>
     <string name="peek_tab_recent">Recently watched</string>
     <string name="peek_tab_followed">Followed</string>
-    <string name="peek_tab_followed_games">Followed categories</string>
-    <string name="peek_tab_language">Language</string>
-    <string name="peek_tab_top_games">Categories</string>
     <string name="peek_tab_top_streams">Top streams</string>
-    <string name="peek_tab_game">Category</string>
     <string name="peek_tab_game_language">Category in your language</string>
-    <string name="peek_tab_search_streams">Streams</string>
-    <string name="peek_tab_search_games">Categories</string>
-    <string name="peek_tab_search_channels">Channels</string>
 
     <!-- Notices -->
     <string name="notice_is_live">%1$s is live</string>
     <string name="notice_gifted_sub">%1$s gifted you a sub!</string>
     <!-- The word in notice_gifted_sub that is highlighted -->
     <string name="notice_gifted_sub_you">you</string>
-    <string name="notice_channel_offline">%1$s is not live right now.</string>
-    <string name="notice_twitch_unreachable">Twitch is unreachable, %1$s can\'t be opened.</string>
-    <string name="notice_emotes_reloaded">Emotes reloaded: %1$d</string>
-    <string name="notice_emotes_reloaded_channel">Emotes reloaded: %1$d (%2$s)</string>
-    <string name="notice_no_live_chat">No live chat active</string>
-    <string name="notice_vod_resume_added">VOD resume position added!</string>
-    <string name="notice_vod_resume_updated">VOD resume position updated!</string>
-    <string name="notice_vod_not_found">The current stream\'s VOD was not found, the position can\'t be saved!</string>
-    <string name="notice_clock_error">Error with custom clock %1$d, try a different time zone</string>
-    <string name="notice_service_running">Running…</string>
 
     <!-- Login page -->
     <string name="login_title">Sign in to Twitch</string>

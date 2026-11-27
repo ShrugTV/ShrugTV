@@ -105,7 +105,7 @@ fun RestScreen(
 ) {
     val context = LocalContext.current
     val prefs = remember { androidx.preference.PreferenceManager.getDefaultSharedPreferences(context) }
-    val timeFormat = remember { SimpleDateFormat(prefs.getString("pref_clock_time_format", "H:mm") ?: "H:mm", Locale.getDefault()) }
+    val timeFormat = remember { SimpleDateFormat(com.shrug.shrugtv.prefs.Prefs.clockTimeFormat.get(prefs), Locale.getDefault()) }
     val now by produceState(System.currentTimeMillis()) {
         while (true) {
             value = System.currentTimeMillis()

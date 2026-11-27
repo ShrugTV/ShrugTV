@@ -20,14 +20,14 @@
     <string name="stats_legend_recordings">Aufzeichnungen</string>
     <string name="settings_stats_screen">Statistik-Seite</string>
     <string name="settings_stats_screen_summary">Karten, Diagramme, Zeitformat und Toplisten</string>
-    <string name="settings_stats_tip">Bestimmt, wie die Statistik-Seite aussieht (Button „Statistik“ auf der Startseite): mit welchem Zeitraum sie sich öffnet, welche Karten sie zeigt, wie lang die Toplisten sind, wie die Diagramme aussehen und wie Zeiten geschrieben werden. Ausgeschaltete Karten machen den anderen Platz. „Daten behalten“ löscht ältere Sitzungen beim nächsten Start der App.</string>
+    <string name="settings_stats_tip">Gestaltet die Statistik-Seite (Button „Statistik“ auf der Startseite): Start-Zeitraum, welche Karten erscheinen, Länge der Toplisten, Diagramme und die Schreibweise der Dauer. „Ansicht“ wählt einen von fünf Looks; auf der Seite wechselt der Button „Ansicht“ oder die Menütaste (≡). „Daten behalten“ löscht ältere Sitzungen beim nächsten Start.</string>
     <string name="settings_stats_cat_page">Seite</string>
     <string name="settings_stats_cat_cards">Karten</string>
     <string name="settings_stats_cat_lists">Toplisten</string>
     <string name="settings_stats_cat_charts">Diagramme</string>
     <string name="settings_stats_cat_data">Daten</string>
     <string name="settings_stats_period">Öffnet mit</string>
-    <string name="settings_stats_time_format">Zeitformat</string>
+    <string name="settings_stats_time_format">Schreibweise der Dauer</string>
     <string name="settings_stats_compare">Mit dem Zeitraum davor vergleichen</string>
     <string name="settings_stats_compare_summary">Ein Pfeil und der Unterschied unter der Gesamtzeit</string>
     <string name="settings_stats_show_tiles">Kennzahlen</string>
@@ -97,23 +97,10 @@
     <string name="stats_tab_30_days">Letzte 30 Tage</string>
     <string name="stats_tab_year">Letztes Jahr</string>
     <string name="stats_tab_month">Monat</string>
-    <string name="stats_loading">Lädt …</string>
     <string name="stats_empty">Für diesen Zeitraum ist noch nichts aufgezeichnet. Die Aufzeichnung begann mit Version 1.21; die Seite füllt sich beim Schauen (eine Sitzung zählt ab einer Minute).</string>
     <string name="stats_vs_before">%1$s gegenüber dem Zeitraum davor</string>
-    <plurals name="stats_days">
-        <item quantity="one">An %d Tag geschaut</item>
-        <item quantity="other">An %d Tagen geschaut</item>
-    </plurals>
-    <plurals name="stats_sessions">
-        <item quantity="one">%d Sitzung</item>
-        <item quantity="other">%d Sitzungen</item>
-    </plurals>
-    <string name="stats_longest">Längste: %1$s</string>
     <string name="stats_top_channels">Meistgeschaute Kanäle</string>
     <string name="stats_top_categories">Meistgeschaute Kategorien</string>
-    <string name="stats_live_share">Live %1$d %% · Aufzeichnungen %2$d %%</string>
-    <string name="stats_time_of_day">Tageszeit (Beginn einer Sitzung)</string>
-    <string name="stats_time_of_day_peak">Tageszeit (Beginn einer Sitzung), am meisten um %1$s</string>
     <string name="stats_delete">Statistik löschen</string>
     <string name="stats_delete_confirm">Wirklich löschen? Nochmal OK</string>
     <string name="stats_hint">Nur auf diesem Gerät gespeichert, nicht in Backups. In den Einstellungen abschaltbar.</string>
@@ -121,4 +108,48 @@
     <string name="home_stats_card_title">Deine letzten 30 Tage: %1$s</string>
     <string name="home_stats_card_top">Meistgeschaut: %1$s</string>
     <string name="home_stats_card_hint">Mehr unter Statistik links</string>
+    <string name="stats_style_button">Ansicht: %1$s</string>
+    <string name="stats_style_tiles">Kacheln</string>
+    <string name="stats_style_grid">Wochenraster</string>
+    <string name="stats_style_magazine">Magazin</string>
+    <string name="stats_style_clock">Uhr</string>
+    <string name="stats_style_arcade">Highscore</string>
+    <string name="stats_style_peak">Deine Stunde</string>
+    <string name="stats_style_share">Live · Aufzeichnungen · Clips</string>
+    <string name="stats_style_clips">Clips</string>
+    <string name="stats_style_clips_count">%1$d Clips</string>
+    <string name="stats_hour_value">%1$d Uhr</string>
+    <string name="stats_grid_title">Wann du schaust</string>
+    <string name="stats_grid_hint">eine Zelle je Stunde · je heller, desto länger</string>
+    <string name="stats_grid_less">wenig</string>
+    <string name="stats_grid_more">viel</string>
+    <string name="stats_mag_time">Zeit vor dem Fernseher</string>
+    <string name="stats_mag_films">Das sind etwa %1$d Spielfilme.</string>
+    <string name="stats_mag_channel">Dein Kanal</string>
+    <string name="stats_mag_share">%1$d %% deiner Zeit</string>
+    <string name="stats_mag_hour">Deine Stunde</string>
+    <string name="stats_mag_category">Deine Kategorie</string>
+    <string name="stats_mag_days">%1$d von %2$d Tagen</string>
+    <string name="stats_clock_title">Deine Uhr</string>
+    <string name="stats_clock_hint">Jeder Strahl ist eine Stunde des Tages; je länger, desto mehr hast du zu der Zeit geschaut. Clips sind der innere Ring.</string>
+    <string name="stats_clock_orbit">Deine Umlaufbahn</string>
+    <string name="stats_arc_title">HIGHSCORE</string>
+    <string name="stats_arc_you">DU</string>
+    <string name="stats_arc_rank">RANG</string>
+    <string name="stats_arc_channel">KANAL</string>
+    <string name="stats_arc_time">ZEIT</string>
+    <string name="stats_arc_total">GESAMT</string>
+    <string name="stats_arc_sessions">SITZUNGEN</string>
+    <string name="stats_arc_days">TAGE</string>
+    <string name="stats_arc_levels">LEVEL PRO TAG</string>
+    <string name="stats_arc_record">REKORDTAG: %1$s</string>
+    <string name="stats_arc_hint">≡ NÄCHSTE ANSICHT</string>
+    <string name="settings_stats_style">Ansicht</string>
+    <string-array name="display_stats_style">
+        <item>Kacheln</item>
+        <item>Wochenraster</item>
+        <item>Magazin</item>
+        <item>Uhr</item>
+        <item>Highscore</item>
+    </string-array>
 </resources>

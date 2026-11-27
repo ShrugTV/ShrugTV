@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Highlights of the running stream in the player -->
+<resources>
+    <string name="player_btn_highlights">Destaques</string>
+    <string name="player_highlights_title">Destaques desta transmissão</string>
+    <string name="player_highlights_hint">Os clipes mais vistos desde o início da transmissão. OK reproduz um clipe, Voltar regressa ao vivo.</string>
+    <string name="player_highlights_empty">Ainda não há clipes desta transmissão</string>
+    <string name="player_highlights_error">Não foi possível carregar os clipes</string>
+    <string name="player_highlights_after">após %1$s</string>
+    <string name="settings_player_highlights">Destaques no leitor</string>
+    <string name="settings_player_highlights_summary">O botão “Destaques” na barra do leitor de uma transmissão ao vivo: os cinco clipes mais vistos desde o início.</string>
+</resources>

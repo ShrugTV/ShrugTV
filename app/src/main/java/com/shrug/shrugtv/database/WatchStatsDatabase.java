@@ -14,7 +14,7 @@ import com.shrug.shrugtv.telemetry.CrashReporter;
  * cannot be left out of a backup, a file can (see backup_rules.xml). This also keeps the identity
  * hash and the migrations of the main database untouched.
  */
-@Database(entities = {WatchSession.class}, version = 2, exportSchema = false)
+@Database(entities = {WatchSession.class}, version = 2, exportSchema = true)
 public abstract class WatchStatsDatabase extends RoomDatabase {
 
     /** File name in the databases folder; the backup rules name it. */

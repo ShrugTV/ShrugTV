@@ -1,21 +1,16 @@
 package com.shrug.shrugtv.ui.tv.player
 
 import android.view.KeyEvent
-import com.shrug.shrugtv.ui.tv.TvShapes
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -37,17 +32,13 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.ui.PlayerView
-import androidx.tv.material3.Text
 import com.shrug.shrugtv.R
 import com.shrug.shrugtv.model.Enums
 import com.shrug.shrugtv.model.Movie
 import com.shrug.shrugtv.player.QualityMatch
-import com.shrug.shrugtv.ui.tv.Inter
+import com.shrug.shrugtv.prefs.Prefs
 import com.shrug.shrugtv.ui.tv.TvColors
 
 /**
@@ -66,17 +57,19 @@ fun PlayerScreen(
     onNavigateToChannel: (Movie) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Debug builds: recomposition counts in the log every 10 s
+    CountRecompositions("PlayerScreen")
+    RecompositionLogger()
     val movie by viewModel.currentMovie.collectAsState()
     val mainPlayer by viewModel.mainPlayerState.collectAsState()
     val overlay by viewModel.activeOverlay.collectAsState()
     val currentQuality by viewModel.currentQuality.collectAsState()
     val isFollowed by viewModel.isFollowed.collectAsState()
     val qualities by viewModel.qualities.collectAsState()
-    val stats by viewModel.stats.collectAsState()
     val chapters by viewModel.chapters.collectAsState()
+    val highlights by viewModel.highlights.collectAsState()
+    val highlightsFailed by viewModel.highlightsFailed.collectAsState()
     val isChatVisible by viewModel.isChatVisible.collectAsState()
-    val chatLines by viewModel.chatViewModel.lines.collectAsState()
-    val chatRoomSettings by viewModel.chatViewModel.roomSettings.collectAsState()
     val currentSpeed by viewModel.currentSpeed.collectAsState()
     val seekHudText by viewModel.seekHudText.collectAsState()
     val isMultiview by viewModel.isMultiview.collectAsState()
@@ -88,7 +81,6 @@ fun PlayerScreen(
     val liveArchive by viewModel.liveArchive.collectAsState()
     val archiveSwitch by viewModel.archiveSwitch.collectAsState()
     val endSuggestion by viewModel.endSuggestion.collectAsState()
-    val endCountdown by viewModel.endCountdown.collectAsState()
     val externalNotice by viewModel.notice.collectAsState()
     // Audio only: black picture with name and clock; the chat stays on top
     val audioOnly = QualityMatch.isAudioOnly(currentQuality) && !isMultiview
@@ -116,13 +108,6 @@ fun PlayerScreen(
     val videoStart by androidx.compose.animation.core.animateDpAsState(if (sideBySide && chatOnLeft) chatWidth else 0.dp, label = "videoStart")
     val videoEnd by androidx.compose.animation.core.animateDpAsState(if (sideBySide && !chatOnLeft) chatWidth else 0.dp, label = "videoEnd")
     val videoPadding = Modifier.padding(start = videoStart, end = videoEnd)
-    // Transparent layout: only messages of the last 30 s, max. 8; re-checked every 2 s
-    val transparentNow by produceState(0L, chatLayout, chatShown) {
-        while (chatShown && chatLayout == com.shrug.shrugtv.chat.ChatLayout.TRANSPARENT) {
-            value = android.os.SystemClock.uptimeMillis()
-            kotlinx.coroutines.delay(2_000L)
-        }
-    }
     val adBlockLabel by viewModel.adBlockLabel.collectAsState()
     val burnIn = viewModel.burnInProtection
 
@@ -181,33 +166,14 @@ fun PlayerScreen(
         }
     }
 
-    // Distance to the live edge while the bar is open (live only): "Back to live" when far behind
-    val liveOffsetMs by produceState(androidx.media3.common.C.TIME_UNSET, overlay, isVod) {
-        while (overlay == PlayerOverlayType.CONTROLS && !isVod) {
-            value = viewModel.mainPlayer.currentLiveOffset
-            kotlinx.coroutines.delay(1_000L)
-        }
-    }
-    val behindLive = viewModel.offerBackToLive && !isVod && liveOffsetMs != androidx.media3.common.C.TIME_UNSET &&
-        liveOffsetMs > PlayerViewModel.BEHIND_LIVE_MS
     // Rewinding a live stream into its recording
     val inArchive = movie?.archiveOfLive == true
     // The recording of a live stream has the same timeline as the live stream, also while it loads
     val liveTimeline = liveArchive != null && (!isVod || inArchive)
-    val timeline by produceState(viewModel.timelineMs(), overlay, liveTimeline) {
-        while (overlay == PlayerOverlayType.CONTROLS && liveTimeline) {
-            value = viewModel.timelineMs()
-            kotlinx.coroutines.delay(500L)
-        }
-    }
+    val barOpen = overlay == PlayerOverlayType.CONTROLS
 
-    // VOD position for the progress bar: read from the player while the bar is visible (B15)
-    val vodPositionMs by produceState(0L, overlay, isVod) {
-        while (overlay == PlayerOverlayType.CONTROLS && isVod) {
-            value = viewModel.mainPlayer.currentPosition
-            kotlinx.coroutines.delay(500L)
-        }
-    }
+    // Back pressed to leave: the note shows until the activity has closed
+    var leaving by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
     // Back key: first close an active overlay, otherwise back to the home screen
     BackHandler(enabled = true) {
@@ -221,8 +187,20 @@ fun PlayerScreen(
             viewModel.backFromOverlay()
         } else if (isMultiview) {
             viewModel.stopMultiview()
-        } else {
-            viewModel.saveVodProgress()
+        } else if (viewModel.backToLiveFromHighlight()) {
+            // A clip opened from the highlights: back to the live stream
+        } else if (!leaving) {
+            // Answer the press at once: sound and picture off, "Leaving the stream …" for one frame, then close
+            //; further presses meanwhile do nothing, and the home screen ignores one right after
+            viewModel.quietForExit()
+            com.shrug.shrugtv.ui.tv.player.PlayerExit.mark()
+            leaving = true
+        }
+    }
+    if (leaving) {
+        androidx.compose.runtime.LaunchedEffect(Unit) {
+            androidx.compose.runtime.withFrameNanos { }
+            androidx.compose.runtime.withFrameNanos { }
             onBack()
         }
     }
@@ -260,7 +238,7 @@ fun PlayerScreen(
                                 return@onKeyEvent true
                             }
                             // Setting "Press BACK twice": the first press only asks, a second one within 2 s leaves
-                            if (androidx.preference.PreferenceManager.getDefaultSharedPreferences(context).getBoolean("pref_stream_double_tap_back", false)) {
+                            if (Prefs.streamDoubleTapBack.get(context)) {
                                 val now = android.os.SystemClock.uptimeMillis()
                                 if (now - lastBackAt[0] > 2000L) {
                                     lastBackAt[0] = now
@@ -413,87 +391,13 @@ fun PlayerScreen(
             }
     ) {
         // 1. Video (single or multiview); side by side it makes room for the chat
-        Box(modifier = Modifier.fillMaxSize().then(videoPadding)) {
-            // 1. Video-Ansicht (Single oder Multiview Split-Screen)
-            if (isMultiview && viewModel.multiviewPlayer != null) {
-                Row(modifier = Modifier.fillMaxSize()) {
-                    // Hauptplayer (Links)
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .border(
-                                width = if (isPrimaryAudio) 3.dp else 0.dp,
-                                color = if (isPrimaryAudio) TvColors.Focus else Color.Transparent
-                            )
-                    ) {
-                        AndroidView(
-                            factory = { ctx ->
-                                PlayerView(ctx).apply {
-                                    useController = false
-                                    controllerAutoShow = false
-                                }
-                            },
-                            update = { playerView ->
-                                if (playerView.player !== mainPlayer) {
-                                    playerView.player = mainPlayer
-                                }
-                                playerView.useController = false
-                                playerView.hideController()
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-
-                    // Zweitplayer (Rechts)
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .border(
-                                width = if (!isPrimaryAudio) 3.dp else 0.dp,
-                                color = if (!isPrimaryAudio) TvColors.Focus else Color.Transparent
-                            )
-                    ) {
-                        AndroidView(
-                            factory = { ctx ->
-                                PlayerView(ctx).apply {
-                                    useController = false
-                                    controllerAutoShow = false
-                                }
-                            },
-                            update = { playerView ->
-                                if (playerView.player !== viewModel.multiviewPlayer) {
-                                    playerView.player = viewModel.multiviewPlayer
-                                }
-                                playerView.useController = false
-                                playerView.hideController()
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                }
-            } else {
-                AndroidView(
-                    factory = { ctx ->
-                        PlayerView(ctx).apply {
-                            useController = false
-                            controllerAutoShow = false
-                            // No black flash between live and its recording
-                            setKeepContentOnPlayerReset(true)
-                        }
-                    },
-                    update = { playerView ->
-                        if (playerView.player !== mainPlayer) {
-                            playerView.player = mainPlayer
-                        }
-                        playerView.useController = false
-                        playerView.hideController()
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-        }
+        PlayerVideoSurface(
+            mainPlayer = mainPlayer,
+            secondPlayer = { viewModel.multiviewPlayer },
+            isMultiview = isMultiview,
+            isPrimaryAudio = isPrimaryAudio,
+            modifier = Modifier.fillMaxSize().then(videoPadding)
+        )
 
         // Audio only: nothing to see, so a dim screen that wanders (under the chat and the overlays)
         if (audioOnly && viewModel.audioOnlyScreen) {
@@ -509,74 +413,35 @@ fun PlayerScreen(
             )
         }
 
-        // Chat-Panel rechts (#137)
         // Notice from Home Assistant or the phone, e.g. the doorbell with a camera picture
         externalNotice?.let { n ->
-            androidx.compose.foundation.layout.Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
+            PlayerNoticeCard(
+                n,
+                Modifier
                     .align(Alignment.TopCenter)
                     .then(videoPadding)
                     .padding(top = if (pendingRaid != null) 110.dp else 24.dp)
-                    .clip(TvShapes.r(16.dp))
-                    .background(TvColors.Panel)
-                    .border(1.dp, TvColors.glass(0.25f), TvShapes.r(16.dp))
-                    .padding(14.dp)
-            ) {
-                if (n.imageUrl != null) {
-                    com.shrug.shrugtv.ui.tv.home.NetImage(
-                        url = n.imageUrl,
-                        modifier = Modifier.width(192.dp).height(108.dp).clip(TvShapes.r(10.dp)),
-                        width = 384,
-                        height = 216
-                    )
-                    androidx.compose.foundation.layout.Spacer(Modifier.width(16.dp))
-                }
-                androidx.compose.foundation.layout.Column(modifier = Modifier.widthIn(max = 420.dp)) {
-                    Text(n.title, fontFamily = Inter, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White)
-                    n.text?.let { Text(it, fontFamily = Inter, fontSize = 14.sp, color = TvColors.glass(0.8f)) }
-                }
-            }
+            )
         }
 
         // Raid from this channel: offer to follow (docs/ideas.md 2)
         pendingRaid?.let { raid ->
-            Box(
+            PlayerRaidCard(
+                raid,
+                channelName = movie?.displayName ?: "",
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .then(videoPadding)
                     .padding(top = 24.dp)
-                    .clip(TvShapes.r(16.dp))
-                    .background(TvColors.Panel)
-                    .border(1.dp, TvColors.AccentSoft, TvShapes.r(16.dp))
-                    .padding(horizontal = 24.dp, vertical = 14.dp)
-            ) {
-                androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = stringResource(R.string.player_raid_title, movie?.displayName ?: "", raid.targetDisplayName ?: ""),
-                        fontFamily = Inter,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = Color.White
-                    )
-                    Text(
-                        text = stringResource(R.string.player_raid_hint),
-                        fontFamily = Inter,
-                        fontSize = 14.sp,
-                        color = TvColors.glass(0.7f),
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
+            )
         }
 
         val transparent = chatLayout == com.shrug.shrugtv.chat.ChatLayout.TRANSPARENT
-        ChatPanel(
+        // The lines change with every message: collected in PlayerChatLayer, not here
+        PlayerChatLayer(
+            chat = viewModel.chatViewModel,
             visible = chatShown,
-            lines = if (transparent) {
-                chatLines.filter { !it.deleted && transparentNow - it.addedAt < 30_000L }.takeLast(8)
-            } else chatLines,
-            roomSettings = if (transparent) null else chatRoomSettings,
+            transparent = transparent,
             modifier = Modifier
                 // Height and vertical place from "Adjust chat"
                 .align(
@@ -603,69 +468,26 @@ fun PlayerScreen(
         // A followed channel went live: offer to switch. Only without an open
         // overlay, because only then OK goes to the card. Drawn after the chat, so it stays on top
         liveCard?.takeIf { overlay == PlayerOverlayType.NONE }?.let { live ->
-            androidx.compose.foundation.layout.Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
+            PlayerLiveCard(
+                live,
+                Modifier
                     .align(Alignment.TopEnd)
                     // Beside the chat when it is on the right, side by side or over the picture
                     // Below the ad-break sign, which sits in the same corner
                     .padding(top = if (adBlockLabel != null) 80.dp else 24.dp, end = if (chatShown && !chatOnLeft) chatWidth + 24.dp else 24.dp)
-                    .clip(TvShapes.r(16.dp))
-                    .background(TvColors.Panel)
-                    .border(1.dp, TvColors.Live, TvShapes.r(16.dp))
-                    .padding(horizontal = 18.dp, vertical = 12.dp)
-            ) {
-                live.avatarUrl?.takeIf { it.isNotBlank() }?.let { url ->
-                    com.shrug.shrugtv.ui.tv.home.NetImage(
-                        url = url,
-                        modifier = Modifier.width(44.dp).height(44.dp).clip(TvShapes.r(22.dp)),
-                        width = 88,
-                        height = 88
-                    )
-                    androidx.compose.foundation.layout.Spacer(Modifier.width(12.dp))
-                }
-                androidx.compose.foundation.layout.Column(modifier = Modifier.widthIn(max = 360.dp)) {
-                    Text(
-                        text = stringResource(R.string.player_live_card_title, live.displayName.ifBlank { live.login ?: "" }),
-                        fontFamily = Inter,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp,
-                        color = Color.White,
-                        maxLines = 1
-                    )
-                    if (live.gameName.isNotBlank()) {
-                        Text(live.gameName, fontFamily = Inter, fontSize = 14.sp, color = TvColors.glass(0.8f), maxLines = 1)
-                    }
-                    Text(
-                        text = stringResource(R.string.player_live_card_hint),
-                        fontFamily = Inter,
-                        fontSize = 13.sp,
-                        color = TvColors.glass(0.6f),
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
-            }
+            )
         }
 
         // Ad-break sign from the ad blocker (B13)
         adBlockLabel?.let { label ->
-            Box(
-                modifier = Modifier
+            PlayerAdBreakSign(
+                label,
+                Modifier
                     .align(Alignment.TopEnd)
                     // Inside the video area: side by side it covered the top of the chat
                     .then(videoPadding)
                     .padding(24.dp)
-                    .clip(TvShapes.r(12.dp))
-                    .background(Color.Black.copy(alpha = 0.75f))
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Text(
-                    text = stringResource(label),
-                    fontFamily = Inter,
-                    fontSize = 14.sp,
-                    color = Color.White
-                )
-            }
+            )
         }
         // Who is streaming, top left while the bar is open (avatar, LIVE data, category, title)
         // Same fade and slide as the bar and the clock (CONTROLS_ANIM_MS / CONTROLS_SLIDE), so they come and go together
@@ -680,12 +502,13 @@ fun PlayerScreen(
             modifier = Modifier.align(Alignment.TopStart).then(videoPadding)
         ) {
             movie?.let { mv ->
+                val liveOffsetMs by liveOffsetWhile(barOpen, isVod, viewModel)
                 PlayerStreamInfo(
                     movie = mv,
                     avatarUrl = streamAvatar,
                     isFollowed = isFollowed,
                     isVod = isVod,
-                    behindLiveSeconds = if (behindLive) (liveOffsetMs / 1000).toInt() else null,
+                    behindLiveSeconds = if (isBehindLive(viewModel, isVod, liveOffsetMs)) (liveOffsetMs / 1000).toInt() else null,
                     modifier = Modifier.burnInDrift(burnIn, "info").padding(24.dp)
                 )
             }
@@ -698,19 +521,12 @@ fun PlayerScreen(
             exit = fadeOut(androidx.compose.animation.core.tween(CONTROLS_ANIM_MS)),
             modifier = Modifier.align(Alignment.TopStart).then(videoPadding)
         ) {
-            androidx.compose.foundation.layout.Column(
-                modifier = Modifier
-                    .burnInDrift(burnIn, "info")
-                    .padding(24.dp)
-                    .clip(com.shrug.shrugtv.ui.tv.TvShapes.r(12.dp))
-                    .background(Color.Black.copy(alpha = 0.55f))
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
-                    .widthIn(max = 560.dp)
-            ) {
-                Text(clipTitle.orEmpty(), fontFamily = Inter, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White, maxLines = 2)
-                val where = clipNav?.let { " · ${it.first} / ${it.second}" }.orEmpty()
-                Text(movie?.displayName.orEmpty() + where, fontFamily = Inter, fontSize = 13.sp, color = TvColors.glass(0.75f))
-            }
+            PlayerClipTitle(
+                title = clipTitle.orEmpty(),
+                channel = movie?.displayName.orEmpty(),
+                clipNav = clipNav,
+                modifier = Modifier.burnInDrift(burnIn, "info")
+            )
         }
 
         // Centre of the video area: seek HUD, loading note and error box one under the other, never on
@@ -726,87 +542,18 @@ fun PlayerScreen(
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
-                Box(
-                    modifier = Modifier
-                        .clip(TvShapes.r(12.dp))
-                        .background(Color.Black.copy(alpha = 0.8f))
-                        .border(1.dp, TvColors.glass(0.2f), TvShapes.r(12.dp))
-                        .padding(horizontal = 24.dp, vertical = 12.dp)
-                ) {
-                    Text(
-                        text = seekHudText ?: "",
-                        fontFamily = Inter,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp,
-                        color = Color.White
-                    )
-                }
+                PlayerSeekHud(seekHudText ?: "")
             }
 
             // Switch between live and the recording: say what happens instead of a hanging picture
             if (archiveSwitch != 0) {
-                Box(
-                    modifier = Modifier
-                        .clip(TvShapes.r(16.dp))
-                        .background(Color.Black.copy(alpha = 0.8f))
-                        .border(1.dp, TvColors.glass(0.2f), TvShapes.r(16.dp))
-                        .padding(horizontal = 28.dp, vertical = 16.dp)
-                ) {
-                    Text(
-                        text = stringResource(if (archiveSwitch == 1) R.string.player_loading_archive else R.string.player_loading_live),
-                        fontFamily = Inter,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 18.sp,
-                        color = Color.White
-                    )
-                }
+                PlayerArchiveSwitchNote(archiveSwitch)
             }
 
-            // Error or end of a live stream: say so instead of a black picture (B8)
-            if (playbackStatus == PlaybackStatus.ERROR || (playbackStatus == PlaybackStatus.ENDED && !isVod)) {
-                Box(
-                    modifier = Modifier
-                        .clip(TvShapes.r(16.dp))
-                        .background(Color.Black.copy(alpha = 0.8f))
-                        .border(1.dp, TvColors.glass(0.2f), TvShapes.r(16.dp))
-                        .padding(horizontal = 32.dp, vertical = 20.dp)
-                ) {
-                    androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        val next = endSuggestion
-                        Text(
-                            text = stringResource(if (playbackStatus == PlaybackStatus.ERROR) R.string.player_playback_error else R.string.player_stream_ended),
-                            fontFamily = Inter,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp,
-                            color = Color.White
-                        )
-                        if (next != null) {
-                            // Next followed live channel, switched to when the countdown ends (docs/ideas.md 3)
-                            Text(
-                                text = if (endCountdown > 0) {
-                                    stringResource(R.string.player_next_channel, next.displayName.ifEmpty { next.login ?: "" }, endCountdown)
-                                } else {
-                                    stringResource(R.string.player_next_channel_suggest, next.displayName.ifEmpty { next.login ?: "" })
-                                },
-                                fontFamily = Inter,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 16.sp,
-                                color = Color.White,
-                                modifier = Modifier.padding(top = 10.dp)
-                            )
-                            if (next.gameName.isNotEmpty()) {
-                                Text(text = next.gameName, fontFamily = Inter, fontSize = 14.sp, color = TvColors.glass(0.7f))
-                            }
-                        }
-                        Text(
-                            text = stringResource(if (next != null) R.string.player_next_hint else R.string.player_status_hint),
-                            fontFamily = Inter,
-                            fontSize = 14.sp,
-                            color = TvColors.glass(0.7f),
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
-                }
+            // Error or end of a live stream: say so instead of a black picture (B8); the end of a recording only with a next one
+            if (playbackStatus == PlaybackStatus.ERROR || (playbackStatus == PlaybackStatus.ENDED && (!isVod || endSuggestion != null))) {
+                // The countdown ticks every second: collected in the card, not here
+                PlayerStatusCard(playbackStatus, isVod, endSuggestion, viewModel.endCountdown)
             }
         }
 
@@ -825,77 +572,84 @@ fun PlayerScreen(
             onDismiss = { viewModel.dismissOverlay() }
         )
 
-        // 3. Player control bar overlay (#69, #74)
-        PlayerControlsOverlay(
-            visible = overlay == PlayerOverlayType.CONTROLS,
-            movie = movie,
-            currentQuality = currentQuality,
-            isFollowed = isFollowed,
-            isVod = isVod,
-            liveTimeline = liveTimeline,
-            compact = androidx.preference.PreferenceManager.getDefaultSharedPreferences(context).getString("pref_player_bar_labels", "highlighted") != "all",
-            vodPositionMs = if (liveTimeline) timeline[0] else vodPositionMs,
-            vodDurationMs = if (liveTimeline) timeline[1] else viewModel.mainPlayer.duration.coerceAtLeast(0L),
-            isPlaying = isPlaying,
-            isMultiview = isMultiview,
-            phoneAvailable = com.shrug.shrugtv.companion.Companion.isEnabled(),
-            chapters = chapters,
-            onQualityClick = { viewModel.setOverlay(PlayerOverlayType.QUALITY) },
-            onChatClick = { viewModel.toggleChat() },
-            onChatLayoutClick = { viewModel.toggleChatLayout() },
-            onChannelClick = {
-                viewModel.dismissOverlay()
-                movie?.let { onNavigateToChannel(it) }
-            },
-            // Helix has no follow endpoint; like the channel page, follow via QR code in the official app (B14)
-            onFollowClick = {
-                movie?.let { m ->
+        // 3. Player control bar overlay (#69, #74). Position and live offset change every 500 ms while the bar is open:
+        // read in a scope of their own, so only the bar recomposes, not the whole player
+        IsolatedScope {
+            val liveOffsetMs by liveOffsetWhile(barOpen, isVod, viewModel)
+            val behindLive = isBehindLive(viewModel, isVod, liveOffsetMs)
+            val timeline = timelineWhile(barOpen, isVod, liveTimeline, viewModel)
+            PlayerControlsOverlay(
+                visible = overlay == PlayerOverlayType.CONTROLS,
+                movie = movie,
+                currentQuality = currentQuality,
+                isFollowed = isFollowed,
+                isVod = isVod,
+                liveTimeline = liveTimeline,
+                compact = Prefs.playerBarLabels.get(context) != "all",
+                vodPositionMs = timeline[0],
+                vodDurationMs = timeline[1],
+                isPlaying = isPlaying,
+                isMultiview = isMultiview,
+                phoneAvailable = com.shrug.shrugtv.companion.Companion.isEnabled(),
+                chapters = chapters,
+                onQualityClick = { viewModel.setOverlay(PlayerOverlayType.QUALITY) },
+                onChatClick = { viewModel.toggleChat() },
+                onChatLayoutClick = { viewModel.toggleChatLayout() },
+                onChannelClick = {
                     viewModel.dismissOverlay()
-                    context.startActivity(com.shrug.shrugtv.ui.tv.dialogs.FollowQrActivity.intent(context, m))
-                }
-            },
-            onSearchClick = { viewModel.setOverlay(PlayerOverlayType.SEARCH) },
-            onSpeedClick = { viewModel.setOverlay(PlayerOverlayType.SPEED) },
-            onChaptersClick = { viewModel.setOverlay(PlayerOverlayType.CHAPTERS) },
-            onWatchLive = if (movie?.isClip == true) ({ viewModel.watchClipChannel() }) else null,
-            channelLive = clipChannelLive,
-            onJumpToSource = if (movie?.isClip == true) ({ viewModel.jumpToClipSource() }) else null,
-            sourceAvailable = clipSourceReady,
-            onPreviousClip = if (clipNav != null) ({ viewModel.playClipStep(-1) }) else null,
-            hasPreviousClip = (clipNav?.first ?: 1) > 1,
-            onNextClip = if (clipNav != null) ({ viewModel.playClipStep(1) }) else null,
-            hasNextClip = clipNav?.let { it.first < it.second } == true,
-            onPreviousCategoryClick = { viewModel.jumpChapter(-1) },
-            onNextCategoryClick = { viewModel.jumpChapter(1) },
-            onMoreAction = { action ->
-                when (action) {
-                    PlayerMoreAction.SEND_MESSAGE -> viewModel.setOverlay(PlayerOverlayType.SEND_MESSAGE)
-                    PlayerMoreAction.ADJUST_CHAT -> viewModel.openChatEditor()
-                    PlayerMoreAction.STATS -> viewModel.setOverlay(PlayerOverlayType.STATS)
-                    PlayerMoreAction.VOLUME,
-                    PlayerMoreAction.ADJUST_MULTIVIEW -> {
-                        if (isMultiview) {
-                            viewModel.swapMultiviewAudio()
-                        }
+                    movie?.let { onNavigateToChannel(it) }
+                },
+                // Helix has no follow endpoint; like the channel page, follow via QR code in the official app (B14)
+                onFollowClick = {
+                    movie?.let { m ->
+                        viewModel.dismissOverlay()
+                        context.startActivity(com.shrug.shrugtv.ui.tv.dialogs.FollowQrActivity.intent(context, m))
                     }
-                    PlayerMoreAction.SAVE_VOD -> viewModel.saveVodProgress()
-                    PlayerMoreAction.RELOAD_EMOTES -> viewModel.reloadEmotes()
-                    PlayerMoreAction.PHONE -> context.startActivity(android.content.Intent(context, com.shrug.shrugtv.companion.CompanionQrActivity::class.java))
-                    else -> {}
-                }
-            },
-            onJumpToLive = if (behindLive || inArchive) ({ viewModel.jumpToLive() }) else null,
-            // The bar closes: in the recording it changes its buttons, and a second OK must not land on "-10 s"
-            onReplay = if (!isVod && !inArchive && viewModel.replayEnabled) ({ viewModel.replay(); viewModel.dismissOverlay() }) else null,
-            buttonFocusIndex = controlsFocusIndex,
-            moreMenuState = moreMenuOpen,
-            onPlayPauseClick = { viewModel.togglePlayPause() },
-            onSeekRelative = { delta -> viewModel.seekRelative(delta) },
-            onSeekStep = { direction -> viewModel.seekStep(direction) },
-            onDismiss = { viewModel.dismissOverlay() },
-            // Side by side the bar stays under the video, not over the chat
-            modifier = videoPadding
-        )
+                },
+                onSearchClick = { viewModel.setOverlay(PlayerOverlayType.SEARCH) },
+                onSpeedClick = { viewModel.setOverlay(PlayerOverlayType.SPEED) },
+                onChaptersClick = { viewModel.setOverlay(PlayerOverlayType.CHAPTERS) },
+                onHighlightsClick = if (!isVod && movie?.isClip != true && !isMultiview && Prefs.playerHighlights.get(context)) ({ viewModel.openHighlights() }) else null,
+                onWatchLive = if (movie?.isClip == true) ({ viewModel.watchClipChannel() }) else null,
+                channelLive = clipChannelLive,
+                onJumpToSource = if (movie?.isClip == true) ({ viewModel.jumpToClipSource() }) else null,
+                sourceAvailable = clipSourceReady,
+                onPreviousClip = if (clipNav != null) ({ viewModel.playClipStep(-1) }) else null,
+                hasPreviousClip = (clipNav?.first ?: 1) > 1,
+                onNextClip = if (clipNav != null) ({ viewModel.playClipStep(1) }) else null,
+                hasNextClip = clipNav?.let { it.first < it.second } == true,
+                onPreviousCategoryClick = { viewModel.jumpChapter(-1) },
+                onNextCategoryClick = { viewModel.jumpChapter(1) },
+                onMoreAction = { action ->
+                    when (action) {
+                        PlayerMoreAction.SEND_MESSAGE -> viewModel.setOverlay(PlayerOverlayType.SEND_MESSAGE)
+                        PlayerMoreAction.ADJUST_CHAT -> viewModel.openChatEditor()
+                        PlayerMoreAction.STATS -> viewModel.setOverlay(PlayerOverlayType.STATS)
+                        PlayerMoreAction.VOLUME,
+                        PlayerMoreAction.ADJUST_MULTIVIEW -> {
+                            if (isMultiview) {
+                                viewModel.swapMultiviewAudio()
+                            }
+                        }
+                        PlayerMoreAction.SAVE_VOD -> viewModel.saveVodProgress()
+                        PlayerMoreAction.RELOAD_EMOTES -> viewModel.reloadEmotes()
+                        PlayerMoreAction.PHONE -> context.startActivity(android.content.Intent(context, com.shrug.shrugtv.companion.CompanionQrActivity::class.java))
+                        else -> {}
+                    }
+                },
+                onJumpToLive = if (behindLive || inArchive) ({ viewModel.jumpToLive() }) else null,
+                // The bar closes: in the recording it changes its buttons, and a second OK must not land on "-10 s"
+                onReplay = if (!isVod && !inArchive && viewModel.replayEnabled) ({ viewModel.replay(); viewModel.dismissOverlay() }) else null,
+                buttonFocusIndex = controlsFocusIndex,
+                moreMenuState = moreMenuOpen,
+                onPlayPauseClick = { viewModel.togglePlayPause() },
+                onSeekRelative = { delta -> viewModel.seekRelative(delta) },
+                onSeekStep = { direction -> viewModel.seekStep(direction) },
+                onDismiss = { viewModel.dismissOverlay() },
+                // Side by side the bar stays under the video, not over the chat
+                modifier = videoPadding
+            )
+        }
 
         // 4. Quality menu overlay (#85)
         PlayerQualityMenuOverlay(
@@ -923,6 +677,16 @@ fun PlayerScreen(
             onDismiss = { viewModel.backFromOverlay() }
         )
 
+        // Highlights of the running live stream
+        PlayerHighlightsOverlay(
+            visible = overlay == PlayerOverlayType.HIGHLIGHTS,
+            clips = highlights,
+            failed = highlightsFailed,
+            streamStart = movie?.startedAt,
+            onSelect = { clip -> viewModel.playHighlight(clip) },
+            onRetry = { viewModel.openHighlights(force = true) }
+        )
+
         // 7. Suche im Player Overlay (#73)
         PlayerSearchOverlay(
             visible = overlay == PlayerOverlayType.SEARCH,
@@ -944,10 +708,10 @@ fun PlayerScreen(
             onDismiss = { viewModel.backFromOverlay() }
         )
 
-        // 9. Video-Statistiken Overlay (#85)
-        PlayerStatsOverlay(
+        // 9. Video-Statistiken Overlay (#85); the values change every second, collected in the layer
+        PlayerStatsLayer(
             visible = overlay == PlayerOverlayType.STATS,
-            stats = stats
+            stats = viewModel.stats
         )
 
         // 10. Layout-Editor Overlay (#72)
@@ -967,7 +731,61 @@ fun PlayerScreen(
                 hint = stringResource(R.string.player_rest_hint)
             )
         }
+
+        if (leaving) PlayerLeavingNote()
     }
+}
+
+/** Over everything while the player closes after Back: a black picture and "Leaving the stream …". */
+@Composable
+private fun PlayerLeavingNote() {
+    Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
+        androidx.tv.material3.Text(
+            stringResource(R.string.player_leaving),
+            fontFamily = com.shrug.shrugtv.ui.tv.Inter,
+            fontSize = 18.sp,
+            color = com.shrug.shrugtv.ui.tv.TvColors.TextMuted
+        )
+    }
+}
+
+/** Own recomposition scope: state read inside [content] recomposes only [content], not the caller. */
+@Composable
+private fun IsolatedScope(content: @Composable () -> Unit) = content()
+
+/** Distance to the live edge, read every second while the bar is open (live only): "Back to live" when far behind. */
+@Composable
+private fun liveOffsetWhile(barOpen: Boolean, isVod: Boolean, viewModel: PlayerViewModel): androidx.compose.runtime.State<Long> =
+    produceState(androidx.media3.common.C.TIME_UNSET, barOpen, isVod) {
+        while (barOpen && !isVod) {
+            value = viewModel.mainPlayer.currentLiveOffset
+            kotlinx.coroutines.delay(1_000L)
+        }
+    }
+
+private fun isBehindLive(viewModel: PlayerViewModel, isVod: Boolean, liveOffsetMs: Long): Boolean =
+    viewModel.offerBackToLive && !isVod && liveOffsetMs != androidx.media3.common.C.TIME_UNSET &&
+        liveOffsetMs > PlayerViewModel.BEHIND_LIVE_MS
+
+/**
+ * Position and length of the progress bar, read every 500 ms while the bar is open: the timeline of the stream when it
+ * has a recording, else the player position (B15) and its length.
+ */
+@Composable
+private fun timelineWhile(barOpen: Boolean, isVod: Boolean, liveTimeline: Boolean, viewModel: PlayerViewModel): LongArray {
+    val timeline by produceState(viewModel.timelineMs(), barOpen, liveTimeline) {
+        while (barOpen && liveTimeline) {
+            value = viewModel.timelineMs()
+            kotlinx.coroutines.delay(500L)
+        }
+    }
+    val vodPositionMs by produceState(0L, barOpen, isVod) {
+        while (barOpen && isVod) {
+            value = viewModel.mainPlayer.currentPosition
+            kotlinx.coroutines.delay(500L)
+        }
+    }
+    return if (liveTimeline) timeline else longArrayOf(vodPositionMs, viewModel.mainPlayer.duration.coerceAtLeast(0L))
 }
 
 /** Keys whose auto-repeat (holding the key) is ignored in the player: only seeking may repeat (B33). */

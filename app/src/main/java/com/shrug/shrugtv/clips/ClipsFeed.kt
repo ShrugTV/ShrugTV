@@ -1,24 +1,22 @@
 package com.shrug.shrugtv.clips
 
 import android.content.Context
-import androidx.preference.PreferenceManager
 import com.shrug.shrugtv.api.helix.HelixApi
 import com.shrug.shrugtv.api.helix.HelixParser
 import com.shrug.shrugtv.apihelpers.FollowedChannels
 import com.shrug.shrugtv.model.Enums
 import com.shrug.shrugtv.model.Movie
+import com.shrug.shrugtv.prefs.Prefs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import kotlin.coroutines.resume
 
 /** How far back clips count. [days] null = no limit. */
 enum class ClipsPeriod(val key: String, val days: Long?) {
@@ -73,38 +71,29 @@ data class ClipsSettings(
     val onlyAppLanguage: Boolean = false,
 ) {
     companion object {
-        const val PREF_SOURCE = "pref_clips_source"
-        const val PREF_PERIOD = "pref_clips_period"
-        const val PREF_SORT = "pref_clips_sort"
-        const val PREF_COUNT = "pref_clips_count"
-        const val PREF_ROW = "pref_clips_row"
-        const val PREF_SURPRISE_ROW = "pref_clips_surprise_row"
-        const val PREF_SEEN = "pref_clips_seen"
-        const val PREF_AUTOPLAY = "pref_clips_autoplay"
-        const val PREF_QUEUE_SEEN = "pref_clips_queue_seen"
         /** The first version of this option (1.45.0) was a switch: on meant hide. */
         const val PREF_HIDE_SEEN_OLD = "pref_clips_hide_seen"
-        const val PREF_LANGUAGE = "pref_clips_language"
 
         fun load(ctx: Context): ClipsSettings {
-            val p = PreferenceManager.getDefaultSharedPreferences(ctx)
+            val p = Prefs.of(ctx)
             return ClipsSettings(
-                ClipsSource.of(p.getString(PREF_SOURCE, null)),
-                ClipsPeriod.of(p.getString(PREF_PERIOD, null)),
-                ClipsSort.of(p.getString(PREF_SORT, null)),
-                (p.getString(PREF_COUNT, null)?.toIntOrNull() ?: 20).coerceIn(10, 100),
-                p.getString(PREF_SEEN, null)?.let { ClipsSeenMode.of(it) }
+                ClipsSource.of(Prefs.clipsSource.get(p)),
+                ClipsPeriod.of(Prefs.clipsPeriod.get(p)),
+                ClipsSort.of(Prefs.clipsSort.get(p)),
+                Prefs.clipsCount.get(p).coerceIn(10, 100),
+                // Unset matters here: then the old switch of 1.45.0 decides, so this one stays a raw read
+                p.getString(Prefs.clipsSeen.key, null)?.let { ClipsSeenMode.of(it) }
                     ?: if (p.getBoolean(PREF_HIDE_SEEN_OLD, false)) ClipsSeenMode.HIDE else ClipsSeenMode.DIM,
-                p.getBoolean(PREF_AUTOPLAY, true),
-                p.getString(PREF_QUEUE_SEEN, "skip") != "include",
-                p.getString(PREF_LANGUAGE, "all") == "app",
+                Prefs.clipsAutoplay.get(p),
+                Prefs.clipsQueueSeen.get(p) != "include",
+                Prefs.clipsLanguage.get(p) == "app",
             )
         }
 
-        fun rowOn(ctx: Context) = PreferenceManager.getDefaultSharedPreferences(ctx).getBoolean(PREF_ROW, true)
+        fun rowOn(ctx: Context) = Prefs.clipsRow.get(ctx)
 
         /** The row "Surprise hits": the clips of the last 7 days that stand out most from the usual of their own channel (off by default). */
-        fun surpriseRowOn(ctx: Context) = PreferenceManager.getDefaultSharedPreferences(ctx).getBoolean(PREF_SURPRISE_ROW, false)
+        fun surpriseRowOn(ctx: Context) = Prefs.clipsSurpriseRow.get(ctx)
 
         /** The choices behind that row: the settings of the page, but always last week and relative to the channel. */
         fun surprise(ctx: Context) = load(ctx).copy(period = ClipsPeriod.WEEK, sort = ClipsSort.RELATIVE)
@@ -254,35 +243,46 @@ object ClipsFeed {
     }
 
     /** One page of clips of one channel and where the next one starts (null = no more). */
-    private fun fetchPage(ctx: Context, ch: Movie, from: String?, first: Int, after: String?): Pair<List<Movie>, String?> = try {
+    private fun fetchPage(ctx: Context, ch: Movie, from: String?, first: Int, after: String?): Pair<List<Movie>, String?> =
+        fetchPageOrNull(ctx, ch, from, first, after) ?: (emptyList<Movie>() to null)
+
+    /** Like [fetchPage], but null if the request failed (no answer or an exception) instead of an empty page. */
+    private fun fetchPageOrNull(ctx: Context, ch: Movie, from: String?, first: Int, after: String?): Pair<List<Movie>, String?>? = try {
         val json = HelixApi.getClipsOfBroadcasterSync(ctx, ch.userId.toString(), from, first, after)
-        val data = json?.get("data")
+            ?: throw java.io.IOException("no answer")
+        val data = json.get("data")
         val clips = if (data != null && data.isJsonArray) HelixParser.parseClips(data.asJsonArray, Enums.RowType.VOD_CHANNEL_HIGHLIGHTS, ch.avatarUrl ?: "") else emptyList<Movie>()
-        val cursor = json?.get("pagination")?.takeIf { it.isJsonObject }?.asJsonObject?.get("cursor")?.takeIf { it.isJsonPrimitive }?.asString?.takeIf { it.isNotEmpty() }
+        val cursor = json.get("pagination")?.takeIf { it.isJsonObject }?.asJsonObject?.get("cursor")?.takeIf { it.isJsonPrimitive }?.asString?.takeIf { it.isNotEmpty() }
         clips to (if (clips.size >= first) cursor else null)
     } catch (e: Exception) {
-        emptyList<Movie>() to null
+        null
     }
 
-    suspend fun load(ctx: Context, s: ClipsSettings, force: Boolean = false): List<Movie> {
+    /** The pool of a load, and whether the channels asked all stayed without an answer (an error, not "no clips"). */
+    class Loaded(val pool: List<Movie>, val failed: Boolean)
+
+    suspend fun load(ctx: Context, s: ClipsSettings, force: Boolean = false): List<Movie> = loadResult(ctx, s, force).pool
+
+    suspend fun loadResult(ctx: Context, s: ClipsSettings, force: Boolean = false): Loaded {
         val key = keyOf(ctx, s)
         val now = android.os.SystemClock.elapsedRealtime()
         synchronized(cache) { cache[key] }?.let { st ->
-            if (!force && now - st.at < CACHE_MS) { lastPool = st.pool; return st.pool }
+            if (!force && now - st.at < CACHE_MS) { lastPool = st.pool; return Loaded(st.pool, false) }
         }
-        val followed = suspendCancellableCoroutine<List<Movie>> { cont ->
-            FollowedChannels.getList(ctx) { list -> if (cont.isActive) cont.resume(list?.toList() ?: emptyList()) }
-        }
+        val followedResult = FollowedChannels.getListResult(ctx)
+        // Signed out, the followed list always fails: that is no network error, the page stays "no clips"
+        val followedFailed = followedResult.failed && com.shrug.shrugtv.session.AppState.accessToken.isNotEmpty() && !com.shrug.shrugtv.session.AppState.userLoggedOut
+        val followed = followedResult.list.toList()
         val asked = channels(followed, s.source)
         val st = PoolState(now, s, startedAt(s.period, Instant.now()), asked)
         val gate = Semaphore(PARALLEL)
         val first = if (s.sort == ClipsSort.RELATIVE) PER_CHANNEL_RELATIVE else PER_CHANNEL
         val pages = withContext(Dispatchers.IO) {
-            coroutineScope { asked.map { ch -> async { gate.withPermit { fetchPage(ctx, ch, st.from, first, null) } } }.awaitAll() }
+            coroutineScope { asked.map { ch -> async { gate.withPermit { fetchPageOrNull(ctx, ch, st.from, first, null) } } }.awaitAll() }
         }
         asked.zip(pages).forEach { (ch, page) ->
-            st.lists[ch.userId] = page.first
-            page.second?.let { st.cursors[ch.userId] = it }
+            st.lists[ch.userId] = page?.first ?: emptyList()
+            page?.second?.let { st.cursors[ch.userId] = it }
         }
         rebuild(ctx, st)
         nameGames(ctx, st.pool)
@@ -291,7 +291,8 @@ object ClipsFeed {
             synchronized(cache) { cache[key] = st }
             lastPool = st.pool
         }
-        return st.pool
+        // Failed: no channel answered, or the followed channels themselves could not be read
+        return Loaded(st.pool, st.pool.isEmpty() && ((asked.isNotEmpty() && pages.all { it == null }) || (asked.isEmpty() && followedFailed)))
     }
 
     /** Whether the channels have more pages of clips to fetch for [s] (and the pool may still grow). */

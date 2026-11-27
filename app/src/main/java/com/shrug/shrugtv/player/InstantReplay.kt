@@ -15,9 +15,6 @@ class InstantReplay(val lengthMs: Long) {
     }
 
     companion object {
-        const val PREF_ENABLED = "pref_player_replay"
-        const val PREF_SECONDS = "pref_player_replay_seconds"
-
         /** Length from the setting in seconds; 30 s if it is missing or odd, 5 to 120 s. */
         fun lengthMs(seconds: String?): Long = ((seconds?.toLongOrNull() ?: 30L).coerceIn(5L, 120L)) * 1000L
     }

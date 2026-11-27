@@ -3,7 +3,6 @@ package com.shrug.shrugtv.player
 import android.app.Activity
 import android.util.Log
 import android.view.Display
-import androidx.preference.PreferenceManager
 
 /**
  * Match the display refresh rate to the stream, switchable in Stream settings
@@ -16,14 +15,13 @@ import androidx.preference.PreferenceManager
  * for Fire TV. Only modes with the current resolution are considered, so only the refresh rate changes.
  */
 object FrameRateMatch {
-    const val PREF_KEY = "pref_match_frame_rate"
     private const val TAG = "Playback"
 
     data class Mode(val id: Int, val width: Int, val height: Int, val refreshRate: Float)
 
     @JvmStatic
     fun enabled(activity: Activity): Boolean =
-        PreferenceManager.getDefaultSharedPreferences(activity).getBoolean(PREF_KEY, false)
+        com.shrug.shrugtv.prefs.Prefs.matchFrameRate.get(activity)
 
     /**
      * Best mode for [fps]: same resolution as [current], refresh rate an integer multiple of the

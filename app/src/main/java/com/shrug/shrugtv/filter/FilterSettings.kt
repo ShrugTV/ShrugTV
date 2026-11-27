@@ -2,6 +2,7 @@ package com.shrug.shrugtv.filter
 
 import android.content.Context
 import androidx.preference.PreferenceManager
+import com.shrug.shrugtv.prefs.Prefs
 import com.shrug.shrugtv.session.AppSettings
 import com.shrug.shrugtv.session.AppState
 import com.shrug.shrugtv.telemetry.CrashReporter
@@ -26,10 +27,10 @@ object FilterSettings {
         if (context == null) return
         try {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context) ?: return
-            val channelsRaw = prefs.getString("pref_filtering_channels", "") ?: ""
-            val categoriesRaw = prefs.getString("pref_filtering_categories", "") ?: ""
-            AppState.filteringEnabled = prefs.getBoolean("pref_filtering_use_filtering", false)
-            AppState.filterReruns = prefs.getBoolean("pref_filtering_reruns", false)
+            val channelsRaw = Prefs.filteringChannels.get(prefs)
+            val categoriesRaw = Prefs.filteringCategories.get(prefs)
+            AppState.filteringEnabled = Prefs.filteringUseFiltering.get(prefs)
+            AppState.filterReruns = Prefs.filteringReruns.get(prefs)
 
             val channels = parseList(channelsRaw)
             val categories = parseList(categoriesRaw)
@@ -113,11 +114,11 @@ object FilterSettings {
     private fun modify(context: Context, kind: FilterKind, name: String, add: Boolean) {
         try {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context) ?: return
-            val key = when (kind) {
-                FilterKind.CHANNEL -> "pref_filtering_channels"
-                FilterKind.CATEGORY -> "pref_filtering_categories"
+            val pref = when (kind) {
+                FilterKind.CHANNEL -> Prefs.filteringChannels
+                FilterKind.CATEGORY -> Prefs.filteringCategories
             }
-            val current = parseList(prefs.getString(key, "") ?: "").toMutableList()
+            val current = parseList(pref.get(prefs)).toMutableList()
             if (add) {
                 if (current.none { it.equals(name, ignoreCase = true) }) {
                     current.add(name)
@@ -125,7 +126,7 @@ object FilterSettings {
             } else {
                 current.removeAll { it.equals(name, ignoreCase = true) }
             }
-            prefs.edit().putString(key, current.joinToString(";")).apply()
+            pref.put(prefs.edit(), current.joinToString(";")).apply()
             load(context)
         } catch (e: Exception) {
             CrashReporter.recordException(e)

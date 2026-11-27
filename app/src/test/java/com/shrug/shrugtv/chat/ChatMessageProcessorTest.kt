@@ -91,19 +91,6 @@ class ChatMessageProcessorTest {
     }
 
     @Test
-    fun `message delay zero means immediate dispatch`() {
-        val messageDelayMs = 0
-        assertEquals(0, messageDelayMs)
-        // Zero delay means no postDelayed
-    }
-
-    @Test
-    fun `message delay positive means delayed dispatch`() {
-        val messageDelayMs = 500
-        assertTrue(messageDelayMs > 0)
-    }
-
-    @Test
     fun `spam glyph array is not empty`() {
         assertTrue(spamGlyphs.isNotEmpty())
         assertEquals(18, spamGlyphs.size)

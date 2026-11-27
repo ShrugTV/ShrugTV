@@ -2,9 +2,9 @@ package com.shrug.shrugtv.companion
 
 import android.content.Context
 import android.content.Intent
-import androidx.preference.PreferenceManager
 import com.google.gson.JsonObject
 import com.shrug.shrugtv.BuildConfig
+import com.shrug.shrugtv.prefs.Prefs
 import com.shrug.shrugtv.update.UpdateCheck
 import com.shrug.shrugtv.update.UpdateChecker
 import com.shrug.shrugtv.update.UpdateInstaller
@@ -15,7 +15,6 @@ import com.shrug.shrugtv.update.UpdateInstaller
  * The system always asks on the TV for the last confirmation.
  */
 object UpdateApi {
-    const val PREF_INSTALL = "pref_update_install"
 
     /** Progress of a running install for the phone: "", "downloading", "verifying" or "error". */
     @Volatile private var phase = ""
@@ -25,7 +24,7 @@ object UpdateApi {
     @Volatile private var checking = false
 
     private fun installAllowed(ctx: Context) =
-        BuildConfig.UPDATE_INSTALL && PreferenceManager.getDefaultSharedPreferences(ctx).getBoolean(PREF_INSTALL, false)
+        BuildConfig.UPDATE_INSTALL && Prefs.updateInstall.get(ctx)
 
     fun info(ctx: Context): JsonObject = JsonObject().apply {
         addProperty("version", BuildConfig.VERSION_NAME)
@@ -60,6 +59,7 @@ object UpdateApi {
     }
 
     /** Asks the release page now (background thread); the phone polls [info] for the answer. */
+    @Synchronized
     fun check(ctx: Context): JsonObject {
         if (BuildConfig.UPDATE_CHECK && !checking) {
             checking = true
@@ -72,6 +72,7 @@ object UpdateApi {
     }
 
     /** Starts download, checksum and the system installer for the newest release; does nothing when not allowed or already running. */
+    @Synchronized
     fun install(ctx: Context): JsonObject {
         val app = ctx.applicationContext
         val release = UpdateChecker.latest(app)

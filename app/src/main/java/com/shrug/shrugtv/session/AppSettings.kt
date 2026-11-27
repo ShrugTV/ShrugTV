@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.runtime.Immutable
 import androidx.preference.PreferenceManager
+import com.shrug.shrugtv.prefs.Prefs
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -49,22 +50,18 @@ object AppSettings {
     }
 
     private fun readHomeRows(p: SharedPreferences): HomeRowSettings = HomeRowSettings(
-        showFollowed = p.getBoolean("pref_show_Followed", true),
-        showLiveHistory = p.getBoolean("pref_show_LiveStreamHistory", true),
-        showVodHistory = p.getBoolean("pref_show_VodHistory", false),
-        showFollowedChannels = p.getBoolean("pref_show_FollowedChannels", true),
-        showFollowedGames = p.getBoolean("pref_show_FollowedGames", true),
-        showPastBroadcasts = p.getBoolean("pref_show_PastBroadcasts", true),
-        showTopGames = p.getBoolean("pref_show_top_games", true),
-        showTopStreamers = p.getBoolean("pref_show_top_streamers", true),
-        showLanguageRow = p.getBoolean("pref_show_language_row", false),
-        showLanguageRowGames = p.getBoolean("pref_show_language_row_games", false),
-        languageRowAsPrimary = p.getBoolean("pref_language_row_as_primary", false),
-        streamLanguageCode = p.getString("prefs_languagerow", "") ?: "",
-        favoritesInFrontOfFollowed = p.getBoolean("pref_favorites_in_front_of_followed", true),
+        showFollowed = Prefs.showFollowed.get(p),
+        showLiveHistory = Prefs.showLiveStreamHistory.get(p),
+        showVodHistory = Prefs.showVodHistory.get(p),
+        showFollowedChannels = Prefs.showFollowedChannels.get(p),
+        showFollowedGames = Prefs.showFollowedGames.get(p),
+        showPastBroadcasts = Prefs.showPastBroadcasts.get(p),
+        showTopGames = Prefs.showTopGames.get(p),
+        showTopStreamers = Prefs.showTopStreamers.get(p),
+        showLanguageRow = Prefs.showLanguageRow.get(p),
+        showLanguageRowGames = Prefs.showLanguageRowGames.get(p),
+        languageRowAsPrimary = Prefs.languageRowAsPrimary.get(p),
+        streamLanguageCode = Prefs.languageRowCode.get(p),
+        favoritesInFrontOfFollowed = Prefs.favoritesInFrontOfFollowed.get(p),
     )
-
-    @JvmStatic
-    fun getIntString(prefs: SharedPreferences, key: String, defaultVal: Int): Int =
-        prefs.getString(key, null)?.toIntOrNull() ?: defaultVal
 }

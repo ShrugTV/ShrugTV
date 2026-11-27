@@ -17,6 +17,9 @@ enum class HoursStyle(val value: String) { HOURS("hours"), DAY_PARTS("dayparts")
 
 enum class LiveStyle(val value: String) { RING("ring"), BAR("bar") }
 
+/** The look of the whole page: tiles (the classic one), a week grid, a magazine, a 24-hour clock, a highscore board. */
+enum class StatsStyle(val value: String) { TILES("tiles"), GRID("grid"), MAGAZINE("magazine"), CLOCK("clock"), ARCADE("arcade") }
+
 /**
  * How the statistics page looks, set in Settings -> Home -> Statistics page. Pure parsing, so wrong or
  * missing values fall back to the defaults and the tests need no Android.
@@ -37,7 +40,8 @@ data class StatsPrefs(
     val activityStyle: ActivityStyle = ActivityStyle.BARS,
     val highlightBusiest: Boolean = true,
     val hoursStyle: HoursStyle = HoursStyle.HOURS,
-    val liveStyle: LiveStyle = LiveStyle.RING
+    val liveStyle: LiveStyle = LiveStyle.RING,
+    val style: StatsStyle = StatsStyle.TILES
 ) {
     companion object {
         const val PERIOD = "pref_stats_default_period"
@@ -57,6 +61,7 @@ data class StatsPrefs(
         const val HOURS_STYLE = "pref_stats_hours_style"
         const val LIVE_STYLE = "pref_stats_live_style"
         const val KEEP_MONTHS = "pref_stats_keep_months"
+        const val STYLE = "pref_stats_style"
 
         /** Allowed lengths of the top lists. */
         val TOP_COUNTS = listOf(3, 5, 8, 10)
@@ -85,7 +90,8 @@ data class StatsPrefs(
                 activityStyle = choice(ACTIVITY_STYLE, ActivityStyle.values(), { it.value }, d.activityStyle),
                 highlightBusiest = bool(HIGHLIGHT, d.highlightBusiest),
                 hoursStyle = choice(HOURS_STYLE, HoursStyle.values(), { it.value }, d.hoursStyle),
-                liveStyle = choice(LIVE_STYLE, LiveStyle.values(), { it.value }, d.liveStyle)
+                liveStyle = choice(LIVE_STYLE, LiveStyle.values(), { it.value }, d.liveStyle),
+                style = choice(STYLE, StatsStyle.values(), { it.value }, d.style)
             )
         }
 

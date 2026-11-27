@@ -61,9 +61,21 @@ open class PlayerActivity : ComponentActivity() {
             override fun <T : ViewModel> create(modelClass: Class<T>): T = PlayerViewModel(appContext) as T
         })[PlayerViewModel::class.java]
 
-        // After a recreation the ViewModel still plays; only a fresh start reads the intent
+        // After a recreation with the process alive the ViewModel still plays; only a fresh start reads the intent.
+        // After Android ended the process the ViewModel is new and empty: play again only when
+        // the player was left shortly before, otherwise start on the home screen instead of a black picture.
         if (savedInstanceState == null) {
             handleIntent(intent)
+        } else if (viewModel.currentMovie.value == null) {
+            val leftAt = savedInstanceState.getLong(com.shrug.shrugtv.ui.tv.player.PlayerRestore.KEY_LEFT_AT, 0L)
+            if (com.shrug.shrugtv.ui.tv.player.PlayerRestore.resume(leftAt, System.currentTimeMillis())) {
+                handleIntent(intent)
+            } else {
+                startActivity(Intent(this, com.shrug.shrugtv.ui.tv.home.HomeActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+                finish()
+                return
+            }
         }
 
         setContent {
@@ -71,7 +83,7 @@ open class PlayerActivity : ComponentActivity() {
                 com.shrug.shrugtv.ui.tv.VideoTheme {
                 PlayerScreen(
                     viewModel = viewModel,
-                    onBack = { finish() },
+                    onBack = { leaveToApp() },
                     onNavigateToChannel = { movie ->
                         Destinations.channel(this@PlayerActivity, movie)
                     }
@@ -91,12 +103,10 @@ open class PlayerActivity : ComponentActivity() {
         if (intent == null) return
 
         val movieExtraKey = getString(R.string.movie)
-        @Suppress("DEPRECATION")
-        val movie = (intent.getSerializableExtra(movieExtraKey) as? Movie)
+        val movie = androidx.core.content.IntentCompat.getSerializableExtra(intent, movieExtraKey, Movie::class.java)
             ?: movieFromDeepLink(intent.data)
 
-        @Suppress("DEPRECATION")
-        val multiviewMovie = intent.getSerializableExtra(EXTRA_MULTIVIEW) as? Movie
+        val multiviewMovie = androidx.core.content.IntentCompat.getSerializableExtra(intent, EXTRA_MULTIVIEW, Movie::class.java)
 
         if (movie != null) {
             val adopted = HeroHandover.take()
@@ -118,6 +128,9 @@ open class PlayerActivity : ComponentActivity() {
             return Movie().apply {
                 this.login = login
                 this.displayName = login
+                // shrugtv://stream/<login>?id=<user id>: the chat starts without asking Twitch for the id first
+                // (tests and measurements without a signed-in account)
+                uri.getQueryParameter("id")?.toIntOrNull()?.let { this.userId = it }
                 this.itemType = Enums.ContentType.STREAM
             }
         }
@@ -158,6 +171,27 @@ open class PlayerActivity : ComponentActivity() {
         }
 
         return null
+    }
+
+    /**
+     * Back leaves the player. Opened by a link (Home Assistant, a launcher row) the player is the only page of the
+     * task, and finishing it left the whole app: then the home screen opens first.
+     */
+    internal fun leaveToApp() {
+        if (isTaskRoot) {
+            startActivity(Intent(this, com.shrug.shrugtv.ui.tv.home.HomeActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+        }
+        finish()
+    }
+
+    /** Tests: the ViewModel this activity plays with. */
+    @androidx.annotation.VisibleForTesting
+    internal fun viewModelForTest(): PlayerViewModel = viewModel
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putLong(com.shrug.shrugtv.ui.tv.player.PlayerRestore.KEY_LEFT_AT, System.currentTimeMillis())
     }
 
     override fun onStart() {

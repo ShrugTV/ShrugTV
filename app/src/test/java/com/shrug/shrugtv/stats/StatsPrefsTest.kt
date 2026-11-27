@@ -15,7 +15,7 @@ class StatsPrefsTest {
         assertEquals(StatsPrefs(), parse())
         assertEquals(StatsPeriod.WEEK, parse().period)
         assertEquals(5, parse().topCount)
-        assertTrue(parse().showLive && parse().compare && parse().showClips)
+        assertTrue(parse().showLive && parse().compare && parse().showClips && parse().style == StatsStyle.TILES)
     }
 
     @Test

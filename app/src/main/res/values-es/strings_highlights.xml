@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Highlights of the running stream in the player -->
+<resources>
+    <string name="player_btn_highlights">Destacados</string>
+    <string name="player_highlights_title">Destacados de esta emisión</string>
+    <string name="player_highlights_hint">Los clips más vistos desde que empezó la emisión. OK reproduce un clip, Atrás vuelve al directo.</string>
+    <string name="player_highlights_empty">Aún no hay clips de esta emisión</string>
+    <string name="player_highlights_error">No se pudieron cargar los clips</string>
+    <string name="player_highlights_after">a los %1$s</string>
+    <string name="settings_player_highlights">Destacados en el reproductor</string>
+    <string name="settings_player_highlights_summary">El botón «Destacados» en la barra del reproductor de un directo: los cinco clips más vistos desde que empezó la emisión.</string>
+</resources>

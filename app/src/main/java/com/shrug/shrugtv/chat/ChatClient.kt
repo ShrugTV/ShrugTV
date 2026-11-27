@@ -34,8 +34,6 @@ abstract class ChatClient(builder: Builder) : HandlerThread("ChatManager") {
             private set
         var filterSettings: ChatFilterSettings? = null
             private set
-        var messageDelayMs: Int = 0
-            private set
         var showPrimeBadge: Boolean = false
             private set
         var vodId: Long = 0
@@ -65,7 +63,6 @@ abstract class ChatClient(builder: Builder) : HandlerThread("ChatManager") {
         fun badgeSize(size: Int) = apply { this.badgeSize = size }
         fun emoteSize(size: Int) = apply { this.emoteSize = size }
         fun filterSettings(settings: ChatFilterSettings?) = apply { this.filterSettings = settings }
-        fun messageDelayMs(delay: Int) = apply { this.messageDelayMs = delay }
         fun showPrimeBadge(show: Boolean) = apply { this.showPrimeBadge = show }
         fun vodId(id: Long) = apply { this.vodId = id }
         fun animatedEmotes(animated: Boolean) = apply { this.animatedEmotes = animated }
@@ -141,7 +138,6 @@ abstract class ChatClient(builder: Builder) : HandlerThread("ChatManager") {
             badgeSize,
             emoteSize,
             builder.filterSettings,
-            builder.messageDelayMs,
             channelName ?: "",
             builder.showPrimeBadge,
             builder.highlights,

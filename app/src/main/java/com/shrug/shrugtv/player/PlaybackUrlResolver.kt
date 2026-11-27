@@ -10,6 +10,7 @@ import com.shrug.shrugtv.model.Enums
 import com.shrug.shrugtv.model.LoadState
 import com.shrug.shrugtv.model.PlaybackUrlCacheEntry
 import com.shrug.shrugtv.model.StreamQuality
+import com.shrug.shrugtv.net.CallGroup
 import com.shrug.shrugtv.net.Http
 import com.shrug.shrugtv.player.hls.TwitchAdBlocker
 import com.shrug.shrugtv.session.AppState
@@ -38,6 +39,7 @@ class PlaybackUrlResolver(
     var useStreamToken: Boolean = false
     private var manifestCluster: String = ""
     private var vodTokenJson: JsonObject? = null
+    private val calls = CallGroup()
 
     companion object {
         private val liveUrlCache = HashMap<String, PlaybackUrlCacheEntry>()
@@ -164,6 +166,14 @@ class PlaybackUrlResolver(
         Threads.doInBackground { resolveInBackground() }
     }
 
+    /**
+     * Aborts the running token and playlist requests; the listener is not called any more
+     *. For a caller that is gone, e.g. the hero preview of a left home screen.
+     */
+    fun cancel() {
+        calls.cancel()
+    }
+
     private fun resolveInBackground() {
         val id = channelOrVideoId.orEmpty()
         val arrayListFetchQualities: ArrayList<StreamQuality> = when {
@@ -171,8 +181,9 @@ class PlaybackUrlResolver(
             isClipSlug(id) -> fetchClipQualities(id)
             else -> fetchQualities(buildVodPlaylistUrl(id))
         }
+        if (calls.isCancelled) return
         Threads.doOnMainThread {
-            listener.onQualitiesResolved(arrayListFetchQualities, manifestCluster)
+            if (!calls.isCancelled) listener.onQualitiesResolved(arrayListFetchQualities, manifestCluster)
         }
     }
 
@@ -224,7 +235,7 @@ class PlaybackUrlResolver(
             if (streamToken != null) {
                 request.setHeader("Authorization", "OAuth $streamToken")
             }
-            val jsonObject = request.setStringBody(str3).asJsonObject().get()
+            val jsonObject = request.setStringBody(str3).asJsonObject().get(calls)
             if (jsonObject != null) {
                 asString = jsonObject.get("data").asJsonObject.get("streamPlaybackAccessToken").asJsonObject.get("value").asString
                 try {
@@ -240,7 +251,7 @@ class PlaybackUrlResolver(
         } catch (e10: Exception) {
             asString = ""
             e10.printStackTrace()
-            CrashReporter.recordException(e10)
+            if (!calls.isCancelled) CrashReporter.recordException(e10)
             asString2 = ""
         }
 
@@ -272,7 +283,7 @@ class PlaybackUrlResolver(
             val jsonObject = Http.load("POST", "https://gql.twitch.tv/gql")
                 .setHeader("Client-ID", com.shrug.shrugtv.api.gql.GqlApi.WEB_CLIENT_ID)
                 .setStringBody(query)
-                .asJsonObject().get()
+                .asJsonObject().get(calls)
             if (jsonObject != null) {
                 asString = jsonObject.get("data").asJsonObject.get("videoPlaybackAccessToken").asJsonObject.get("value").asString
                 try {
@@ -288,7 +299,7 @@ class PlaybackUrlResolver(
         } catch (e10: Exception) {
             asString = ""
             e10.printStackTrace()
-            CrashReporter.recordException(e10)
+            if (!calls.isCancelled) CrashReporter.recordException(e10)
             asString2 = ""
         }
         return String.format(
@@ -322,10 +333,10 @@ class PlaybackUrlResolver(
                 .setHeader("Client-ID", com.shrug.shrugtv.api.gql.GqlApi.WEB_CLIENT_ID)
                 .setHeader("Content-Type", "application/json")
                 .setStringBody(body)
-            qualitiesFromClip(req.asJsonObject().get())
+            qualitiesFromClip(req.asJsonObject().get(calls))
         } catch (e: Exception) {
             e.printStackTrace()
-            CrashReporter.recordException(e)
+            if (!calls.isCancelled) CrashReporter.recordException(e)
             ArrayList()
         }
     }
@@ -336,11 +347,12 @@ class PlaybackUrlResolver(
         }
         var str2: String
         try {
-            str2 = Http.load(str).asString().get()
+            str2 = Http.load(str).asString().get(calls)
         } catch (e3: Exception) {
             e3.printStackTrace()
             str2 = ""
         }
+        if (calls.isCancelled) return ArrayList()
         if (playbackType == Enums.PlaybackKind.LIVE) {
             TwitchAdBlocker.registerMaster(str, channelOrVideoId.orEmpty(), str2)
         }

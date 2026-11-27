@@ -1,5 +1,8 @@
 package com.shrug.shrugtv.ui.tv.category
 
+import com.shrug.shrugtv.ui.tv.components.StatusNote
+import com.shrug.shrugtv.ui.tv.components.listStatus
+import com.shrug.shrugtv.ui.tv.components.ShrugButton
 import android.os.Bundle
 import com.shrug.shrugtv.ui.tv.themeBackground
 import com.shrug.shrugtv.ui.tv.TvShapes
@@ -78,7 +81,7 @@ class CategoryActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         window.setFlags(1024, 1024)
         window.setBackgroundDrawable(null)
-        val game = intent.getSerializableExtra("game") as? Movie
+        val game = androidx.core.content.IntentCompat.getSerializableExtra(intent, "game", Movie::class.java)
         if (game == null) { finish(); return }
         setContent {
             TvHomeTheme {
@@ -93,7 +96,8 @@ class CategoryActivity : ComponentActivity() {
 
 private enum class CategoryTab { ALL, LANGUAGE, CLIPS }
 
-private class Page(val streams: List<Movie>, val cursor: String?)
+/** [failed]: the request failed (no answer or an error), which is not the same as an empty page. */
+private class Page(val streams: List<Movie>, val cursor: String?, val failed: Boolean = false)
 
 /**
  * One page of streams or clips including avatars, entirely in the background (
@@ -122,7 +126,7 @@ private suspend fun load(ctx: android.content.Context, gameId: Long, cursor: Str
         } else arrayListOf()
         val next = json?.let { runCatching { HelixParser.getPaginationCursor(it) }.getOrNull() }
         android.util.Log.i("Category", "${list.size} entries ($tab) after ${t1 - t0} ms, with avatars after ${android.os.SystemClock.elapsedRealtime() - t0} ms")
-        Page(list, next?.takeIf { it.isNotEmpty() })
+        Page(list, next?.takeIf { it.isNotEmpty() }, failed = json == null)
     }
 }
 
@@ -136,6 +140,8 @@ private fun CategoryScreen(game: Movie, open: (Movie) -> Unit, contextMenu: (Mov
     val streams = remember(tab) { mutableStateListOf<Movie>() }
     var cursor by remember(tab) { mutableStateOf<String?>("") }
     var loading by remember(tab) { mutableStateOf(false) }
+    var failed by remember(tab) { mutableStateOf(false) }
+    var attempt by remember(tab) { mutableStateOf(0) }
     val firstCard = remember { FocusRequester() }
 
     suspend fun more() {
@@ -143,6 +149,7 @@ private fun CategoryScreen(game: Movie, open: (Movie) -> Unit, contextMenu: (Mov
         if (loading) return
         loading = true
         val s = load(ctx, game.gameId, c, tab)
+        failed = s.failed
         if (tab == CategoryTab.CLIPS) {
             streams.addAll(s.streams.filter { updated -> streams.none { it.clipSlug == updated.clipSlug } })
         } else {
@@ -151,7 +158,7 @@ private fun CategoryScreen(game: Movie, open: (Movie) -> Unit, contextMenu: (Mov
         cursor = s.cursor
         loading = false
     }
-    LaunchedEffect(tab) { more() }
+    LaunchedEffect(tab, attempt) { more() }
 
     Column(Modifier.fillMaxSize().themeBackground().padding(start = 80.dp, top = 36.dp, end = 48.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -162,29 +169,27 @@ private fun CategoryScreen(game: Movie, open: (Movie) -> Unit, contextMenu: (Mov
                 // Search hits carry no viewer count; then the line is left out instead of "0 viewers".
                 if (game.viewerCount > 0) Text(pluralStringResource(R.plurals.category_viewers, game.viewerCount, game.viewerCount), fontFamily = Inter, fontSize = 11.sp, color = TvColors.TextMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 6.dp)) {
-                    Button(onClick = follow, colors = glassButton()) { Text(stringResource(R.string.category_follow), fontFamily = Inter) }
-                    Button(onClick = { tab = CategoryTab.ALL }, colors = if (tab == CategoryTab.ALL) whiteButton() else glassButton()) {
+                    ShrugButton(onClick = follow) { Text(stringResource(R.string.category_follow), fontFamily = Inter) }
+                    ShrugButton(onClick = { tab = CategoryTab.ALL }, selected = tab == CategoryTab.ALL) {
                         Text(stringResource(R.string.category_all_languages), fontFamily = Inter)
                     }
                     if (languagePossible) {
-                        Button(onClick = { tab = CategoryTab.LANGUAGE }, colors = if (tab == CategoryTab.LANGUAGE) whiteButton() else glassButton()) {
+                        ShrugButton(onClick = { tab = CategoryTab.LANGUAGE }, selected = tab == CategoryTab.LANGUAGE) {
                             Text(AppState.streamLanguageName ?: AppState.streamLanguageCode, fontFamily = Inter)
                         }
                     }
-                    Button(onClick = { tab = CategoryTab.CLIPS }, colors = if (tab == CategoryTab.CLIPS) whiteButton() else glassButton()) {
+                    ShrugButton(onClick = { tab = CategoryTab.CLIPS }, selected = tab == CategoryTab.CLIPS) {
                         Text(stringResource(R.string.category_clips), fontFamily = Inter)
                     }
                 }
             }
         }
         Box(Modifier.padding(top = 18.dp)) {
-            if (streams.isEmpty()) {
-                val emptyRes = when {
-                    loading -> R.string.category_loading
-                    tab == CategoryTab.CLIPS -> R.string.category_clips_empty
-                    else -> R.string.category_empty
-                }
-                Text(stringResource(emptyRes), fontFamily = Inter, fontSize = 13.sp, color = TvColors.TextMuted)
+            listStatus(loading, failed, streams.isEmpty())?.let { st ->
+                StatusNote(
+                    st, stringResource(if (tab == CategoryTab.CLIPS) R.string.category_clips_empty else R.string.category_empty),
+                    retry = { cursor = ""; attempt++ },
+                )
             }
             LazyVerticalGrid(
                 columns = GridCells.Fixed(5),

@@ -90,4 +90,14 @@ class UpdateCheckTest {
         assertEquals("", UpdateCheck.shortNotes(""))
         assertTrue(UpdateCheck.shortNotes((1..20).joinToString("\n") { "line $it" }).endsWith("…"))
     }
+
+    @Test
+    fun `the apk comes over https only (michael-shrugtv-336)`() {
+        val ok = com.shrug.shrugtv.update.UpdateInstaller
+        assertTrue(ok.isSafeUrl("https://github.com/ShrugTV/shrugtv/releases/download/v1/shrugtv.apk"))
+        assertFalse(ok.isSafeUrl("http://github.com/x.apk"))
+        assertFalse(ok.isSafeUrl("ftp://github.com/x.apk"))
+        assertFalse(ok.isSafeUrl("not a url"))
+        assertTrue(ok.isSafeUrl("http://127.0.0.1:8080/x.apk"))
+    }
 }

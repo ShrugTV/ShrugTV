@@ -8,6 +8,9 @@ import com.shrug.shrugtv.model.Enums
 import com.shrug.shrugtv.model.Movie
 import com.shrug.shrugtv.net.ResultCallback
 import com.shrug.shrugtv.telemetry.CrashReporter
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 
@@ -86,6 +89,23 @@ object UserSession {
         })
     }
 
+    /**
+     * Suspending form of [loadUserProfile]: cancelling the caller cancels the
+     * request. [profileCallback] runs on the main thread before this returns, as with the callback form.
+     */
+    suspend fun awaitUserProfile(context: Context, profileCallback: ProfileCallback) {
+        var exc: Exception? = null
+        val json = try {
+            HelixApi.awaitCurrentUser(context)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            exc = e
+            null
+        }
+        withContext(Dispatchers.Main.immediate) { onUserProfileResponse(profileCallback, context, exc, json) }
+    }
+
     private fun onUserProfileResponse(
         profileCallback: ProfileCallback,
         context: Context,
@@ -141,6 +161,9 @@ object UserSession {
                             context.applicationContext.getSharedPreferences("User", 0).edit()
                                 .putString("USER_ID", id)
                                 .putString("USER_NAME", login)
+                                // Kept for the next start, so the greeting shows the right capitals at once
+                                .putString(SessionStore.PREF_DISPLAY_NAME, displayName.orEmpty())
+                                .putString(SessionStore.PREF_DISPLAY_LOGIN, login)
                                 .apply()
                         } catch (e: Exception) {
                             CrashReporter.recordException(e)

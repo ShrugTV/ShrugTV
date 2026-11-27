@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Highlights of the running stream in the player -->
+<resources>
+    <string name="player_btn_highlights">Temps forts</string>
+    <string name="player_highlights_title">Temps forts de ce live</string>
+    <string name="player_highlights_hint">Les clips les plus vus depuis le début du live. OK lance un clip, Retour revient au direct.</string>
+    <string name="player_highlights_empty">Pas encore de clips de ce live</string>
+    <string name="player_highlights_error">Impossible de charger les clips</string>
+    <string name="player_highlights_after">après %1$s</string>
+    <string name="settings_player_highlights">Temps forts dans le lecteur</string>
+    <string name="settings_player_highlights_summary">Le bouton « Temps forts » dans la barre du lecteur d’un live : les cinq clips les plus vus depuis le début.</string>
+</resources>

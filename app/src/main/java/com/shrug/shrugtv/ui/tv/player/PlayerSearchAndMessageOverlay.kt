@@ -59,8 +59,6 @@ import com.shrug.shrugtv.ui.tv.TvColors
 import com.shrug.shrugtv.ui.tv.components.ContentCard
 import com.shrug.shrugtv.ui.tv.components.glassButton
 import com.shrug.shrugtv.ui.tv.components.whiteButton
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * Search and send message in the player in the modern glass style (slice 4a).
@@ -99,19 +97,8 @@ fun PlayerSearchOverlay(
             val q = query.trim()
             if (q.length >= 2) {
                 searching = true
-                results = withContext(Dispatchers.IO) {
-                    try {
-                        kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
-                            Search.getLiveStreams(context, q) { list ->
-                                if (continuation.isActive) {
-                                    continuation.resumeWith(Result.success(list?.toList() ?: emptyList()))
-                                }
-                            }
-                        }
-                    } catch (e: Exception) {
-                        emptyList()
-                    }
-                }
+                // A new query restarts this effect and cancels the old search
+                results = Search.getLiveStreams(context, q)
                 searching = false
             } else {
                 results = emptyList()

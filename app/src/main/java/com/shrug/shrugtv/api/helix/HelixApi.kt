@@ -71,8 +71,43 @@ object HelixApi {
 
     @JvmStatic
     fun getCurrentUser(context: Context?, callback: ResultCallback<JsonObject>) {
-        helixGet("https://api.twitch.tv/helix/users").asJsonObject().setCallback(callback)
+        helixGet(CURRENT_USER_URL).asJsonObject().setCallback(callback)
     }
+
+    // Suspending variants of the queries the home screen uses: cancelling the
+    // caller cancels the OkHttp call. They fail like Http.Result.await (e.g. StatusException).
+
+    private const val CURRENT_USER_URL = "https://api.twitch.tv/helix/users"
+
+    private fun followedStreamsUrl() =
+        "https://api.twitch.tv/helix/streams/followed?user_id=${AppState.userId}${first100Param()}"
+
+    private fun topStreamsUrl(cursor: String) =
+        "https://api.twitch.tv/helix/streams?${first100Param()}${afterParam(cursor)}"
+
+    private fun streamsByGameUrl(gameId: Long, cursor: String) =
+        "https://api.twitch.tv/helix/streams?${first100Param()}&game_id=$gameId${afterParam(cursor)}"
+
+    private fun streamsByGameAndLanguageUrl(gameId: Long, cursor: String) =
+        "https://api.twitch.tv/helix/streams?${first100Param()}&game_id=$gameId&language=${AppState.streamLanguageCode}${afterParam(cursor)}"
+
+    private fun streamsByLanguageUrl(cursor: String) =
+        "https://api.twitch.tv/helix/streams?${first100Param()}&language=${AppState.streamLanguageCode}${afterParam(cursor)}"
+
+    suspend fun awaitCurrentUser(context: Context?): JsonObject = helixGet(CURRENT_USER_URL).asJsonObject().await()
+
+    suspend fun awaitFollowedStreams(context: Context?): JsonObject = helixGet(followedStreamsUrl()).asJsonObject().await()
+
+    suspend fun awaitTopStreams(context: Context?, cursor: String): JsonObject = helixGet(topStreamsUrl(cursor)).asJsonObject().await()
+
+    suspend fun awaitStreamsByGame(context: Context?, gameId: Long, cursor: String): JsonObject =
+        helixGet(streamsByGameUrl(gameId, cursor)).asJsonObject().await()
+
+    suspend fun awaitStreamsByGameAndLanguage(context: Context?, gameId: Long, cursor: String): JsonObject =
+        helixGet(streamsByGameAndLanguageUrl(gameId, cursor)).asJsonObject().await()
+
+    suspend fun awaitStreamsByLanguage(context: Context?, cursor: String): JsonObject =
+        helixGet(streamsByLanguageUrl(cursor)).asJsonObject().await()
 
     @JvmStatic
     fun getChannelChatBadges(context: Context?, broadcasterId: Int): JsonObject? =
@@ -104,7 +139,7 @@ object HelixApi {
 
     @JvmStatic
     fun getFollowedStreams(context: Context?, callback: ResultCallback<JsonObject>) {
-        helixGet("https://api.twitch.tv/helix/streams/followed?user_id=${AppState.userId}${first100Param()}")
+        helixGet(followedStreamsUrl())
             .asJsonObject()
             .setCallback(callback)
     }
@@ -115,25 +150,25 @@ object HelixApi {
 
     @JvmStatic
     fun getStreamsByGameAndLanguage(context: Context?, gameId: Long, cursor: String, callback: ResultCallback<JsonObject>) {
-        helixGet("https://api.twitch.tv/helix/streams?${first100Param()}&game_id=$gameId&language=${AppState.streamLanguageCode}${afterParam(cursor)}")
+        helixGet(streamsByGameAndLanguageUrl(gameId, cursor))
             .asJsonObject()
             .setCallback(callback)
     }
 
     @JvmStatic
     fun getStreamsByGameAndLanguageSync(context: Context?, gameId: Long, cursor: String): JsonObject? =
-        helixGetSync("https://api.twitch.tv/helix/streams?${first100Param()}&game_id=$gameId&language=${AppState.streamLanguageCode}${afterParam(cursor)}")
+        helixGetSync(streamsByGameAndLanguageUrl(gameId, cursor))
 
     @JvmStatic
     fun getStreamsByGame(context: Context?, gameId: Long, cursor: String, callback: ResultCallback<JsonObject>) {
-        helixGet("https://api.twitch.tv/helix/streams?${first100Param()}&game_id=$gameId${afterParam(cursor)}")
+        helixGet(streamsByGameUrl(gameId, cursor))
             .asJsonObject()
             .setCallback(callback)
     }
 
     @JvmStatic
     fun getStreamsByLanguage(context: Context?, cursor: String, callback: ResultCallback<JsonObject>) {
-        helixGet("https://api.twitch.tv/helix/streams?${first100Param()}&language=${AppState.streamLanguageCode}${afterParam(cursor)}")
+        helixGet(streamsByLanguageUrl(cursor))
             .asJsonObject()
             .setCallback(callback)
     }
@@ -159,7 +194,7 @@ object HelixApi {
 
     @JvmStatic
     fun getTopStreams(context: Context?, cursor: String, callback: ResultCallback<JsonObject>) {
-        helixGet("https://api.twitch.tv/helix/streams?${first100Param()}${afterParam(cursor)}")
+        helixGet(topStreamsUrl(cursor))
             .asJsonObject()
             .setCallback(callback)
     }

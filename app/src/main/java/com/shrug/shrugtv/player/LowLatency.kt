@@ -2,7 +2,6 @@ package com.shrug.shrugtv.player
 
 import android.content.Context
 import androidx.media3.common.MediaItem
-import androidx.preference.PreferenceManager
 
 /**
  * Twitch low latency, switchable in Stream settings ("pref_low_latency", on by
@@ -16,7 +15,6 @@ import androidx.preference.PreferenceManager
  *   sits close to the (now longer) live edge and catches up gently instead of jumping.
  */
 object LowLatency {
-    const val PREF_KEY = "pref_low_latency"
     const val USHER_PARAM = "&fast_bread=true"
 
     const val TARGET_OFFSET_MS = 3_000L
@@ -27,7 +25,7 @@ object LowLatency {
 
     @JvmStatic
     fun enabled(context: Context?): Boolean =
-        context == null || PreferenceManager.getDefaultSharedPreferences(context).getBoolean(PREF_KEY, true)
+        context == null || com.shrug.shrugtv.prefs.Prefs.lowLatency.get(context)
 
     /** Master playlist URL with or without the low latency parameter. */
     @JvmStatic

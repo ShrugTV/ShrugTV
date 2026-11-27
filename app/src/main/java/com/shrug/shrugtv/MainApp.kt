@@ -25,6 +25,7 @@ import com.shrug.shrugtv.login.TwitchDeviceAuth
 import com.shrug.shrugtv.model.Enums
 import com.shrug.shrugtv.notification.LiveNotificationTicker
 import com.shrug.shrugtv.player.PlaybackUrlResolver
+import com.shrug.shrugtv.prefs.Prefs
 import com.shrug.shrugtv.remotesettings.RemoteSettings
 import com.shrug.shrugtv.session.AppState
 import com.shrug.shrugtv.telemetry.CrashReporter
@@ -51,7 +52,7 @@ class MainApp : Application() {
         @JvmStatic
         fun loadPreviewQualities(context: Context) {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context) ?: return
-            val i = prefs.getString("pref_stream_preview_quality", "0")?.toIntOrNull() ?: 0
+            val i = Prefs.streamPreviewQuality.get(prefs)
             val previewQuality = Enums.PreviewQuality.values().getOrElse(i) { Enums.PreviewQuality.values()[0] }
             AppState.streamPreviewResolution = Enums.previewResolution(previewQuality)
         }
@@ -60,6 +61,8 @@ class MainApp : Application() {
     override fun onCreate() {
         super.onCreate()
         CrashReporter.install(this)
+        // Emote animations at normal thread priority; before anything else uses Glide
+        com.shrug.shrugtv.chat.emote.GlideSetup.init(this)
         com.shrug.shrugtv.ui.tv.theme.ThemeSettings.sync(this)
         loadUserPreferences(this)
         com.shrug.shrugtv.session.SessionStore.loadFromPrefs(this)
@@ -123,14 +126,14 @@ class MainApp : Application() {
     private fun loadUserPreferences(context: Context) {
         val defaultPrefs = PreferenceManager.getDefaultSharedPreferences(context)
         if (defaultPrefs != null) {
-            AppState.favoritesInFrontOfFollowed = defaultPrefs.getBoolean("pref_favorites_in_front_of_followed", true)
+            AppState.favoritesInFrontOfFollowed = Prefs.favoritesInFrontOfFollowed.get(defaultPrefs)
             Threads.doInBackground {
                 loadFavoriteChannels()
             }
-            val proxyIdx = defaultPrefs.getString("pref_proxy_server_name", "0")?.toIntOrNull() ?: 0
+            val proxyIdx = Prefs.proxyServerName.get(defaultPrefs)
             val proxyServer = Enums.ProxyServer.values().getOrElse(proxyIdx) { Enums.ProxyServer.values()[0] }
             PlaybackUrlResolver.setProxyServer(proxyServer)
-            PlaybackUrlResolver.setProxyUrl(defaultPrefs.getString("pref_proxy_url", "") ?: "")
+            PlaybackUrlResolver.setProxyUrl(Prefs.proxyUrl.get(defaultPrefs))
         }
         val userPrefs = getSharedPreferences("User", 0)
         if (userPrefs != null) {
@@ -232,7 +235,7 @@ class MainApp : Application() {
     private fun migrateResetToken() {
         if (AppState.isTurbo) {
             getSharedPreferences("User", 0).edit().apply {
-                putString("TOKEN", "")
+                com.shrug.shrugtv.security.SecretStore.putInto(this, "User", com.shrug.shrugtv.security.SecretStore.TOKEN, null)
                 putBoolean("IS_TURBO", false)
                 commit()
             }
@@ -244,7 +247,7 @@ class MainApp : Application() {
         }
         AppState.accessToken = ""
         userPrefs.edit().apply {
-            putString("TOKEN", "")
+            com.shrug.shrugtv.security.SecretStore.putInto(this, "User", com.shrug.shrugtv.security.SecretStore.TOKEN, null)
             apply()
         }
         defaultPrefs.edit().apply {

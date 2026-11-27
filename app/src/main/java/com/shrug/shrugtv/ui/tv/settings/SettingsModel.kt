@@ -3,6 +3,7 @@ package com.shrug.shrugtv.ui.tv.settings
 import android.content.Context
 import android.content.res.XmlResourceParser
 import com.shrug.shrugtv.BuildConfig
+import com.shrug.shrugtv.ui.tv.home.HomeRowOrder
 import org.xmlpull.v1.XmlPullParser
 
 /**
@@ -53,7 +54,7 @@ object SettingsModel {
     val ADVANCED_KEYS = setOf(
         "pref_splash_min_ms", "pref_theme_focus_scale", "pref_theme_border", "pref_theme_hero_dim",
         "pref_chat_reply_chars", "pref_chat_merge_repeats", "pref_chat_zero_width", "pref_chat_7tv_paints",
-        "pref_chat_7tv_badges", "pref_chat_7tv_personal", "pref_filter_predit_bots",
+        "pref_chat_7tv_badges", "pref_chat_7tv_personal",
         "pref_player_replay_seconds", "pref_player_rest_after", "pref_player_self_heal", "pref_clock_date_format",
         "prefs_autorefresh_minutes", "pref_stream_preview_quality", "pref_mqtt_advanced", "pref_mqtt_interval",
         "pref_companion_log", "prefs_notification_font_size", "pref_notification_animation",
@@ -81,6 +82,32 @@ object SettingsModel {
             else -> if (e.key != null && e.key in ADVANCED_KEYS && !advanced) null else e
         }
         return root.children.mapNotNull(::keep).filterIsInstance<Entry.Page>()
+    }
+
+    /** The row id of a group on the page "Rows" (its "Move up" entry), null for anything else. */
+    private fun rowOf(e: Entry): String? = (e as? Entry.Category)?.children?.firstNotNullOfOrNull { c ->
+        c.key?.takeIf { it.startsWith(HomeRowOrder.MOVE_PREFIX) }?.removePrefix(HomeRowOrder.MOVE_PREFIX)
+    }
+
+    /**
+     * The page "Rows" has one group per home screen row; they are shown in the order of the
+     * home screen ([saved] is `pref_row_order`), so "Move up" moves the whole group. Everything else keeps its place.
+     */
+    fun inRowOrder(pages: List<Entry.Page>, saved: String?): List<Entry.Page> {
+        fun sort(list: List<Entry>): List<Entry> {
+            val kids = list.map {
+                when (it) {
+                    is Entry.Page -> it.copy(children = sort(it.children))
+                    is Entry.Category -> if (rowOf(it) != null) it else it.copy(children = sort(it.children))
+                    else -> it
+                }
+            }
+            val groups = kids.filter { rowOf(it) != null }
+            if (groups.size < 2) return kids
+            val sorted = groups.sortedBy { HomeRowOrder.place(HomeRowOrder.DEFAULT, saved, rowOf(it)!!) }.iterator()
+            return kids.map { if (rowOf(it) != null) sorted.next() else it }
+        }
+        return pages.map { it.copy(children = sort(it.children)) }
     }
 
     /** Text fields that hold a secret: the list shows dots, the dialog masks the input, the browser page never gets the value. */

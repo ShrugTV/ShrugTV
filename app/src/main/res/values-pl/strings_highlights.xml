@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Highlights of the running stream in the player -->
+<resources>
+    <string name="player_btn_highlights">Najlepsze momenty</string>
+    <string name="player_highlights_title">Najlepsze momenty tej transmisji</string>
+    <string name="player_highlights_hint">Najczęściej oglądane klipy od początku transmisji. OK odtwarza klip, Wstecz wraca na żywo.</string>
+    <string name="player_highlights_empty">Brak jeszcze klipów z tej transmisji</string>
+    <string name="player_highlights_error">Nie udało się wczytać klipów</string>
+    <string name="player_highlights_after">po %1$s</string>
+    <string name="settings_player_highlights">Najlepsze momenty w odtwarzaczu</string>
+    <string name="settings_player_highlights_summary">Przycisk „Najlepsze momenty” na pasku odtwarzacza transmisji na żywo: pięć najczęściej oglądanych klipów od początku.</string>
+</resources>

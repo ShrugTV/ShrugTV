@@ -4,8 +4,8 @@ import android.content.Context
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
-import androidx.preference.PreferenceManager
 import com.google.gson.JsonObject
+import com.shrug.shrugtv.prefs.Prefs
 import com.shrug.shrugtv.ui.tv.theme.ThemeSettings
 
 /**
@@ -13,11 +13,9 @@ import com.shrug.shrugtv.ui.tv.theme.ThemeSettings
  * follows live when the skin or a colour changes. Switch "TV skin on the phone page" (`pref_companion_skin`, default on).
  */
 object SkinApi {
-    const val PREF = "pref_companion_skin"
-
     private fun hex(c: Color) = "#%06X".format(c.toArgb() and 0xFFFFFF)
 
-    fun enabled(context: Context) = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(PREF, true)
+    fun enabled(context: Context) = Prefs.companionSkin.get(context)
 
     fun theme(context: Context): JsonObject = JsonObject().apply {
         val on = enabled(context)
@@ -57,6 +55,9 @@ object SkinApi {
             addProperty("theme_color", bg)
             add("icons", com.google.gson.JsonArray().apply {
                 add(JsonObject().apply { addProperty("src", "/favicon.png"); addProperty("sizes", "192x192"); addProperty("type", "image/png"); addProperty("purpose", "any") })
+                add(JsonObject().apply { addProperty("src", "/icon-512.png"); addProperty("sizes", "512x512"); addProperty("type", "image/png"); addProperty("purpose", "any") })
+                // The full square: the system cuts it to its own shape, the figure sits inside the safe circle
+                add(JsonObject().apply { addProperty("src", "/icon-maskable-512.png"); addProperty("sizes", "512x512"); addProperty("type", "image/png"); addProperty("purpose", "maskable") })
             })
         }.toString()
     }

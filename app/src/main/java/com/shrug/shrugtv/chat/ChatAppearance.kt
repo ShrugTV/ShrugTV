@@ -1,6 +1,7 @@
 package com.shrug.shrugtv.chat
 
 import android.content.SharedPreferences
+import com.shrug.shrugtv.prefs.Prefs
 
 /**
  * Chat look that "Adjust chat" in the player changes live (docs/chat_plan.md phase 3, CA12;
@@ -83,17 +84,18 @@ data class ChatAppearance(
     fun sizesDiffer(other: ChatAppearance): Boolean = fontValue != other.fontValue || emoteValue != other.emoteValue
 
     fun save(prefs: SharedPreferences) {
-        prefs.edit()
-            .putString("pref_chat_layout", layout.value)
-            .putString("pref_chat_width", widthValue.toString())
-            .putString("pref_chat_background_opacity", opacityIndex.toString())
-            // value_chat_position: 2 = right bottom, 5 = left middle
-            .putString("pref_chat_position", if (onLeft) "5" else "2")
-            .putString("prefs_chat_font_size", fontValue.toString())
-            .putString("pref_chat_emote_size", emoteValue)
-            .putString("pref_chat_height", heightPercent.toString())
-            .putString("pref_chat_vertical", vertical.value)
-            .apply()
+        val e = prefs.edit()
+        Prefs.chatLayout.put(e, layout.value)
+        Prefs.chatWidth.put(e, widthValue)
+        Prefs.chatBackgroundOpacity.put(e, opacityIndex)
+        // value_chat_position: 2 = right bottom, 5 = left middle
+        Prefs.chatPosition.put(e, if (onLeft) 5 else 2)
+        Prefs.chatFontSize.put(e, fontValue)
+        // emoteValue is the stored text itself, written back unchanged
+        e.putString(Prefs.chatEmoteSize.key, emoteValue)
+        Prefs.chatHeight.put(e, heightPercent)
+        Prefs.chatVertical.put(e, vertical.value)
+        e.apply()
     }
 
     companion object {
@@ -111,14 +113,14 @@ data class ChatAppearance(
 
         @JvmStatic
         fun from(prefs: SharedPreferences): ChatAppearance = ChatAppearance(
-            layout = ChatLayout.of(prefs.getString("pref_chat_layout", null)),
-            widthValue = prefs.getString("pref_chat_width", "0")?.toIntOrNull() ?: 0,
-            opacityIndex = (prefs.getString("pref_chat_background_opacity", "6")?.toIntOrNull() ?: 6).coerceIn(0, 9),
-            onLeft = (prefs.getString("pref_chat_position", "2")?.toIntOrNull() ?: 2) in 4..6,
-            fontValue = prefs.getString("prefs_chat_font_size", "2")?.toIntOrNull()?.takeIf { it in FONT_VALUES } ?: 2,
-            emoteValue = prefs.getString("pref_chat_emote_size", "1") ?: "1",
-            heightPercent = prefs.getString("pref_chat_height", "100")?.toIntOrNull()?.takeIf { it in HEIGHTS } ?: 100,
-            vertical = ChatVertical.of(prefs.getString("pref_chat_vertical", null))
+            layout = ChatLayout.of(Prefs.chatLayout.get(prefs)),
+            widthValue = Prefs.chatWidth.get(prefs),
+            opacityIndex = Prefs.chatBackgroundOpacity.get(prefs).coerceIn(0, 9),
+            onLeft = Prefs.chatPosition.get(prefs) in 4..6,
+            fontValue = Prefs.chatFontSize.get(prefs).takeIf { it in FONT_VALUES } ?: Prefs.chatFontSize.default,
+            emoteValue = Prefs.chatEmoteSize.text(prefs),
+            heightPercent = Prefs.chatHeight.get(prefs).takeIf { it in HEIGHTS } ?: Prefs.chatHeight.default,
+            vertical = ChatVertical.of(Prefs.chatVertical.get(prefs))
         )
     }
 }

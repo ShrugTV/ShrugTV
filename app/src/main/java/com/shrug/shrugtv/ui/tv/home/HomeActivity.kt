@@ -36,6 +36,18 @@ import java.net.URI
 class HomeActivity : ComponentActivity() {
 
     /** App language: resources follow the language chosen in the settings. */
+    /**
+     * A Back right after leaving the player was meant for the player, which took a moment to close:
+     * swallow it instead of leaving the app.
+     */
+    override fun onKeyDown(keyCode: Int, event: android.view.KeyEvent): Boolean =
+        if (keyCode == android.view.KeyEvent.KEYCODE_BACK && com.shrug.shrugtv.ui.tv.player.PlayerExit.justLeft()) true
+        else super.onKeyDown(keyCode, event)
+
+    override fun onKeyUp(keyCode: Int, event: android.view.KeyEvent): Boolean =
+        if (keyCode == android.view.KeyEvent.KEYCODE_BACK && com.shrug.shrugtv.ui.tv.player.PlayerExit.justLeft()) true
+        else super.onKeyUp(keyCode, event)
+
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(com.shrug.shrugtv.util.AppLanguage.wrap(newBase))
     }
@@ -84,6 +96,7 @@ class HomeActivity : ComponentActivity() {
                 startActivity(Intent(this, target))
             },
             contextMenu = { Destinations.contextMenu(this, it) },
+            retry = { forceNetworkReload = true; loadCounter++ },
         )
         // Splash on a cold start; the start window of the system shows the same logo before
         val splash = if (SplashRules.claim(savedInstanceState == null)) {
@@ -162,7 +175,7 @@ class HomeActivity : ComponentActivity() {
     /** In the first days of a month: one card with the last 30 days, then not again that month. */
     private fun maybeShowStatsCard() {
         val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
-        if (!prefs.getBoolean("pref_watch_stats", true) || !prefs.getBoolean("pref_watch_stats_card", true)) return
+        if (!com.shrug.shrugtv.prefs.Prefs.watchStats.get(prefs) || !com.shrug.shrugtv.prefs.Prefs.watchStatsCard.get(prefs)) return
         val today = java.time.LocalDate.now()
         if (!com.shrug.shrugtv.stats.StatsCardGate.due(today, prefs.getString("watch_stats_card_month", null))) return
         com.shrug.shrugtv.util.Threads.doInBackground {
@@ -230,6 +243,8 @@ class HomeActivity : ComponentActivity() {
         RowKind("past_broadcasts", R.string.home_row_past_broadcasts, { AppState.showPastBroadcasts }, HomeData::pastBroadcasts),
         RowKind("top_categories", R.string.home_row_top_categories, { AppState.showTopGames }, HomeData::topGames),
         RowKind("top_streams", R.string.home_row_top_streams, { AppState.showTopStreamers }, HomeData::topStreams),
+        // Top streams in the language chosen under Settings → Stream languages (the switch had no row)
+        RowKind("language_streams", R.string.home_row_language_streams, { AppState.showLanguageRow }, HomeData::languageStreams),
     )
 
     /** The rows in the order of the settings page "Row order". */
@@ -363,7 +378,9 @@ class HomeActivity : ComponentActivity() {
     /** Visible rows in fixed order: fresh where available, otherwise the saved one. Maps keyed by row id. */
     private fun visible(old: Map<String, List<Movie>>, fresh: Map<String, List<Movie>>): List<HomeRow> =
         rowKinds.filter { it.on() }.mapNotNull { kind ->
-            (fresh[kind.id] ?: old[kind.id])?.takeIf { it.isNotEmpty() }?.let { buildRow(kind, it) }
+            // Watched recordings left out if the setting says so
+            (fresh[kind.id] ?: old[kind.id])?.let { com.shrug.shrugtv.ui.tv.components.VodSeen.filter(this, it) }
+                ?.takeIf { it.isNotEmpty() }?.let { buildRow(kind, it) }
         }
 
     private fun watch(m: Movie) {

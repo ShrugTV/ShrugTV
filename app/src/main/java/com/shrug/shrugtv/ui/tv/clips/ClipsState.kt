@@ -16,6 +16,7 @@ import com.shrug.shrugtv.clips.ClipsSeenMode
 import com.shrug.shrugtv.clips.ClipsSettings
 import com.shrug.shrugtv.clips.ClipsSort
 import com.shrug.shrugtv.model.Movie
+import com.shrug.shrugtv.prefs.Prefs
 
 /**
  * How the clips page looks: four layouts over the same list, chosen under Settings → Home screen →
@@ -25,9 +26,8 @@ enum class ClipsLayout(val key: String) {
     FINE("fine"), STAGE("stage"), CHARTS("charts"), TV("tv");
 
     companion object {
-        const val PREF = "pref_clips_layout"
         fun of(key: String?) = values().firstOrNull { it.key == key } ?: FINE
-        fun load(ctx: android.content.Context) = of(PreferenceManager.getDefaultSharedPreferences(ctx).getString(PREF, null))
+        fun load(ctx: android.content.Context) = of(Prefs.clipsLayout.get(ctx))
     }
 }
 
@@ -39,6 +39,10 @@ class ClipsUi(
     /** The part of [shown] on screen so far; grows near the end, see [Watch]. */
     val visible: List<Movie>,
     val loading: Boolean,
+    /** Every channel asked stayed without an answer: an error with "Try again", not "No clips". */
+    val failed: Boolean,
+    /** Loads the list again, bypassing the cache. */
+    val retry: () -> Unit,
     val categories: List<Pair<Long, String>>,
     val gameFilter: Long,
     /** True when the order is a ranking (views or relative), so a rank number means something. */
@@ -79,16 +83,21 @@ fun rememberClipsState(resumes: Int, open: (Movie) -> Unit, contextMenu: (Movie)
     var settings by remember { mutableStateOf(ClipsSettings.load(ctx)) }
     var clips by remember { mutableStateOf<List<Movie>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
+    var failed by remember { mutableStateOf(false) }
+    var retryTick by remember { mutableStateOf(0) }
     val firstFocus = remember { FocusRequester() }
 
     // The focus goes to the first card once, when the page opens; after a change of the choices it stays on the button, so the
     // next button can be pressed right away
     var focusedFirst by remember { mutableStateOf(false) }
-    LaunchedEffect(settings) {
+    LaunchedEffect(settings, retryTick) {
         loading = true
+        failed = false
         // A choice was changed: the old list goes away at once, otherwise it looks as if nothing happened while it loads
         clips = emptyList()
-        clips = ClipsFeed.load(ctx, settings)
+        val loaded = ClipsFeed.loadResult(ctx, settings, force = retryTick > 0)
+        clips = loaded.pool
+        failed = loaded.failed
         loading = false
     }
     LaunchedEffect(clips) {
@@ -122,6 +131,8 @@ fun rememberClipsState(resumes: Int, open: (Movie) -> Unit, contextMenu: (Movie)
         shown = shown,
         visible = visible,
         loading = loading,
+        failed = failed,
+        retry = { retryTick++ },
         categories = categories,
         gameFilter = gameFilter,
         ranked = settings.sort == ClipsSort.VIEWS || settings.sort == ClipsSort.RELATIVE,

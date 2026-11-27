@@ -1,7 +1,8 @@
 ShrugTV
 Copyright 2026 shrug
 
-Licensed under the Apache License, Version 2.0 (see LICENSE).
+Licensed under the GNU General Public License, version 3 (see LICENSE).
+Versions up to and including 2.4.0 were released under the Apache License, Version 2.0.
 
 ShrugTV is an unofficial client and is not affiliated with Twitch. Third-party components and their licences
 are listed in the app (Settings -> About ShrugTV -> Licences) and in docs/lizenzen/.

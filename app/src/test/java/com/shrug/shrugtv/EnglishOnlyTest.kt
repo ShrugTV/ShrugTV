@@ -61,7 +61,7 @@ class EnglishOnlyTest {
         val hits = mutableListOf<String>()
         for (f in files(root)) {
             val rel = f.relativeTo(root).path.replace('\\', '/')
-            if (rel in skippedFiles || f.extension.lowercase() !in textEndings || f.length() > 2_000_000) continue
+            if (rel in skippedFiles || rel.startsWith("app/src/main/assets/companion/i18n/") || f.extension.lowercase() !in textEndings || f.length() > 2_000_000) continue
             f.readLines().forEachIndexed { i, line ->
                 val words = wordRx.findAll(line).map { it.value.lowercase() }.toSet()
                 val hitWords = words.filter { it in german && it !in alsoEnglish }

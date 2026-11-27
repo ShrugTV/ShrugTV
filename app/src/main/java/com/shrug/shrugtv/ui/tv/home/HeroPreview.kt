@@ -90,7 +90,7 @@ fun HeroPreview(movie: Movie?, active: Boolean, modifier: Modifier = Modifier) {
 
     // The setting "Show Stream preview" used to apply only to the old cards, not to the hero
     val previewOn = remember {
-        androidx.preference.PreferenceManager.getDefaultSharedPreferences(context).getBoolean("pref_show_stream_preview", true)
+        com.shrug.shrugtv.prefs.Prefs.showStreamPreview.get(context)
     }
 
     LaunchedEffect(movie, active, player) {

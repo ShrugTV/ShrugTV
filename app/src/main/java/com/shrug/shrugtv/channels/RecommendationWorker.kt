@@ -174,6 +174,10 @@ class RecommendationWorker(
         }
     }
 
+    // The setters of PreviewProgram.Builder and WatchNextProgram.Builder are inherited from BasePreviewProgram.Builder,
+    // which androidx.tvprovider marks library-internal; the public builders are the documented API, lint reports the
+    // inherited calls anyway (tvprovider 1.1.0 is the newest)
+    @android.annotation.SuppressLint("RestrictedApi")
     private fun publishPrograms(streams: List<Movie>, channelId: Long, rowType: Enums.RowType) {
         try {
             deletePrograms(channelId)
@@ -209,6 +213,10 @@ class RecommendationWorker(
     /**
      * Updates Google TV / Android TV "Play Next" / Watch Next row with unfinished VODs.
      */
+    // The setters of PreviewProgram.Builder and WatchNextProgram.Builder are inherited from BasePreviewProgram.Builder,
+    // which androidx.tvprovider marks library-internal; the public builders are the documented API, lint reports the
+    // inherited calls anyway (tvprovider 1.1.0 is the newest)
+    @android.annotation.SuppressLint("RestrictedApi")
     private fun updateWatchNext() {
         try {
             val db = AppDatabase.getInstance(context) ?: return

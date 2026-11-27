@@ -22,6 +22,8 @@ class Pairing(
 
     private var offer: Offer? = null
     private var pinTries = 0
+    /** Wrong tries per address: one device in the LAN cannot use up the offer for everyone. */
+    private val triesByIp = HashMap<String, Int>()
     private val phones = LinkedHashMap<String, Phone>()
 
     @Synchronized
@@ -29,6 +31,7 @@ class Pairing(
         val o = Offer(randomHex(16), (random.nextInt(900_000) + 100_000).toString(), now() + OFFER_MS)
         offer = o
         pinTries = 0
+        triesByIp.clear()
         return o
     }
 
@@ -42,11 +45,15 @@ class Pairing(
 
     /** The PIN was typed on the phone; too many wrong tries end the offer. */
     @Synchronized
-    fun redeemPin(pin: String, userAgent: String): Phone? {
+    fun redeemPin(pin: String, userAgent: String, ip: String? = null): Phone? {
         val o = offer ?: return null
         if (now() > o.expiresAt) return null
+        val who = ip ?: ""
+        if ((triesByIp[who] ?: 0) >= MAX_PIN_TRIES) return null
         if (pin.trim() != o.pin) {
-            if (++pinTries >= MAX_PIN_TRIES) offer = null
+            triesByIp[who] = (triesByIp[who] ?: 0) + 1
+            // Many different addresses together still end the offer
+            if (++pinTries >= MAX_PIN_TRIES * 4) offer = null
             return null
         }
         return pair(userAgent)

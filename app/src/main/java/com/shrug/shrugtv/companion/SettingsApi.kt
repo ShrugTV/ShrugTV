@@ -13,6 +13,7 @@ import com.shrug.shrugtv.BuildConfig
 import com.shrug.shrugtv.R
 import com.shrug.shrugtv.ha.MqttBridge
 import com.shrug.shrugtv.ha.MqttSettings
+import com.shrug.shrugtv.prefs.Prefs
 import com.shrug.shrugtv.session.AppState
 import com.shrug.shrugtv.ui.tv.settings.Entry
 import com.shrug.shrugtv.ui.tv.settings.SettingsActions
@@ -42,6 +43,20 @@ object SettingsApi {
     private val NO_BACKUP_PREFIXES = listOf("pref_mqtt_", "pref_companion_")
 
     internal fun inBackup(key: String) = NO_BACKUP_PREFIXES.none { key.startsWith(it) } && key !in SECRET_KEYS
+
+    /**
+     * Who may reach or steer the TV: the companion itself, installing updates and the MQTT
+     * connection (broker, account, commands from Home Assistant). From the browser only for a phone paired with the
+     * PIN; without a PIN (the default since ) every device in the LAN would be able to change
+     * them, so they are set on the TV. The rest of MQTT (entities, names, interval) stays open.
+     */
+    private val GUARDED_PREFIXES = listOf("pref_companion_")
+    private val GUARDED_KEYS = setOf("pref_update_install", "pref_mqtt_url", "pref_mqtt_user", "pref_mqtt_password", "pref_mqtt_commands")
+
+    internal fun guarded(key: String) = GUARDED_PREFIXES.any { key.startsWith(it) } || key in GUARDED_KEYS
+
+    /** A request that reached the API with the PIN on came from a paired phone (CompanionServer.authorised). */
+    private fun paired(p: SharedPreferences) = Prefs.companionRequirePin.get(p)
 
     /** Buttons that also make sense from the browser; all other buttons only work on the TV. */
     val BROWSER_ACTIONS = setOf("pref_notification_test", "pref_live_channel_history_clear_history", "pref_mqtt_status",
@@ -119,14 +134,30 @@ object SettingsApi {
     /** Set while [apply] runs: own skins are valid skin values too. */
     private var prefsForValidation: SharedPreferences? = null
 
+    /** Parsed settings.xml per language with its standard values: only the XML and the texts go into it. */
+    private val models = HashMap<String, Pair<Entry.Page, Map<String, Any?>>>()
+
+    /** The parsed tree for [context]'s language; [standards] gets the standard values. Called only while synchronised. */
+    private fun model(context: Context, standards: MutableMap<String, Any?>): Entry.Page {
+        val key = context.resources.configuration.locales[0].toLanguageTag()
+        val (root, std) = models.getOrPut(key) {
+            val s = mutableMapOf<String, Any?>()
+            SettingsModel.load(context, R.xml.settings, s) to s.toMap()
+        }
+        standards.putAll(std)
+        return root
+    }
+
     @Synchronized
     fun tree(context: Context, lang: String?): JsonObject {
         val standards = mutableMapOf<String, Any?>()
         val local = localised(context, lang)
         localisedContext = local
-        val root = SettingsModel.load(local, R.xml.settings, standards)
+        val root = model(local, standards)
         val p = prefs(context)
-        val pages = visiblePages(root, p.getBoolean("pref_developer_mode", false))
+        // The page "Rows" has one group per home row; show the groups in the home screen order
+        val pages = SettingsModel.inRowOrder(visiblePages(root, Prefs.developerMode.get(p)),
+            p.getString(com.shrug.shrugtv.ui.tv.home.HomeRowOrder.PREF, null))
         return JsonObject().apply {
             addProperty("version", BuildConfig.VERSION_NAME)
             add("pages", JsonArray().apply { pages.forEach { add(node(it, p, standards)) } })
@@ -139,6 +170,7 @@ object SettingsApi {
 
     private fun node(e: Entry, p: SharedPreferences, standards: Map<String, Any?>): JsonObject = JsonObject().apply {
         e.key?.let { addProperty("key", it) }
+        e.key?.takeIf { guarded(it) && !paired(p) }?.let { addProperty("tv_only", true) }
         addProperty("title", e.title)
         e.text?.takeIf { it.isNotBlank() && !it.contains("%s") }?.let { addProperty("text", it) }
         e.dependent?.let { addProperty("dep", it) }
@@ -268,16 +300,19 @@ object SettingsApi {
     fun apply(context: Context, values: JsonObject, fromBackup: Boolean = false): JsonObject {
         val p = prefs(context)
         prefsForValidation = p
-        val root = SettingsModel.load(context, R.xml.settings, mutableMapOf())
-        val known = editable(visiblePages(root, p.getBoolean("pref_developer_mode", false)))
+        val root = model(context, mutableMapOf())
+        val known = editable(visiblePages(root, Prefs.developerMode.get(p)))
         val rejected = JsonArray()
         val skipped = JsonArray()
+        val tvOnly = JsonArray()
+        val paired = paired(p)
         val switched = ArrayList<Pair<String, Boolean>>()
         var stored = 0
         var languageChanged = false
         val edit = p.edit()
         for ((k, v) in values.entrySet().take(MAX_VALUES)) {
             if (fromBackup && !inBackup(k)) { skipped.add(k); continue }
+            if (!paired && guarded(k)) { rejected.add(k); tvOnly.add(k); continue }
             val e = known[k]
             val value = e?.let { validate(it, v) }
             if (value == null) { rejected.add(k); continue }
@@ -288,7 +323,7 @@ object SettingsApi {
                     edit.putBoolean(k, value)
                 }
                 is String -> {
-                    if (k == AppLanguage.PREF_KEY && p.safeString(k, "system") != value) languageChanged = true
+                    if (k == Prefs.appLanguage.key && p.safeString(k, Prefs.appLanguage.default) != value) languageChanged = true
                     edit.putString(k, value)
                 }
             }
@@ -303,6 +338,10 @@ object SettingsApi {
             addProperty("stored", stored)
             add("rejected", rejected)
             add("skipped", skipped)
+            if (tvOnly.size() > 0) {
+                addProperty("error", "tv only")
+                add("tv_only", tvOnly)
+            }
         }
     }
 

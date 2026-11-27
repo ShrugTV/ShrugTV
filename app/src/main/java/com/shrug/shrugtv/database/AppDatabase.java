@@ -12,7 +12,7 @@ import com.shrug.shrugtv.telemetry.CrashReporter;
 @Database(
     entities = {VodInfo.class, FavoriteInfo.class},
     version = 3,
-    exportSchema = false
+    exportSchema = true
 )
 public abstract class AppDatabase extends RoomDatabase {
 

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Highlights of the running stream in the player -->
+<resources>
+    <string name="player_btn_highlights">Highlights</string>
+    <string name="player_highlights_title">Highlights of this stream</string>
+    <string name="player_highlights_hint">The most viewed clips since the stream started. OK plays a clip, Back returns to live.</string>
+    <string name="player_highlights_empty">No clips of this stream yet</string>
+    <string name="player_highlights_error">Could not load the clips</string>
+    <string name="player_highlights_after">after %1$s</string>
+    <string name="settings_player_highlights">Highlights in the player</string>
+    <string name="settings_player_highlights_summary">The button “Highlights” in the player bar of a live stream: the five most viewed clips since the stream started.</string>
+</resources>

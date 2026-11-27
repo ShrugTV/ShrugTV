@@ -12,6 +12,7 @@ import com.shrug.shrugtv.api.helix.HelixApi
 import com.shrug.shrugtv.api.helix.HelixParser
 import com.shrug.shrugtv.model.Enums
 import com.shrug.shrugtv.model.Movie
+import com.shrug.shrugtv.prefs.Prefs
 import com.shrug.shrugtv.session.AppState
 import com.shrug.shrugtv.telemetry.CrashReporter
 import kotlinx.coroutines.CoroutineScope
@@ -99,25 +100,25 @@ class LiveNotificationTicker(
 
     private suspend fun pollFollowedStreams() {
         val prefs = PreferenceManager.getDefaultSharedPreferences(appContext)
-        val notificationsEnabled = prefs.getBoolean("pref_notification_on", false)
+        val notificationsEnabled = Prefs.notificationOn.get(prefs)
         // The card in the player is its own setting, on by default
-        val playerCard = prefs.getBoolean("pref_notification_player_card", true)
+        val playerCard = Prefs.notificationPlayerCard.get(prefs)
         if ((!notificationsEnabled && !playerCard) || AppState.userLoggedOut) {
             return
         }
 
-        val favoritesOnly = prefs.getBoolean("pref_notification_foreground_favorite_only", false)
-        val type = prefs.getString("prefs_notification_type", "0")?.toIntOrNull() ?: 0
-        val fontSize = prefs.getString("prefs_notification_font_size", "20")?.toFloatOrNull() ?: 20.0f
-        val position = prefs.getString("prefs_notification_position", "1")?.toIntOrNull() ?: 1
-        val duration = prefs.getString("pref_notification_duration", "3000")?.toLongOrNull() ?: 3000L
+        val favoritesOnly = Prefs.notificationForegroundFavoriteOnly.get(prefs)
+        val type = Prefs.notificationType.get(prefs)
+        val fontSize = Prefs.notificationFontSize.get(prefs).toFloat()
+        val position = Prefs.notificationPosition.get(prefs)
+        val duration = Prefs.notificationDuration.get(prefs).toLong()
 
         val settings = NotificationSettings(fontSize, position, duration)
         // Quiet hours: nothing pops up, the known-live bookkeeping below still runs
         val quiet = QuietHours.isQuiet(
-            prefs.getBoolean(QuietHours.PREF_ON, false),
-            prefs.getString(QuietHours.PREF_FROM, "22")?.toIntOrNull() ?: 22,
-            prefs.getString(QuietHours.PREF_TO, "7")?.toIntOrNull() ?: 7,
+            Prefs.notificationQuiet.get(prefs),
+            Prefs.notificationQuietFrom.get(prefs),
+            Prefs.notificationQuietTo.get(prefs),
             java.time.LocalTime.now().hour)
 
         withContext(Dispatchers.IO) {

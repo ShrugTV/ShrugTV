@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Highlights of the running stream in the player -->
+<resources>
+    <string name="player_btn_highlights">精彩片段</string>
+    <string name="player_highlights_title">本场直播精彩片段</string>
+    <string name="player_highlights_hint">自开播以来观看次数最多的剪辑。按确定播放，按返回回到直播。</string>
+    <string name="player_highlights_empty">本场直播暂无剪辑</string>
+    <string name="player_highlights_error">无法加载剪辑</string>
+    <string name="player_highlights_after">开播 %1$s 后</string>
+    <string name="settings_player_highlights">播放器中的精彩片段</string>
+    <string name="settings_player_highlights_summary">直播播放器栏中的“精彩片段”按钮：开播以来观看次数最多的五个剪辑。</string>
+</resources>

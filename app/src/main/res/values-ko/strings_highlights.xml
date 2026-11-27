@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Highlights of the running stream in the player -->
+<resources>
+    <string name="player_btn_highlights">하이라이트</string>
+    <string name="player_highlights_title">이 방송의 하이라이트</string>
+    <string name="player_highlights_hint">방송 시작 후 가장 많이 본 클립입니다. 확인을 누르면 재생되고, 뒤로를 누르면 라이브로 돌아갑니다.</string>
+    <string name="player_highlights_empty">이 방송의 클립이 아직 없습니다</string>
+    <string name="player_highlights_error">클립을 불러오지 못했습니다</string>
+    <string name="player_highlights_after">%1$s 후</string>
+    <string name="settings_player_highlights">플레이어의 하이라이트</string>
+    <string name="settings_player_highlights_summary">라이브 방송 플레이어 바의 “하이라이트” 버튼: 방송 시작 후 가장 많이 본 클립 5개.</string>
+</resources>

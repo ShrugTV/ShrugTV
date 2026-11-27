@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Clips page, home row and settings -->
 <resources>
-    <string name="clips_title">Clips from your channels</string>
-    <string name="clips_loading">Loading clips …</string>
     <string name="clips_empty">No clips found. Try a longer period or more channels.</string>
     <string name="clips_empty_favorites">No clips from your favorites. Star channels, or switch to everyone you follow.</string>
     <string name="clips_source_followed">All followed</string>
@@ -20,7 +18,7 @@
     <string name="home_nav_clips">Clips</string>
     <string name="settings_clips_screen">Clips</string>
     <string name="settings_clips_screen_summary">Best clips of the channels you follow</string>
-    <string name="settings_clips_tip">The Clips page (side bar, play symbol) and the home row show the best clips of your channels in one list. Choose whose clips, how far back and how they are sorted. "Relative to channel size" compares each clip with the other clips of its own channel, so a good clip of a small channel can rank next to one of a big channel. The same choices are on the page itself. The list grows while you scroll, and when a clip ends, the next one starts by itself, through the whole list. "Layout" chooses how the page looks: a grid with menus, a stage with the focused clip large and themed rows, charts with a ranked list, or Clip TV with categories as channels.</string>
+    <string name="settings_clips_tip">The Clips page and the clip rows show the best clips of your channels: whose, how far back, how sorted. \"Relative to channel size\" lets small channels rank too. The list grows while you scroll and plays clip after clip. \"View\" picks grid, stage, charts or Clip TV (menu key ≡ on the page); \"Play the focused clip\" runs it muted there.</string>
     <string name="settings_clips_source">Channels</string>
     <string name="settings_clips_period">Time frame</string>
     <string name="settings_clips_sort">Sort by</string>
@@ -51,7 +49,7 @@
     <string name="clips_stat_views">Views</string>
     <string name="clips_stat_length">Length</string>
     <string name="clips_stat_place">Place</string>
-    <string name="settings_clips_layout">Layout</string>
+    <string name="settings_clips_layout">View</string>
     <string-array name="display_clips_layout">
         <item>Grid with menus</item>
         <item>Stage with rows</item>
@@ -66,10 +64,9 @@
     </string-array>
     <string name="clips_category_all">All categories</string>
     <string name="home_row_clips_surprise">Surprise hits from your channels</string>
-    <string name="settings_clips_surprise_row">Show "Surprise hits" on the home screen</string>
     <string name="settings_clips_surprise_row_summary">A second row: the clips of the last 7 days that stand out most from what is usual in their own channel</string>
     <string name="settings_clips_row">Show on the home screen</string>
-    <string name="settings_clips_row_summary">A row with the best clips; the order of the rows is set under Row order</string>
+    <string name="settings_clips_row_summary">A row with the best clips of your channels</string>
     <string-array name="display_clips_source">
         <item>All channels I follow</item>
         <item>Favorites only</item>
@@ -135,4 +132,7 @@
         <item>40</item>
         <item>60</item>
     </string-array>
+    <string name="clips_layout_switch">≡ View: %1$s</string>
+    <string name="settings_clips_live_preview">Play the focused clip</string>
+    <string name="settings_clips_live_preview_summary">Stage, charts and Clip TV run the focused clip muted instead of its picture; Clip TV goes on from clip to clip. Uses more data and memory</string>
 </resources>

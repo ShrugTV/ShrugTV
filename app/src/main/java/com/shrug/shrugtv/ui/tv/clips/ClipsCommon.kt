@@ -51,12 +51,14 @@ import com.shrug.shrugtv.clips.ClipsSettings
 import com.shrug.shrugtv.clips.ClipsSort
 import com.shrug.shrugtv.clips.ClipsSource
 import com.shrug.shrugtv.model.Movie
+import com.shrug.shrugtv.prefs.Prefs
 import com.shrug.shrugtv.ui.tv.Inter
 import com.shrug.shrugtv.ui.tv.TvColors
 import com.shrug.shrugtv.ui.tv.TvShapes
 import com.shrug.shrugtv.ui.tv.TvStyle
 import com.shrug.shrugtv.ui.tv.components.focusFrame
 import com.shrug.shrugtv.ui.tv.components.focusGlow
+import com.shrug.shrugtv.ui.tv.components.menuKey
 import com.shrug.shrugtv.ui.tv.components.withoutSurface
 import com.shrug.shrugtv.ui.tv.home.NetImage
 
@@ -90,34 +92,23 @@ fun sortName(s: ClipsSort) = stringResource(
 )
 
 @Composable
-fun periodChoices(ui: ClipsUi) = ClipsPeriod.values().map { p -> Choice(periodName(p), ui.settings.period == p) { ui.change(ClipsSettings.PREF_PERIOD, p.key) } }
+fun periodChoices(ui: ClipsUi) = ClipsPeriod.values().map { p -> Choice(periodName(p), ui.settings.period == p) { ui.change(Prefs.clipsPeriod.key, p.key) } }
 
 @Composable
-fun sourceChoices(ui: ClipsUi) = ClipsSource.values().map { s -> Choice(sourceName(s), ui.settings.source == s) { ui.change(ClipsSettings.PREF_SOURCE, s.key) } }
+fun sourceChoices(ui: ClipsUi) = ClipsSource.values().map { s -> Choice(sourceName(s), ui.settings.source == s) { ui.change(Prefs.clipsSource.key, s.key) } }
 
 @Composable
-fun sortChoices(ui: ClipsUi) = ClipsSort.values().map { s -> Choice(sortName(s), ui.settings.sort == s) { ui.change(ClipsSettings.PREF_SORT, s.key) } }
+fun sortChoices(ui: ClipsUi) = ClipsSort.values().map { s -> Choice(sortName(s), ui.settings.sort == s) { ui.change(Prefs.clipsSort.key, s.key) } }
 
 @Composable
 fun categoryChoices(ui: ClipsUi): List<Choice> =
     listOf(Choice(stringResource(R.string.clips_category_all), ui.gameFilter == 0L) { ui.pickCategory(0L) }) +
         ui.categories.map { (id, name) -> Choice(name, ui.gameFilter == id) { ui.pickCategory(id) } }
 
-/** A pill: filled when [selected], bare until focused otherwise. */
+/** A pill of the clips page: the shared [ShrugChip], so a chosen entry looks chosen, not focused. */
 @Composable
-fun Chip(text: String, selected: Boolean, modifier: Modifier = Modifier, click: () -> Unit) {
-    Button(
-        onClick = click,
-        modifier = modifier,
-        shape = ButtonDefaults.shape(CircleShape),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 5.dp),
-        colors = ButtonDefaults.colors(
-            containerColor = if (selected) TvColors.Ink else Color.Transparent,
-            contentColor = if (selected) TvColors.Background else TvColors.TextMedium,
-            focusedContainerColor = TvColors.Ink, focusedContentColor = TvColors.Background,
-        ),
-    ) { Text(text, fontFamily = Inter, fontSize = 12.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal, maxLines = 1) }
-}
+fun Chip(text: String, selected: Boolean, modifier: Modifier = Modifier, click: () -> Unit) =
+    com.shrug.shrugtv.ui.tv.components.ShrugChip(text, selected, modifier, onClick = click)
 
 /**
  * A pill that shows "Label value" and opens the list of choices under it (Feinschliff and Stage layouts). OK on an entry chooses
@@ -128,14 +119,9 @@ fun ChoiceMenu(label: String, choices: List<Choice>) {
     var open by remember { mutableStateOf(false) }
     val current = choices.firstOrNull { it.selected }?.label ?: choices.firstOrNull()?.label ?: ""
     Box {
-        Button(
+        com.shrug.shrugtv.ui.tv.components.ShrugButton(
             onClick = { open = true },
-            shape = ButtonDefaults.shape(CircleShape),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-            colors = ButtonDefaults.colors(
-                containerColor = TvColors.glass(0.10f), contentColor = TvColors.Text,
-                focusedContainerColor = TvColors.Ink, focusedContentColor = TvColors.Background,
-            ),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
                 // Without a label (tight layouts) the value alone says what the menu is
@@ -170,11 +156,15 @@ fun ChoiceMenu(label: String, choices: List<Choice>) {
     }
 }
 
-/** A clip's picture with a shade at the bottom, views bottom left, length bottom right and, if > 0, a rank top left. */
+/**
+ * A clip's picture with a shade at the bottom, views bottom left, length bottom right and, if > 0, a rank top left. [video]: the
+ * clip runs muted over the picture when the setting asks for it ([ClipVideo]).
+ */
 @Composable
-fun ClipPicture(m: Movie, rank: Int = 0, big: Boolean = false, showLength: Boolean = true) {
+fun ClipPicture(m: Movie, rank: Int = 0, big: Boolean = false, showLength: Boolean = true, video: Boolean = false) {
     Box(Modifier.fillMaxSize()) {
-        NetImage(m.cardImageUrl, Modifier.fillMaxSize(), width = if (big) 800 else 440, height = if (big) 450 else 248)
+        if (video) ClipVideo(m, Modifier.fillMaxSize(), width = if (big) 800 else 440, height = if (big) 450 else 248)
+        else NetImage(m.cardImageUrl, Modifier.fillMaxSize(), width = if (big) 800 else 440, height = if (big) 450 else 248)
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.55f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.78f))))
         if (rank > 0) {
             Text(
@@ -226,7 +216,7 @@ fun ClipTile(
 ) {
     Card(
         onClick = click, onLongClick = longPress,
-        modifier = modifier.aspectRatio(16f / 9f).onFocusChanged { if (it.isFocused) onFocus() },
+        modifier = modifier.aspectRatio(16f / 9f).onFocusChanged { if (it.isFocused) onFocus() }.menuKey(longPress),
         shape = CardDefaults.shape(TvShapes.r(corner)),
         scale = CardDefaults.scale(focusedScale = TvStyle.focusScale),
         border = focusFrame(), colors = withoutSurface(), glow = focusGlow(),
@@ -246,16 +236,19 @@ fun ClipCard(m: Movie, rank: Int, click: () -> Unit, longPress: () -> Unit, focu
     }
 }
 
-/** "Loading …" or why the list is empty, in the place of the list. */
+/**
+ * "Loading …", an error with "Try again" or why the list is empty, in the place of the list: the shared [StatusNote]
+ *.
+ */
 @Composable
 fun EmptyNote(ui: ClipsUi, modifier: Modifier = Modifier) {
     if (ui.shown.isNotEmpty()) return
-    val text = when {
-        ui.loading -> R.string.clips_loading
-        ui.settings.source == ClipsSource.FAVORITES -> R.string.clips_empty_favorites
-        else -> R.string.clips_empty
-    }
-    Text(stringResource(text), fontFamily = Inter, fontSize = 13.sp, color = TvColors.TextMuted, modifier = modifier)
+    com.shrug.shrugtv.ui.tv.components.StatusNote(
+        com.shrug.shrugtv.ui.tv.components.listStatus(ui.loading, ui.failed, true) ?: com.shrug.shrugtv.ui.tv.components.ListStatus.EMPTY,
+        stringResource(if (ui.settings.source == ClipsSource.FAVORITES) R.string.clips_empty_favorites else R.string.clips_empty),
+        modifier,
+        retry = ui.retry,
+    )
 }
 
 /** How long ago a clip was made, in the app language ("2 days ago"); empty if unknown. */

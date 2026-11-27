@@ -2,764 +2,7 @@
 // except Twitch's image CDN. User content is always inserted as text, never as HTML.
 'use strict';
 
-const T = {
-  en: {
-    pairText: 'Scan the QR code on the TV, or enter the PIN shown there.', pinLabel: 'PIN', connect: 'Connect',
-    pinWrong: 'PIN wrong or expired. Show a new code on the TV.', expired: 'This code has expired. Show a new one on the TV.',
-    offline: 'TV not reachable. Is ShrugTV open?', tabRemote: 'Remote', tabChat: 'Chat', tabFind: 'Find', tabPlayer: 'Player',
-    up: 'Up', down: 'Down', left: 'Left', right: 'Right', back: 'Back', more: 'More', playPause: 'Play/Pause',
-    prev: '◀ Channel', live: 'Live', next: 'Channel ▶', volume: 'Stream volume', message: 'Message', send: 'Send',
-    chatOff: 'Writing in the chat from the phone is switched off in the TV settings.', search: 'Search', liveNow: 'Live now',
-    results: 'Results', quality: 'Quality', chatLayout: 'Chat layout', layoutSide: 'Next to the video',
-    layoutOverlay: 'Over the video', layoutTransparent: 'Transparent', chatOn: 'Chat on', chatOffBtn: 'Chat off',
-    stats: 'Statistics', close: 'Close player', openTwitch: 'Open on Twitch', nothing: 'Nothing playing',
-    viewers: n => `${n.toLocaleString()} viewers`, since: m => `live for ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} h`,
-    behind: s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} behind`, removed: 'message removed', offlineCh: 'offline',
-    tabSettings: 'Settings', tabRemoteShort: 'Remote', tabChatShort: 'Chat', tabFindShort: 'Find', tabPlayerShort: 'Player', tabSettingsShort: 'Settings',
-    remoteMode: 'Remote mode', modePad: 'Touchpad', modeKeys: 'Keys', padLabel: 'Touchpad: swipe for arrows, tap for OK',
-    padHint: 'Swipe = arrow keys\nTap = OK · Two fingers = Back', replay: '⟲ Replay', audioOnly: 'Audio only',
-    recent: 'Recently watched', replyTo: n => `Reply to ${n}`, replyCancel: 'Cancel reply', emotes: 'Emotes',
-    noEmotes: 'No emotes seen in this chat yet. They appear here as soon as someone uses one.', quickAdd: 'Add a quick phrase',
-    quickNew: 'New quick phrase (max. 60 characters)', quickRemove: t => `Remove "${t}" from the quick phrases?`,
-    chatHint: 'Tap a message to answer it with @name. Hold a quick phrase to remove it.',
-    tabUpdate: 'Version', tabUpdateShort: 'Info', verInstalled: 'Installed', verEdition: 'Edition', verEditionPublic: 'Public', verEditionPrivate: 'Private',
-    verDevice: 'TV', verAndroid: 'Android', verLastCheck: 'Last checked', verNever: 'not yet', verCurrent: 'You have the newest version.',
-    verUnknown: 'Not checked yet.', verUnsupported: 'This edition is not updated from the app, and there is no check for new versions here.',
-    verAvailable: v => `Version ${v} is available`, verCheck: 'Check now', verChecking: 'Checking …', verInstall: 'Install update',
-    verInstallConfirm: v => `Download version ${v} and start the installation on the TV? The TV asks you to confirm.`,
-    verRelease: 'Release page', verInstallOff: 'Installing from the app is off. Switch it on in the TV settings: App → Install updates in the app.',
-    verAutoOff: 'The daily check is off (Settings → About → Check for updates); "Check now" works anyway.',
-    verDownloading: p => `Downloading … ${p} %`, verVerifying: 'Checked. Confirm the installation on the TV with OK.',
-    verErrors: { disabled: 'Installing from the app is switched off.', none: 'No newer version known. Check first.', need_permission: 'Allow "Install unknown apps" for ShrugTV on the TV, then try again.',
-      permission_unavailable: 'This TV has no screen for "Install unknown apps".', no_file: 'The release has no installable file.', bad_checksum: 'The checksum does not match, nothing was installed.',
-      download_failed: 'The download failed.' },
-    verNotes: 'What is new',
-    favAdd: 'Mark as favorite', favRemove: 'Remove from favorites', favFailed: 'The star could not be saved.',
-    listsLabel: 'Lists of the channel switcher', listFollowed: 'Followed', listSameGame: 'Same category', listSameGameLanguage: 'Same category, my language',
-    listHistory: 'Recently watched', listTopStreams: 'Top streams', listTopLanguage: 'Top in my language',
-    listEmpty: 'Nothing in this list right now.', listNeedsPlaying: 'This list needs a running stream: it shows the category of the channel that is playing.',
-    homeTitle: 'On the home screen', homeHint: 'Open this page as an app icon:',
-    homeIos: 'iPhone: Safari → Share → Add to Home Screen.', homeAndroid: 'Android: Chrome menu ⋮ → Add to Home screen.',
-    searchChannels: 'Channel name', tabLog: 'Log',
-    logOff: 'The log in the browser is switched off on the TV (Settings → Phone & browser → Log in the browser).',
-    logAbout: "ShrugTV's own log on this TV, live. Tokens and passwords are always removed. Click a line for details.",
-    logSearch: 'Search the log', logSource: 'Source', logAllSources: 'All sources', logLevel: 'Level',
-    logAll: 'All', logErrors: 'Errors', logWarnings: 'Warnings', logInfo: 'Info', logDebug: 'Debug',
-    logPause: 'Pause', logResume: 'Resume', logCopy: 'Copy', logExport: 'Save .txt', logPrivate: 'Hide private details',
-    logLatest: 'Jump to latest ↓', logCopied: n => `${n} lines copied`, logSaved: n => `${n} lines saved`,
-    logShown: (n, total) => `${n} of ${total} lines`, logEmpty: 'No lines match.', logPaused: 'paused',
-    logTime: 'Time', logTag: 'Source', logThread: 'Process/thread', logMessage: 'Message', settingsOff: 'Changing settings from the browser is switched off on the TV (Settings → Phone & browser).',
-    settingsSearch: 'Search settings', export: 'Save to file', import: 'Load from file', saved: 'Saved', notSaved: 'Not saved: value not allowed',
-    imported: (n, m) => `${n} settings loaded` + (m ? `, ${m} skipped` : ''), importBad: 'This is not a ShrugTV settings file.',
-    moveUp: 'Move up', run: 'Run', done: 'Done', tvOnly: 'Only on the TV', noScreen: 'Open ShrugTV on the TV first.', noResults: 'No settings found.',
-    secretSet: 'stored – type to replace', secretEmpty: 'not set', on: 'On', off: 'Off', status: 'Status',
-    pinned: 'Pinned', pin: 'Pin to the sidebar', unpin: 'Unpin', noPins: 'Pin settings with ☆ to find them here.',
-    exported: n => `${n} settings saved to the file (without MQTT and companion, they belong to this TV).`,
-    searchHint: '/ or Ctrl+K: search', theme: 'Light or dark', guide: 'Guide', guideShow: 'Show the guide',
-    connection: 'Connection', mqttBroker: 'MQTT broker', noBroker: 'no broker address', entities: n => `${n} entities`,
-    lastPublish: s => `sent ${ago(s, 'en')}`, connectedFor: s => `connected for ${ago(s, 'en', true)}`, deviceId: 'Device id',
-    stateTopic: 'State', commandTopic: 'Commands', devicesTitle: 'Connected devices', thisDevice: 'this device', remove: 'Remove', justNow: 'just now',
-    fromSkin: 'From the skin', designTitle: 'Own skins', designSave: 'Save current design as skin', designName: 'Name',
-    designExport: 'Export (.json)', designImport: 'Import', designDelete: n => `Delete the skin ${n}?`, designFull: 'At most 10 own skins.',
-    designBad: 'That is no ShrugTV design file.', designNone: 'No own skins yet.', designSaved: n => `Saved as ${n}.`, designImported: n => `Imported as ${n}.`,
-    deviceSeen: (seen, paired) => `last used ${seen} · paired ${paired}`, removeDevice: n => `Remove ${n}? It will need the QR code or PIN again.`,
-    noDevices: 'No devices remembered yet.', rememberOff: '"Remember connected devices" is off: devices need a code after every app start.', nameTaken: 'name used by another TV, code added', noTls: 'without TLS', reachable: 'reachable',
-    mqttStates: { connected: 'connected', connecting: 'connecting …', off: 'off', 'no broker address': 'no broker address' }
-  },
-  de: {
-    pairText: 'Scanne den QR-Code am TV oder gib die dort angezeigte PIN ein.', pinLabel: 'PIN', connect: 'Verbinden',
-    pinWrong: 'PIN falsch oder abgelaufen. Zeig am TV einen neuen Code an.', expired: 'Dieser Code ist abgelaufen. Zeig am TV einen neuen an.',
-    offline: 'TV nicht erreichbar. Ist ShrugTV offen?', tabRemote: 'Fernbedienung', tabChat: 'Chat', tabFind: 'Suchen', tabPlayer: 'Player',
-    up: 'Hoch', down: 'Runter', left: 'Links', right: 'Rechts', back: 'Zurück', more: 'Mehr', playPause: 'Play/Pause',
-    prev: '◀ Kanal', live: 'Live', next: 'Kanal ▶', volume: 'Stream-Lautstärke', message: 'Nachricht', send: 'Senden',
-    chatOff: 'Chatten vom Handy ist in den Einstellungen des TVs ausgeschaltet.', search: 'Suchen', liveNow: 'Jetzt live',
-    results: 'Ergebnisse', quality: 'Qualität', chatLayout: 'Chat-Layout', layoutSide: 'Neben dem Video',
-    layoutOverlay: 'Über dem Video', layoutTransparent: 'Transparent', chatOn: 'Chat an', chatOffBtn: 'Chat aus',
-    stats: 'Statistik', close: 'Player schließen', openTwitch: 'Auf Twitch öffnen', nothing: 'Es läuft nichts',
-    viewers: n => `${n.toLocaleString('de-DE')} Zuschauer`, since: m => `seit ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} h`,
-    behind: s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} zurück`, removed: 'Nachricht entfernt', offlineCh: 'offline',
-    tabSettings: 'Einstellungen', tabRemoteShort: 'Steuern', tabChatShort: 'Chat', tabFindShort: 'Suchen', tabPlayerShort: 'Player', tabSettingsShort: 'Optionen',
-    remoteMode: 'Fernbedienung', modePad: 'Touchpad', modeKeys: 'Tasten', padLabel: 'Touchpad: wischen für Pfeile, tippen für OK',
-    padHint: 'Wischen = Pfeiltasten\nTippen = OK · Zwei Finger = Zurück', replay: '⟲ Replay', audioOnly: 'Nur Audio',
-    recent: 'Zuletzt gesehen', replyTo: n => `Antwort an ${n}`, replyCancel: 'Antwort abbrechen', emotes: 'Emotes',
-    noEmotes: 'In diesem Chat wurde noch kein Emote gesehen. Sie erscheinen hier, sobald jemand eins benutzt.', quickAdd: 'Schnellnachricht hinzufügen',
-    quickNew: 'Neue Schnellnachricht (höchstens 60 Zeichen)', quickRemove: t => `„${t}“ aus den Schnellnachrichten entfernen?`,
-    chatHint: 'Nachricht antippen, um mit @Name zu antworten. Schnellnachricht gedrückt halten zum Entfernen.',
-    tabUpdate: 'Version', tabUpdateShort: 'Info', verInstalled: 'Installiert', verEdition: 'Edition', verEditionPublic: 'Öffentlich', verEditionPrivate: 'Privat',
-    verDevice: 'Fernseher', verAndroid: 'Android', verLastCheck: 'Zuletzt geprüft', verNever: 'noch nicht', verCurrent: 'Du hast die neueste Version.',
-    verUnknown: 'Noch nicht geprüft.', verUnsupported: 'Diese Edition wird nicht aus der App aktualisiert, und es gibt hier keine Prüfung auf neue Versionen.',
-    verAvailable: v => `Version ${v} ist verfügbar`, verCheck: 'Jetzt prüfen', verChecking: 'Prüfe …', verInstall: 'Update installieren',
-    verInstallConfirm: v => `Version ${v} laden und die Installation am Fernseher starten? Der Fernseher fragt dich nach der Bestätigung.`,
-    verRelease: 'Release-Seite', verInstallOff: 'Das Installieren aus der App ist aus. Am Fernseher einschalten: App → Updates in der App installieren.',
-    verAutoOff: 'Die tägliche Prüfung ist aus (Einstellungen → Über → Nach Updates suchen); „Jetzt prüfen“ geht trotzdem.',
-    verDownloading: p => `Lade … ${p} %`, verVerifying: 'Geprüft. Bestätige die Installation am Fernseher mit OK.',
-    verErrors: { disabled: 'Das Installieren aus der App ist ausgeschaltet.', none: 'Keine neuere Version bekannt. Erst prüfen.', need_permission: 'Erlaube am Fernseher „Unbekannte Apps installieren“ für ShrugTV und versuche es erneut.',
-      permission_unavailable: 'Dieser Fernseher hat keinen Bildschirm für „Unbekannte Apps installieren“.', no_file: 'Das Release hat keine installierbare Datei.', bad_checksum: 'Die Prüfsumme stimmt nicht, es wurde nichts installiert.',
-      download_failed: 'Der Download ist fehlgeschlagen.' },
-    verNotes: 'Das ist neu',
-    favAdd: 'Als Favorit markieren', favRemove: 'Aus den Favoriten nehmen', favFailed: 'Der Stern konnte nicht gespeichert werden.',
-    listsLabel: 'Listen des Kanalwechslers', listFollowed: 'Gefolgt', listSameGame: 'Gleiche Kategorie', listSameGameLanguage: 'Gleiche Kategorie, meine Sprache',
-    listHistory: 'Zuletzt gesehen', listTopStreams: 'Top-Streams', listTopLanguage: 'Top in meiner Sprache',
-    listEmpty: 'Gerade nichts in dieser Liste.', listNeedsPlaying: 'Diese Liste braucht einen laufenden Stream: sie zeigt die Kategorie des Channels, der gerade läuft.',
-    homeTitle: 'Auf dem Startbildschirm', homeHint: 'Diese Seite als App-Symbol öffnen:',
-    homeIos: 'iPhone: Safari → Teilen → Zum Home-Bildschirm.', homeAndroid: 'Android: Chrome-Menü ⋮ → Zum Startbildschirm hinzufügen.',
-    searchChannels: 'Kanalname', tabLog: 'Log',
-    logOff: 'Das Log im Browser ist am TV ausgeschaltet (Einstellungen → Handy & Browser → Log im Browser).',
-    logAbout: 'Das eigene Log von ShrugTV auf diesem TV, live. Tokens und Passwörter werden immer entfernt. Zeile anklicken für Details.',
-    logSearch: 'Log durchsuchen', logSource: 'Quelle', logAllSources: 'Alle Quellen', logLevel: 'Stufe',
-    logAll: 'Alle', logErrors: 'Fehler', logWarnings: 'Warnungen', logInfo: 'Info', logDebug: 'Debug',
-    logPause: 'Pause', logResume: 'Weiter', logCopy: 'Kopieren', logExport: 'Als .txt speichern', logPrivate: 'Private Details ausblenden',
-    logLatest: 'Zum Neuesten ↓', logCopied: n => `${n} Zeilen kopiert`, logSaved: n => `${n} Zeilen gespeichert`,
-    logShown: (n, total) => `${n} von ${total} Zeilen`, logEmpty: 'Keine passenden Zeilen.', logPaused: 'pausiert',
-    logTime: 'Zeit', logTag: 'Quelle', logThread: 'Prozess/Thread', logMessage: 'Nachricht', settingsOff: 'Einstellungen vom Browser sind am TV ausgeschaltet (Einstellungen → Handy & Browser).',
-    settingsSearch: 'Einstellungen suchen', export: 'In Datei speichern', import: 'Aus Datei laden', saved: 'Gespeichert', notSaved: 'Nicht gespeichert: Wert nicht erlaubt',
-    imported: (n, m) => `${n} Einstellungen geladen` + (m ? `, ${m} übersprungen` : ''), importBad: 'Das ist keine ShrugTV-Einstellungsdatei.',
-    moveUp: 'Nach oben', run: 'Ausführen', done: 'Erledigt', tvOnly: 'Nur am TV', noScreen: 'Öffne zuerst ShrugTV am TV.', noResults: 'Keine Einstellungen gefunden.',
-    secretSet: 'gespeichert – tippen zum Ersetzen', secretEmpty: 'nicht gesetzt', on: 'An', off: 'Aus', status: 'Status',
-    pinned: 'Angeheftet', pin: 'An die Seitenleiste heften', unpin: 'Lösen', noPins: 'Hefte Einstellungen mit ☆ an, um sie hier zu finden.',
-    exported: n => `${n} Einstellungen in die Datei gespeichert (ohne MQTT und Handy & Browser, die gehören zu diesem TV).`,
-    searchHint: '/ oder Strg+K: suchen', theme: 'Hell oder dunkel', guide: 'Anleitung', guideShow: 'Anleitung zeigen',
-    connection: 'Verbindung', mqttBroker: 'MQTT-Broker', noBroker: 'keine Broker-Adresse', entities: n => `${n} Entitäten`,
-    lastPublish: s => `gesendet ${ago(s, 'de')}`, connectedFor: s => `verbunden seit ${ago(s, 'de', true)}`, deviceId: 'Geräte-ID',
-    stateTopic: 'Status', commandTopic: 'Befehle', devicesTitle: 'Verbundene Geräte', thisDevice: 'dieses Gerät', remove: 'Entfernen', justNow: 'gerade eben',
-    fromSkin: 'Vom Skin', designTitle: 'Eigene Skins', designSave: 'Aktuelles Design als Skin speichern', designName: 'Name',
-    designExport: 'Exportieren (.json)', designImport: 'Importieren', designDelete: n => `Skin ${n} löschen?`, designFull: 'Höchstens 10 eigene Skins.',
-    designBad: 'Das ist keine ShrugTV-Designdatei.', designNone: 'Noch keine eigenen Skins.', designSaved: n => `Gespeichert als ${n}.`, designImported: n => `Importiert als ${n}.`,
-    deviceSeen: (seen, paired) => `zuletzt ${seen} · gekoppelt ${paired}`, removeDevice: n => `${n} entfernen? Es braucht dann wieder QR-Code oder PIN.`,
-    noDevices: 'Noch keine Geräte gemerkt.', rememberOff: '„Verbundene Geräte merken“ ist aus: Geräte brauchen nach jedem App-Start einen Code.', nameTaken: 'Name von anderem TV belegt, Kürzel angehängt', noTls: 'ohne TLS', reachable: 'erreichbar',
-    mqttStates: { connected: 'verbunden', connecting: 'verbinde …', off: 'aus', 'no broker address': 'keine Broker-Adresse' }
-  },
-  es: {
-    pairText: 'Escanea el código QR en el TV o introduce el PIN que se muestra allí.', pinLabel: 'PIN', connect: 'Conectar',
-    pinWrong: 'PIN incorrecto o caducado. Muestra un código nuevo en el TV.', expired: 'Este código ha caducado. Muestra uno nuevo en el TV.',
-    offline: 'No se puede acceder al TV. ¿Está abierto ShrugTV?', tabRemote: 'Mando', tabChat: 'Chat', tabFind: 'Buscar', tabPlayer: 'Reproductor',
-    up: 'Arriba', down: 'Abajo', left: 'Izquierda', right: 'Derecha', back: 'Atrás', more: 'Más', playPause: 'Reproducir/Pausa',
-    prev: '◀ Canal', live: 'Directo', next: 'Canal ▶', volume: 'Volumen del stream', message: 'Mensaje', send: 'Enviar',
-    chatOff: 'Escribir en el chat desde el móvil está desactivado en los ajustes del TV.', search: 'Buscar', liveNow: 'En directo ahora',
-    results: 'Resultados', quality: 'Calidad', chatLayout: 'Disposición del chat', layoutSide: 'Junto al vídeo',
-    layoutOverlay: 'Sobre el vídeo', layoutTransparent: 'Transparente', chatOn: 'Chat activado', chatOffBtn: 'Chat desactivado',
-    stats: 'Estadísticas', close: 'Cerrar reproductor', openTwitch: 'Abrir en Twitch', nothing: 'No se reproduce nada',
-    viewers: n => `${n.toLocaleString()} espectadores`, since: m => `en directo desde hace ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} h`,
-    behind: s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} de retraso`, removed: 'mensaje eliminado', offlineCh: 'desconectado',
-    tabSettings: 'Ajustes', tabRemoteShort: 'Mando', tabChatShort: 'Chat', tabFindShort: 'Buscar', tabPlayerShort: 'Reproductor', tabSettingsShort: 'Ajustes',
-    searchChannels: 'Nombre del canal', tabLog: 'Registro',
-    logOff: 'El registro en el navegador está desactivado en el TV (Ajustes → Móvil y navegador → Registro en el navegador).',
-    logAbout: "El registro propio de ShrugTV en este TV, en directo. Los tokens y las contraseñas siempre se eliminan. Haz clic en una línea para ver detalles.",
-    logSearch: 'Buscar en el registro', logSource: 'Origen', logAllSources: 'Todos los orígenes', logLevel: 'Nivel',
-    logAll: 'Todo', logErrors: 'Errores', logWarnings: 'Advertencias', logInfo: 'Info', logDebug: 'Depuración',
-    logPause: 'Pausar', logResume: 'Reanudar', logCopy: 'Copiar', logExport: 'Guardar .txt', logPrivate: 'Ocultar datos privados',
-    logLatest: 'Ir al último ↓', logCopied: n => `${n} líneas copiadas`, logSaved: n => `${n} líneas guardadas`,
-    logShown: (n, total) => `${n} de ${total} líneas`, logEmpty: 'Ninguna línea coincide.', logPaused: 'en pausa',
-    logTime: 'Hora', logTag: 'Origen', logThread: 'Proceso/hilo', logMessage: 'Mensaje', settingsOff: 'Cambiar los ajustes desde el navegador está desactivado en el TV (Ajustes → Móvil y navegador).',
-    settingsSearch: 'Buscar ajustes', export: 'Guardar en archivo', import: 'Cargar desde archivo', saved: 'Guardado', notSaved: 'No guardado: valor no permitido',
-    imported: (n, m) => `${n} ajustes cargados` + (m ? `, ${m} omitidos` : ''), importBad: 'Este no es un archivo de ajustes de ShrugTV.',
-    moveUp: 'Subir', run: 'Ejecutar', done: 'Listo', tvOnly: 'Solo en el TV', noScreen: 'Abre primero ShrugTV en el TV.', noResults: 'No se encontraron ajustes.',
-    secretSet: 'guardado – escribe para reemplazar', secretEmpty: 'sin definir', on: 'Activado', off: 'Desactivado', status: 'Estado',
-    pinned: 'Fijados', pin: 'Fijar en la barra lateral', unpin: 'Desfijar', noPins: 'Fija ajustes con ☆ para encontrarlos aquí.',
-    exported: n => `${n} ajustes guardados en el archivo (sin MQTT ni móvil, pertenecen a este TV).`,
-    searchHint: '/ o Ctrl+K: buscar', theme: 'Claro u oscuro', guide: 'Guía', guideShow: 'Mostrar la guía',
-    connection: 'Conexión', mqttBroker: 'Broker MQTT', noBroker: 'sin dirección de broker', entities: n => `${n} entidades`,
-    lastPublish: s => `enviado ${ago(s, 'es')}`, connectedFor: s => `conectado desde hace ${ago(s, 'es', true)}`, deviceId: 'ID del dispositivo',
-    stateTopic: 'Estado', commandTopic: 'Comandos', devicesTitle: 'Dispositivos conectados', thisDevice: 'este dispositivo', remove: 'Eliminar', justNow: 'ahora mismo',
-    fromSkin: 'Del tema', designTitle: 'Temas propios', designSave: 'Guardar el diseño actual como tema', designName: 'Nombre',
-    designExport: 'Exportar (.json)', designImport: 'Importar', designDelete: n => `¿Eliminar el tema ${n}?`, designFull: 'Como máximo 10 temas propios.',
-    designBad: 'Ese no es un archivo de diseño de ShrugTV.', designNone: 'Aún no hay temas propios.', designSaved: n => `Guardado como ${n}.`, designImported: n => `Importado como ${n}.`,
-    deviceSeen: (seen, paired) => `último uso ${seen} · emparejado ${paired}`, removeDevice: n => `¿Eliminar ${n}? Necesitará de nuevo el código QR o el PIN.`,
-    noDevices: 'Aún no hay dispositivos recordados.', rememberOff: '"Recordar dispositivos conectados" está desactivado: los dispositivos necesitan un código tras cada inicio de la app.', nameTaken: 'nombre usado por otro TV, código añadido', noTls: 'sin TLS', reachable: 'accesible',
-    mqttStates: { connected: 'conectado', connecting: 'conectando …', off: 'desactivado', 'no broker address': 'sin dirección de broker' },
-    remoteMode: 'Modo de mando', modePad: 'Panel táctil', modeKeys: 'Teclas', padLabel: 'Panel táctil: desliza para las flechas, toca para OK',
-    padHint: 'Deslizar = flechas\nTocar = OK · Dos dedos = Atrás', replay: '⟲ Repetición', audioOnly: 'Solo audio',
-    recent: 'Vistos recientemente', replyTo: n => `Responder a ${n}`, replyCancel: 'Cancelar respuesta', emotes: 'Emotes',
-    noEmotes: 'Aún no se ha visto ningún emote en este chat. Aparecen aquí en cuanto alguien usa uno.', quickAdd: 'Añadir una frase rápida',
-    quickNew: 'Nueva frase rápida (máx. 60 caracteres)', quickRemove: t => `¿Eliminar "${t}" de las frases rápidas?`,
-    chatHint: 'Toca un mensaje para responder con @nombre. Mantén pulsada una frase rápida para eliminarla.',
-    tabUpdate: 'Versión', tabUpdateShort: 'Info', verInstalled: 'Instalada', verEdition: 'Edición', verEditionPublic: 'Pública', verEditionPrivate: 'Privada',
-    verDevice: 'TV', verAndroid: 'Android', verLastCheck: 'Última comprobación', verNever: 'aún no', verCurrent: 'Tienes la versión más reciente.',
-    verUnknown: 'Aún no se ha comprobado.', verUnsupported: 'Esta edición no se actualiza desde la app y aquí no hay comprobación de versiones nuevas.',
-    verAvailable: v => `Hay una versión ${v} disponible`, verCheck: 'Comprobar ahora', verChecking: 'Comprobando …', verInstall: 'Instalar actualización',
-    verInstallConfirm: v => `¿Descargar la versión ${v} e iniciar la instalación en el TV? El TV te pedirá que la confirmes.`,
-    verRelease: 'Página de la versión', verInstallOff: 'La instalación desde la app está desactivada. Actívala en los ajustes del TV: App → Instalar actualizaciones en la app.',
-    verAutoOff: 'La comprobación diaria está desactivada (Ajustes → Acerca de → Buscar actualizaciones); "Comprobar ahora" funciona igualmente.',
-    verDownloading: p => `Descargando … ${p} %`, verVerifying: 'Verificado. Confirma la instalación en el TV con OK.',
-    verErrors: { disabled: 'La instalación desde la app está desactivada.', none: 'No se conoce ninguna versión más reciente. Comprueba primero.', need_permission: 'Permite "Instalar apps desconocidas" para ShrugTV en el TV y vuelve a intentarlo.',
-      permission_unavailable: 'Este TV no tiene pantalla para "Instalar apps desconocidas".', no_file: 'La versión no tiene ningún archivo instalable.', bad_checksum: 'La suma de comprobación no coincide, no se instaló nada.',
-      download_failed: 'La descarga ha fallado.' },
-    verNotes: 'Novedades',
-    favAdd: 'Marcar como favorito', favRemove: 'Quitar de favoritos', favFailed: 'No se pudo guardar la estrella.',
-    listsLabel: 'Listas del cambiador de canales', listFollowed: 'Seguidos', listSameGame: 'Misma categoría', listSameGameLanguage: 'Misma categoría, mi idioma',
-    listHistory: 'Vistos recientemente', listTopStreams: 'Streams más vistos', listTopLanguage: 'Más vistos en mi idioma',
-    listEmpty: 'Ahora mismo no hay nada en esta lista.', listNeedsPlaying: 'Esta lista necesita un stream en reproducción: muestra la categoría del canal que se está viendo.',
-    homeTitle: 'En la pantalla de inicio', homeHint: 'Abre esta página como icono de app:',
-    homeIos: 'iPhone: Safari → Compartir → Añadir a pantalla de inicio.', homeAndroid: 'Android: menú de Chrome ⋮ → Añadir a pantalla de inicio.'
-  },
-  fr: {
-    pairText: 'Scannez le code QR sur la TV, ou saisissez le code PIN qui y est affiché.', pinLabel: 'PIN', connect: 'Connecter',
-    pinWrong: 'PIN incorrect ou expiré. Affichez un nouveau code sur la TV.', expired: 'Ce code a expiré. Affichez-en un nouveau sur la TV.',
-    offline: 'TV inaccessible. ShrugTV est-il ouvert ?', tabRemote: 'Télécommande', tabChat: 'Chat', tabFind: 'Recherche', tabPlayer: 'Lecteur',
-    up: 'Haut', down: 'Bas', left: 'Gauche', right: 'Droite', back: 'Retour', more: 'Plus', playPause: 'Lecture/Pause',
-    prev: '◀ Chaîne', live: 'Direct', next: 'Chaîne ▶', volume: 'Volume du stream', message: 'Message', send: 'Envoyer',
-    chatOff: 'L\'écriture dans le chat depuis le téléphone est désactivée dans les réglages de la TV.', search: 'Rechercher', liveNow: 'En direct maintenant',
-    results: 'Résultats', quality: 'Qualité', chatLayout: 'Disposition du chat', layoutSide: 'À côté de la vidéo',
-    layoutOverlay: 'Par-dessus la vidéo', layoutTransparent: 'Transparent', chatOn: 'Chat activé', chatOffBtn: 'Chat désactivé',
-    stats: 'Statistiques', close: 'Fermer le lecteur', openTwitch: 'Ouvrir sur Twitch', nothing: 'Aucune lecture en cours',
-    viewers: n => `${n.toLocaleString()} spectateurs`, since: m => `en direct depuis ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} h`,
-    behind: s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} de retard`, removed: 'message supprimé', offlineCh: 'hors ligne',
-    tabSettings: 'Réglages', tabRemoteShort: 'Télécommande', tabChatShort: 'Chat', tabFindShort: 'Recherche', tabPlayerShort: 'Lecteur', tabSettingsShort: 'Réglages',
-    searchChannels: 'Nom de la chaîne', tabLog: 'Journal',
-    logOff: 'Le journal dans le navigateur est désactivé sur la TV (Réglages → Téléphone et navigateur → Journal dans le navigateur).',
-    logAbout: "Le journal propre à ShrugTV sur cette TV, en direct. Les jetons et mots de passe sont toujours supprimés. Cliquez sur une ligne pour les détails.",
-    logSearch: 'Rechercher dans le journal', logSource: 'Source', logAllSources: 'Toutes les sources', logLevel: 'Niveau',
-    logAll: 'Tous', logErrors: 'Erreurs', logWarnings: 'Avertissements', logInfo: 'Infos', logDebug: 'Débogage',
-    logPause: 'Pause', logResume: 'Reprendre', logCopy: 'Copier', logExport: 'Enregistrer en .txt', logPrivate: 'Masquer les détails privés',
-    logLatest: 'Aller au plus récent ↓', logCopied: n => `${n} lignes copiées`, logSaved: n => `${n} lignes enregistrées`,
-    logShown: (n, total) => `${n} lignes sur ${total}`, logEmpty: 'Aucune ligne ne correspond.', logPaused: 'en pause',
-    logTime: 'Heure', logTag: 'Source', logThread: 'Processus/thread', logMessage: 'Message', settingsOff: 'La modification des réglages depuis le navigateur est désactivée sur la TV (Réglages → Téléphone et navigateur).',
-    settingsSearch: 'Rechercher dans les réglages', export: 'Enregistrer dans un fichier', import: 'Charger depuis un fichier', saved: 'Enregistré', notSaved: 'Non enregistré : valeur non autorisée',
-    imported: (n, m) => `${n} réglages chargés` + (m ? `, ${m} ignorés` : ''), importBad: 'Ce n\'est pas un fichier de réglages ShrugTV.',
-    moveUp: 'Monter', run: 'Exécuter', done: 'Terminé', tvOnly: 'Uniquement sur la TV', noScreen: 'Ouvrez d\'abord ShrugTV sur la TV.', noResults: 'Aucun réglage trouvé.',
-    secretSet: 'enregistré – saisissez pour remplacer', secretEmpty: 'non défini', on: 'Activé', off: 'Désactivé', status: 'État',
-    pinned: 'Épinglés', pin: 'Épingler à la barre latérale', unpin: 'Désépingler', noPins: 'Épinglez des réglages avec ☆ pour les retrouver ici.',
-    exported: n => `${n} réglages enregistrés dans le fichier (sans MQTT ni téléphone et navigateur, qui appartiennent à cette TV).`,
-    searchHint: '/ ou Ctrl+K : rechercher', theme: 'Clair ou sombre', guide: 'Guide', guideShow: 'Afficher le guide',
-    connection: 'Connexion', mqttBroker: 'Broker MQTT', noBroker: 'pas d\'adresse de broker', entities: n => `${n} entités`,
-    lastPublish: s => `envoyé ${ago(s, 'fr')}`, connectedFor: s => `connecté depuis ${ago(s, 'fr', true)}`, deviceId: 'Identifiant de l\'appareil',
-    stateTopic: 'État', commandTopic: 'Commandes', devicesTitle: 'Appareils connectés', thisDevice: 'cet appareil', remove: 'Supprimer', justNow: 'à l\'instant',
-    fromSkin: 'Du thème', designTitle: 'Thèmes personnels', designSave: 'Enregistrer le design actuel comme thème', designName: 'Nom',
-    designExport: 'Exporter (.json)', designImport: 'Importer', designDelete: n => `Supprimer le thème ${n} ?`, designFull: '10 thèmes personnels au maximum.',
-    designBad: 'Ce n\'est pas un fichier de design ShrugTV.', designNone: 'Aucun thème personnel pour l\'instant.', designSaved: n => `Enregistré sous ${n}.`, designImported: n => `Importé sous ${n}.`,
-    deviceSeen: (seen, paired) => `dernière utilisation ${seen} · associé ${paired}`, removeDevice: n => `Supprimer ${n} ? Il aura de nouveau besoin du code QR ou du PIN.`,
-    noDevices: 'Aucun appareil mémorisé pour l\'instant.', rememberOff: '« Mémoriser les appareils connectés » est désactivé : les appareils ont besoin d\'un code après chaque démarrage de l\'application.', nameTaken: 'nom utilisé par une autre TV, code ajouté', noTls: 'sans TLS', reachable: 'accessible',
-    mqttStates: { connected: 'connecté', connecting: 'connexion …', off: 'désactivé', 'no broker address': 'pas d\'adresse de broker' },
-    remoteMode: 'Mode télécommande', modePad: 'Pavé tactile', modeKeys: 'Touches', padLabel: 'Pavé tactile : glissez pour les flèches, touchez pour OK',
-    padHint: 'Glisser = flèches\nToucher = OK · Deux doigts = Retour', replay: '⟲ Replay', audioOnly: 'Audio seul',
-    recent: 'Vu récemment', replyTo: n => `Répondre à ${n}`, replyCancel: 'Annuler la réponse', emotes: 'Émotes',
-    noEmotes: "Aucune émote vue dans ce chat pour l'instant. Elles apparaissent ici dès que quelqu'un en utilise une.", quickAdd: 'Ajouter une phrase rapide',
-    quickNew: 'Nouvelle phrase rapide (60 caractères max.)', quickRemove: t => `Supprimer « ${t} » des phrases rapides ?`,
-    chatHint: "Touchez un message pour répondre avec @nom. Maintenez une phrase rapide pour la supprimer.",
-    tabUpdate: 'Version', tabUpdateShort: 'Info', verInstalled: 'Installée', verEdition: 'Édition', verEditionPublic: 'Publique', verEditionPrivate: 'Privée',
-    verDevice: 'TV', verAndroid: 'Android', verLastCheck: 'Dernière vérification', verNever: 'pas encore', verCurrent: 'Vous avez la version la plus récente.',
-    verUnknown: 'Pas encore vérifié.', verUnsupported: "Cette édition n'est pas mise à jour depuis l'app, et il n'y a pas de recherche de nouvelles versions ici.",
-    verAvailable: v => `La version ${v} est disponible`, verCheck: 'Vérifier maintenant', verChecking: 'Vérification …', verInstall: 'Installer la mise à jour',
-    verInstallConfirm: v => `Télécharger la version ${v} et lancer l'installation sur la TV ? La TV vous demande de confirmer.`,
-    verRelease: 'Page de la version', verInstallOff: "L'installation depuis l'app est désactivée. Activez-la dans les réglages de la TV : App → Installer les mises à jour dans l'app.",
-    verAutoOff: 'La vérification quotidienne est désactivée (Réglages → À propos → Rechercher des mises à jour) ; « Vérifier maintenant » fonctionne quand même.',
-    verDownloading: p => `Téléchargement … ${p} %`, verVerifying: "Vérifié. Confirmez l'installation sur la TV avec OK.",
-    verErrors: { disabled: "L'installation depuis l'app est désactivée.", none: "Aucune version plus récente connue. Vérifiez d'abord.", need_permission: 'Autorisez « Installer des apps inconnues » pour ShrugTV sur la TV, puis réessayez.',
-      permission_unavailable: "Cette TV n'a pas d'écran pour « Installer des apps inconnues ».", no_file: "La version n'a aucun fichier installable.", bad_checksum: "La somme de contrôle ne correspond pas, rien n'a été installé.",
-      download_failed: 'Le téléchargement a échoué.' },
-    verNotes: 'Nouveautés',
-    favAdd: 'Marquer comme favori', favRemove: 'Retirer des favoris', favFailed: "L'étoile n'a pas pu être enregistrée.",
-    listsLabel: 'Listes du sélecteur de chaînes', listFollowed: 'Suivies', listSameGame: 'Même catégorie', listSameGameLanguage: 'Même catégorie, ma langue',
-    listHistory: 'Vu récemment', listTopStreams: 'Top streams', listTopLanguage: 'Top dans ma langue',
-    listEmpty: 'Rien dans cette liste pour le moment.', listNeedsPlaying: "Cette liste nécessite un stream en cours : elle montre la catégorie de la chaîne qui est lue.",
-    homeTitle: "Sur l'écran d'accueil", homeHint: "Ouvrez cette page comme une icône d'app :",
-    homeIos: "iPhone : Safari → Partager → Sur l'écran d'accueil.", homeAndroid: "Android : menu de Chrome ⋮ → Ajouter à l'écran d'accueil."
-  },
-  pt: {
-    pairText: 'Escaneie o QR code na TV ou digite o PIN exibido lá.', pinLabel: 'PIN', connect: 'Conectar',
-    pinWrong: 'PIN incorreto ou expirado. Mostre um novo código na TV.', expired: 'Este código expirou. Mostre um novo na TV.',
-    offline: 'TV inacessível. O ShrugTV está aberto?', tabRemote: 'Controle', tabChat: 'Chat', tabFind: 'Buscar', tabPlayer: 'Player',
-    up: 'Cima', down: 'Baixo', left: 'Esquerda', right: 'Direita', back: 'Voltar', more: 'Mais', playPause: 'Reproduzir/Pausar',
-    prev: '◀ Canal', live: 'Ao vivo', next: 'Canal ▶', volume: 'Volume da transmissão', message: 'Mensagem', send: 'Enviar',
-    chatOff: 'Escrever no chat pelo celular está desativado nas configurações da TV.', search: 'Buscar', liveNow: 'Ao vivo agora',
-    results: 'Resultados', quality: 'Qualidade', chatLayout: 'Layout do chat', layoutSide: 'Ao lado do vídeo',
-    layoutOverlay: 'Sobre o vídeo', layoutTransparent: 'Transparente', chatOn: 'Chat ligado', chatOffBtn: 'Chat desligado',
-    stats: 'Estatísticas', close: 'Fechar player', openTwitch: 'Abrir na Twitch', nothing: 'Nada em reprodução',
-    viewers: n => `${n.toLocaleString()} espectadores`, since: m => `ao vivo há ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} h`,
-    behind: s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} atrás`, removed: 'mensagem removida', offlineCh: 'offline',
-    tabSettings: 'Configurações', tabRemoteShort: 'Controle', tabChatShort: 'Chat', tabFindShort: 'Buscar', tabPlayerShort: 'Player', tabSettingsShort: 'Config.',
-    searchChannels: 'Nome do canal', tabLog: 'Log',
-    logOff: 'O log no navegador está desativado na TV (Configurações → Celular e navegador → Log no navegador).',
-    logAbout: "Log do próprio ShrugTV nesta TV, ao vivo. Tokens e senhas são sempre removidos. Clique em uma linha para ver detalhes.",
-    logSearch: 'Buscar no log', logSource: 'Origem', logAllSources: 'Todas as origens', logLevel: 'Nível',
-    logAll: 'Todos', logErrors: 'Erros', logWarnings: 'Avisos', logInfo: 'Info', logDebug: 'Debug',
-    logPause: 'Pausar', logResume: 'Retomar', logCopy: 'Copiar', logExport: 'Salvar .txt', logPrivate: 'Ocultar detalhes privados',
-    logLatest: 'Ir para o mais recente ↓', logCopied: n => `${n} linhas copiadas`, logSaved: n => `${n} linhas salvas`,
-    logShown: (n, total) => `${n} de ${total} linhas`, logEmpty: 'Nenhuma linha corresponde.', logPaused: 'pausado',
-    logTime: 'Hora', logTag: 'Origem', logThread: 'Processo/thread', logMessage: 'Mensagem', settingsOff: 'Alterar configurações pelo navegador está desativado na TV (Configurações → Celular e navegador).',
-    settingsSearch: 'Buscar configurações', export: 'Salvar em arquivo', import: 'Carregar de arquivo', saved: 'Salvo', notSaved: 'Não salvo: valor não permitido',
-    imported: (n, m) => `${n} configurações carregadas` + (m ? `, ${m} ignoradas` : ''), importBad: 'Este não é um arquivo de configurações do ShrugTV.',
-    moveUp: 'Subir', run: 'Executar', done: 'Concluído', tvOnly: 'Só na TV', noScreen: 'Abra o ShrugTV na TV primeiro.', noResults: 'Nenhuma configuração encontrada.',
-    secretSet: 'armazenado – digite para substituir', secretEmpty: 'não definido', on: 'Ligado', off: 'Desligado', status: 'Status',
-    pinned: 'Fixadas', pin: 'Fixar na barra lateral', unpin: 'Desafixar', noPins: 'Fixe configurações com ☆ para encontrá-las aqui.',
-    exported: n => `${n} configurações salvas no arquivo (sem MQTT e celular, que pertencem a esta TV).`,
-    searchHint: '/ ou Ctrl+K: buscar', theme: 'Claro ou escuro', guide: 'Guia', guideShow: 'Mostrar o guia',
-    connection: 'Conexão', mqttBroker: 'Broker MQTT', noBroker: 'sem endereço do broker', entities: n => `${n} entidades`,
-    lastPublish: s => `enviado ${ago(s, 'pt')}`, connectedFor: s => `conectado há ${ago(s, 'pt', true)}`, deviceId: 'ID do dispositivo',
-    stateTopic: 'Estado', commandTopic: 'Comandos', devicesTitle: 'Dispositivos conectados', thisDevice: 'este dispositivo', remove: 'Remover', justNow: 'agora mesmo',
-    fromSkin: 'Do tema', designTitle: 'Temas próprios', designSave: 'Salvar o design atual como tema', designName: 'Nome',
-    designExport: 'Exportar (.json)', designImport: 'Importar', designDelete: n => `Excluir o tema ${n}?`, designFull: 'No máximo 10 temas próprios.',
-    designBad: 'Este não é um arquivo de design do ShrugTV.', designNone: 'Nenhum tema próprio ainda.', designSaved: n => `Salvo como ${n}.`, designImported: n => `Importado como ${n}.`,
-    deviceSeen: (seen, paired) => `último uso ${seen} · pareado ${paired}`, removeDevice: n => `Remover ${n}? Ele precisará do QR code ou do PIN de novo.`,
-    noDevices: 'Nenhum dispositivo lembrado ainda.', rememberOff: '"Lembrar dispositivos conectados" está desativado: os dispositivos precisam de um código a cada início do app.', nameTaken: 'nome usado por outra TV, código adicionado', noTls: 'sem TLS', reachable: 'acessível',
-    mqttStates: { connected: 'conectado', connecting: 'conectando …', off: 'desligado', 'no broker address': 'sem endereço do broker' },
-    remoteMode: 'Modo do controle', modePad: 'Touchpad', modeKeys: 'Teclas', padLabel: 'Touchpad: deslize para as setas, toque para OK',
-    padHint: 'Deslizar = setas\nToque = OK · Dois dedos = Voltar', replay: '⟲ Replay', audioOnly: 'Só áudio',
-    recent: 'Assistidos recentemente', replyTo: n => `Responder a ${n}`, replyCancel: 'Cancelar resposta', emotes: 'Emotes',
-    noEmotes: 'Nenhum emote visto neste chat ainda. Eles aparecem aqui assim que alguém usar um.', quickAdd: 'Adicionar uma frase rápida',
-    quickNew: 'Nova frase rápida (máx. 60 caracteres)', quickRemove: t => `Remover "${t}" das frases rápidas?`,
-    chatHint: 'Toque numa mensagem para responder com @nome. Segure uma frase rápida para removê-la.',
-    tabUpdate: 'Versão', tabUpdateShort: 'Info', verInstalled: 'Instalada', verEdition: 'Edição', verEditionPublic: 'Pública', verEditionPrivate: 'Privada',
-    verDevice: 'TV', verAndroid: 'Android', verLastCheck: 'Última verificação', verNever: 'ainda não', verCurrent: 'Você tem a versão mais recente.',
-    verUnknown: 'Ainda não verificado.', verUnsupported: 'Esta edição não é atualizada pelo app, e aqui não há verificação de novas versões.',
-    verAvailable: v => `A versão ${v} está disponível`, verCheck: 'Verificar agora', verChecking: 'Verificando …', verInstall: 'Instalar atualização',
-    verInstallConfirm: v => `Baixar a versão ${v} e iniciar a instalação na TV? A TV pede que você confirme.`,
-    verRelease: 'Página da versão', verInstallOff: 'A instalação pelo app está desativada. Ative nas configurações da TV: App → Instalar atualizações no app.',
-    verAutoOff: 'A verificação diária está desativada (Configurações → Sobre → Verificar atualizações); "Verificar agora" funciona mesmo assim.',
-    verDownloading: p => `Baixando … ${p} %`, verVerifying: 'Verificado. Confirme a instalação na TV com OK.',
-    verErrors: { disabled: 'A instalação pelo app está desativada.', none: 'Nenhuma versão mais nova conhecida. Verifique primeiro.', need_permission: 'Permita "Instalar apps desconhecidos" para o ShrugTV na TV e tente de novo.',
-      permission_unavailable: 'Esta TV não tem tela para "Instalar apps desconhecidos".', no_file: 'A versão não tem nenhum arquivo instalável.', bad_checksum: 'A soma de verificação não confere, nada foi instalado.',
-      download_failed: 'O download falhou.' },
-    verNotes: 'Novidades',
-    favAdd: 'Marcar como favorito', favRemove: 'Remover dos favoritos', favFailed: 'Não foi possível salvar a estrela.',
-    listsLabel: 'Listas do seletor de canais', listFollowed: 'Seguidos', listSameGame: 'Mesma categoria', listSameGameLanguage: 'Mesma categoria, meu idioma',
-    listHistory: 'Assistidos recentemente', listTopStreams: 'Top transmissões', listTopLanguage: 'Top no meu idioma',
-    listEmpty: 'Nada nesta lista agora.', listNeedsPlaying: 'Esta lista precisa de uma transmissão em andamento: ela mostra a categoria do canal que está passando.',
-    homeTitle: 'Na tela inicial', homeHint: 'Abra esta página como ícone de app:',
-    homeIos: 'iPhone: Safari → Compartilhar → Adicionar à Tela de Início.', homeAndroid: 'Android: menu do Chrome ⋮ → Adicionar à tela inicial.'
-  },
-  ru: {
-    pairText: 'Отсканируйте QR-код на телевизоре или введите показанный там PIN.', pinLabel: 'PIN', connect: 'Подключиться',
-    pinWrong: 'PIN неверный или истёк. Покажите на телевизоре новый код.', expired: 'Этот код истёк. Покажите на телевизоре новый.',
-    offline: 'Телевизор недоступен. ShrugTV открыт?', tabRemote: 'Пульт', tabChat: 'Чат', tabFind: 'Поиск', tabPlayer: 'Плеер',
-    up: 'Вверх', down: 'Вниз', left: 'Влево', right: 'Вправо', back: 'Назад', more: 'Ещё', playPause: 'Пуск/Пауза',
-    prev: '◀ Канал', live: 'Эфир', next: 'Канал ▶', volume: 'Громкость трансляции', message: 'Сообщение', send: 'Отправить',
-    chatOff: 'Написание в чат с телефона отключено в настройках телевизора.', search: 'Поиск', liveNow: 'Сейчас в эфире',
-    results: 'Результаты', quality: 'Качество', chatLayout: 'Расположение чата', layoutSide: 'Рядом с видео',
-    layoutOverlay: 'Поверх видео', layoutTransparent: 'Прозрачный', chatOn: 'Чат вкл.', chatOffBtn: 'Чат выкл.',
-    stats: 'Статистика', close: 'Закрыть плеер', openTwitch: 'Открыть на Twitch', nothing: 'Ничего не воспроизводится',
-    viewers: n => `${n.toLocaleString()} зрителей`, since: m => `в эфире ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} ч`,
-    behind: s => `отставание ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`, removed: 'сообщение удалено', offlineCh: 'не в эфире',
-    tabSettings: 'Настройки', tabRemoteShort: 'Пульт', tabChatShort: 'Чат', tabFindShort: 'Поиск', tabPlayerShort: 'Плеер', tabSettingsShort: 'Настройки',
-    searchChannels: 'Название канала', tabLog: 'Журнал',
-    logOff: 'Журнал в браузере отключён на телевизоре (Настройки → Телефон и браузер → Журнал в браузере).',
-    logAbout: 'Собственный журнал ShrugTV на этом телевизоре в реальном времени. Токены и пароли всегда удаляются. Нажмите на строку, чтобы увидеть подробности.',
-    logSearch: 'Поиск по журналу', logSource: 'Источник', logAllSources: 'Все источники', logLevel: 'Уровень',
-    logAll: 'Все', logErrors: 'Ошибки', logWarnings: 'Предупреждения', logInfo: 'Информация', logDebug: 'Отладка',
-    logPause: 'Пауза', logResume: 'Продолжить', logCopy: 'Копировать', logExport: 'Сохранить .txt', logPrivate: 'Скрыть личные данные',
-    logLatest: 'К последним ↓', logCopied: n => `Скопировано строк: ${n}`, logSaved: n => `Сохранено строк: ${n}`,
-    logShown: (n, total) => `${n} из ${total} строк`, logEmpty: 'Нет подходящих строк.', logPaused: 'пауза',
-    logTime: 'Время', logTag: 'Источник', logThread: 'Процесс/поток', logMessage: 'Сообщение', settingsOff: 'Изменение настроек из браузера отключено на телевизоре (Настройки → Телефон и браузер).',
-    settingsSearch: 'Поиск по настройкам', export: 'Сохранить в файл', import: 'Загрузить из файла', saved: 'Сохранено', notSaved: 'Не сохранено: недопустимое значение',
-    imported: (n, m) => `Загружено настроек: ${n}` + (m ? `, пропущено: ${m}` : ''), importBad: 'Это не файл настроек ShrugTV.',
-    moveUp: 'Выше', run: 'Выполнить', done: 'Готово', tvOnly: 'Только на телевизоре', noScreen: 'Сначала откройте ShrugTV на телевизоре.', noResults: 'Настройки не найдены.',
-    secretSet: 'сохранено – введите, чтобы заменить', secretEmpty: 'не задано', on: 'Вкл.', off: 'Выкл.', status: 'Состояние',
-    pinned: 'Закреплённые', pin: 'Закрепить на боковой панели', unpin: 'Открепить', noPins: 'Закрепляйте настройки значком ☆, чтобы находить их здесь.',
-    exported: n => `Настроек сохранено в файл: ${n} (без MQTT и компаньона, они относятся к этому телевизору).`,
-    searchHint: '/ или Ctrl+K: поиск', theme: 'Светлая или тёмная тема', guide: 'Справка', guideShow: 'Показать справку',
-    connection: 'Подключение', mqttBroker: 'MQTT-брокер', noBroker: 'нет адреса брокера', entities: n => `сущностей: ${n}`,
-    lastPublish: s => `отправлено ${ago(s, 'ru')}`, connectedFor: s => `подключено ${ago(s, 'ru', true)}`, deviceId: 'ID устройства',
-    stateTopic: 'Состояние', commandTopic: 'Команды', devicesTitle: 'Подключённые устройства', thisDevice: 'это устройство', remove: 'Удалить', justNow: 'только что',
-    fromSkin: 'Из темы', designTitle: 'Свои темы', designSave: 'Сохранить текущее оформление как тему', designName: 'Название',
-    designExport: 'Экспорт (.json)', designImport: 'Импорт', designDelete: n => `Удалить тему ${n}?`, designFull: 'Не более 10 своих тем.',
-    designBad: 'Это не файл оформления ShrugTV.', designNone: 'Своих тем пока нет.', designSaved: n => `Сохранено как ${n}.`, designImported: n => `Импортировано как ${n}.`,
-    deviceSeen: (seen, paired) => `использовалось: ${seen} · сопряжено: ${paired}`, removeDevice: n => `Удалить ${n}? Ему снова понадобится QR-код или PIN.`,
-    noDevices: 'Пока нет запомненных устройств.', rememberOff: '«Запоминать подключённые устройства» выключено: после каждого запуска приложения устройствам нужен код.', nameTaken: 'имя занято другим телевизором, добавлен код', noTls: 'без TLS', reachable: 'доступно',
-    mqttStates: { connected: 'подключено', connecting: 'подключение …', off: 'выкл.', 'no broker address': 'нет адреса брокера' },
-    remoteMode: 'Режим пульта', modePad: 'Тачпад', modeKeys: 'Кнопки', padLabel: 'Тачпад: проведите пальцем для стрелок, коснитесь для OK',
-    padHint: 'Свайп = стрелки\nКасание = OK · Два пальца = Назад', replay: '⟲ Повтор', audioOnly: 'Только звук',
-    recent: 'Недавно смотрели', replyTo: n => `Ответить ${n}`, replyCancel: 'Отменить ответ', emotes: 'Смайлы',
-    noEmotes: 'В этом чате пока не было смайлов. Они появятся здесь, как только кто-нибудь отправит один.', quickAdd: 'Добавить быструю фразу',
-    quickNew: 'Новая быстрая фраза (до 60 символов)', quickRemove: t => `Удалить «${t}» из быстрых фраз?`,
-    chatHint: 'Коснитесь сообщения, чтобы ответить через @имя. Удерживайте быструю фразу, чтобы удалить её.',
-    tabUpdate: 'Версия', tabUpdateShort: 'Инфо', verInstalled: 'Установлена', verEdition: 'Выпуск', verEditionPublic: 'Публичный', verEditionPrivate: 'Личный',
-    verDevice: 'Телевизор', verAndroid: 'Android', verLastCheck: 'Последняя проверка', verNever: 'ещё не было', verCurrent: 'У вас самая новая версия.',
-    verUnknown: 'Ещё не проверялось.', verUnsupported: 'Этот выпуск не обновляется из приложения, и проверки новых версий здесь нет.',
-    verAvailable: v => `Доступна версия ${v}`, verCheck: 'Проверить сейчас', verChecking: 'Проверка …', verInstall: 'Установить обновление',
-    verInstallConfirm: v => `Скачать версию ${v} и начать установку на телевизоре? Телевизор попросит подтвердить.`,
-    verRelease: 'Страница выпуска', verInstallOff: 'Установка из приложения отключена. Включите её в настройках телевизора: Приложение → Устанавливать обновления из приложения.',
-    verAutoOff: 'Ежедневная проверка отключена (Настройки → О приложении → Проверять обновления); «Проверить сейчас» всё равно работает.',
-    verDownloading: p => `Загрузка … ${p} %`, verVerifying: 'Проверено. Подтвердите установку на телевизоре кнопкой OK.',
-    verErrors: { disabled: 'Установка из приложения отключена.', none: 'Более новая версия неизвестна. Сначала выполните проверку.', need_permission: 'Разрешите ShrugTV «Установку неизвестных приложений» на телевизоре и повторите попытку.',
-      permission_unavailable: 'На этом телевизоре нет экрана «Установка неизвестных приложений».', no_file: 'В выпуске нет файла для установки.', bad_checksum: 'Контрольная сумма не совпадает, ничего не установлено.',
-      download_failed: 'Не удалось скачать.' },
-    verNotes: 'Что нового',
-    favAdd: 'Добавить в избранное', favRemove: 'Убрать из избранного', favFailed: 'Не удалось сохранить звёздочку.',
-    listsLabel: 'Списки переключателя каналов', listFollowed: 'Подписки', listSameGame: 'Та же категория', listSameGameLanguage: 'Та же категория, мой язык',
-    listHistory: 'Недавно смотрели', listTopStreams: 'Популярные трансляции', listTopLanguage: 'Популярное на моём языке',
-    listEmpty: 'Сейчас в этом списке ничего нет.', listNeedsPlaying: 'Для этого списка нужна идущая трансляция: он показывает категорию воспроизводимого канала.',
-    homeTitle: 'На главном экране', homeHint: 'Откройте эту страницу как значок приложения:',
-    homeIos: 'iPhone: Safari → Поделиться → На экран «Домой».', homeAndroid: 'Android: меню Chrome ⋮ → Добавить на главный экран.'
-  },
-  tr: {
-    pairText: 'TV\'deki QR kodunu tarayın veya orada gösterilen PIN\'i girin.', pinLabel: 'PIN', connect: 'Bağlan',
-    pinWrong: 'PIN yanlış veya süresi dolmuş. TV\'de yeni bir kod gösterin.', expired: 'Bu kodun süresi doldu. TV\'de yeni bir kod gösterin.',
-    offline: 'TV\'ye ulaşılamıyor. ShrugTV açık mı?', tabRemote: 'Kumanda', tabChat: 'Sohbet', tabFind: 'Bul', tabPlayer: 'Oynatıcı',
-    up: 'Yukarı', down: 'Aşağı', left: 'Sol', right: 'Sağ', back: 'Geri', more: 'Daha fazla', playPause: 'Oynat/Duraklat',
-    prev: '◀ Kanal', live: 'Canlı', next: 'Kanal ▶', volume: 'Yayın sesi', message: 'Mesaj', send: 'Gönder',
-    chatOff: 'Telefondan sohbete yazma TV ayarlarında kapalı.', search: 'Ara', liveNow: 'Şimdi canlı',
-    results: 'Sonuçlar', quality: 'Kalite', chatLayout: 'Sohbet düzeni', layoutSide: 'Videonun yanında',
-    layoutOverlay: 'Videonun üzerinde', layoutTransparent: 'Saydam', chatOn: 'Sohbet açık', chatOffBtn: 'Sohbet kapalı',
-    stats: 'İstatistikler', close: 'Oynatıcıyı kapat', openTwitch: 'Twitch\'te aç', nothing: 'Oynatılan bir şey yok',
-    viewers: n => `${n.toLocaleString()} izleyici`, since: m => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} sa canlı`,
-    behind: s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} geride`, removed: 'mesaj kaldırıldı', offlineCh: 'çevrimdışı',
-    tabSettings: 'Ayarlar', tabRemoteShort: 'Kumanda', tabChatShort: 'Sohbet', tabFindShort: 'Bul', tabPlayerShort: 'Oynatıcı', tabSettingsShort: 'Ayarlar',
-    searchChannels: 'Kanal adı', tabLog: 'Günlük',
-    logOff: 'Tarayıcıdaki günlük TV\'de kapalı (Ayarlar → Telefon ve tarayıcı → Tarayıcıda günlük).',
-    logAbout: "ShrugTV'nin bu TV'deki kendi günlüğü, canlı. Belirteçler ve parolalar her zaman kaldırılır. Ayrıntı için bir satıra tıklayın.",
-    logSearch: 'Günlükte ara', logSource: 'Kaynak', logAllSources: 'Tüm kaynaklar', logLevel: 'Düzey',
-    logAll: 'Tümü', logErrors: 'Hatalar', logWarnings: 'Uyarılar', logInfo: 'Bilgi', logDebug: 'Hata ayıklama',
-    logPause: 'Duraklat', logResume: 'Devam', logCopy: 'Kopyala', logExport: '.txt olarak kaydet', logPrivate: 'Özel ayrıntıları gizle',
-    logLatest: 'En sona atla ↓', logCopied: n => `${n} satır kopyalandı`, logSaved: n => `${n} satır kaydedildi`,
-    logShown: (n, total) => `${total} satırdan ${n}`, logEmpty: 'Eşleşen satır yok.', logPaused: 'duraklatıldı',
-    logTime: 'Zaman', logTag: 'Kaynak', logThread: 'İşlem/iş parçacığı', logMessage: 'Mesaj', settingsOff: 'Tarayıcıdan ayar değiştirme TV\'de kapalı (Ayarlar → Telefon ve tarayıcı).',
-    settingsSearch: 'Ayarlarda ara', export: 'Dosyaya kaydet', import: 'Dosyadan yükle', saved: 'Kaydedildi', notSaved: 'Kaydedilmedi: değere izin verilmiyor',
-    imported: (n, m) => `${n} ayar yüklendi` + (m ? `, ${m} atlandı` : ''), importBad: 'Bu bir ShrugTV ayar dosyası değil.',
-    moveUp: 'Yukarı taşı', run: 'Çalıştır', done: 'Bitti', tvOnly: 'Yalnızca TV\'de', noScreen: 'Önce TV\'de ShrugTV\'yi açın.', noResults: 'Ayar bulunamadı.',
-    secretSet: 'saklandı – değiştirmek için yazın', secretEmpty: 'ayarlanmadı', on: 'Açık', off: 'Kapalı', status: 'Durum',
-    pinned: 'Sabitlenenler', pin: 'Kenar çubuğuna sabitle', unpin: 'Sabitlemeyi kaldır', noPins: 'Ayarları ☆ ile sabitleyin, burada bulun.',
-    exported: n => `${n} ayar dosyaya kaydedildi (MQTT ve companion hariç, onlar bu TV'ye aittir).`,
-    searchHint: '/ veya Ctrl+K: ara', theme: 'Açık veya koyu', guide: 'Rehber', guideShow: 'Rehberi göster',
-    connection: 'Bağlantı', mqttBroker: 'MQTT aracısı', noBroker: 'aracı adresi yok', entities: n => `${n} varlık`,
-    lastPublish: s => `${ago(s, 'tr')} gönderildi`, connectedFor: s => `${ago(s, 'tr', true)} süredir bağlı`, deviceId: 'Cihaz kimliği',
-    stateTopic: 'Durum', commandTopic: 'Komutlar', devicesTitle: 'Bağlı cihazlar', thisDevice: 'bu cihaz', remove: 'Kaldır', justNow: 'az önce',
-    fromSkin: 'Temadan', designTitle: 'Kendi temalarım', designSave: 'Mevcut tasarımı tema olarak kaydet', designName: 'Ad',
-    designExport: 'Dışa aktar (.json)', designImport: 'İçe aktar', designDelete: n => `${n} teması silinsin mi?`, designFull: 'En fazla 10 kendi tema.',
-    designBad: 'Bu bir ShrugTV tasarım dosyası değil.', designNone: 'Henüz kendi temanız yok.', designSaved: n => `${n} olarak kaydedildi.`, designImported: n => `${n} olarak içe aktarıldı.`,
-    deviceSeen: (seen, paired) => `son kullanım ${seen} · eşleşme ${paired}`, removeDevice: n => `${n} kaldırılsın mı? Tekrar QR kodu veya PIN gerekecek.`,
-    noDevices: 'Henüz hatırlanan cihaz yok.', rememberOff: '"Bağlı cihazları hatırla" kapalı: cihazlar her uygulama başlangıcından sonra kod ister.', nameTaken: 'ad başka bir TV tarafından kullanılıyor, kod eklendi', noTls: 'TLS olmadan', reachable: 'erişilebilir',
-    mqttStates: { connected: 'bağlı', connecting: 'bağlanıyor …', off: 'kapalı', 'no broker address': 'aracı adresi yok' },
-    remoteMode: 'Kumanda modu', modePad: 'Dokunmatik yüzey', modeKeys: 'Tuşlar', padLabel: 'Dokunmatik yüzey: oklar için kaydırın, Tamam için dokunun',
-    padHint: 'Kaydır = ok tuşları\nDokun = Tamam · İki parmak = Geri', replay: '⟲ Tekrar', audioOnly: 'Yalnızca ses',
-    recent: 'Son izlenenler', replyTo: n => `${n} kişisine yanıt ver`, replyCancel: 'Yanıtı iptal et', emotes: 'Emojiler',
-    noEmotes: 'Bu sohbette henüz emoji görülmedi. Biri kullanır kullanmaz burada görünür.', quickAdd: 'Hızlı ifade ekle',
-    quickNew: 'Yeni hızlı ifade (en fazla 60 karakter)', quickRemove: t => `"${t}" hızlı ifadelerden kaldırılsın mı?`,
-    chatHint: 'Bir mesaja dokunarak @ad ile yanıtlayın. Kaldırmak için bir hızlı ifadeye basılı tutun.',
-    tabUpdate: 'Sürüm', tabUpdateShort: 'Bilgi', verInstalled: 'Yüklü', verEdition: 'Sürüm türü', verEditionPublic: 'Herkese açık', verEditionPrivate: 'Özel',
-    verDevice: 'TV', verAndroid: 'Android', verLastCheck: 'Son kontrol', verNever: 'henüz yok', verCurrent: 'En yeni sürüme sahipsiniz.',
-    verUnknown: 'Henüz kontrol edilmedi.', verUnsupported: 'Bu sürüm türü uygulamadan güncellenmez ve burada yeni sürüm kontrolü yoktur.',
-    verAvailable: v => `${v} sürümü hazır`, verCheck: 'Şimdi kontrol et', verChecking: 'Kontrol ediliyor …', verInstall: 'Güncellemeyi yükle',
-    verInstallConfirm: v => `${v} sürümü indirilip TV\'de kurulum başlatılsın mı? TV sizden onay ister.`,
-    verRelease: 'Sürüm sayfası', verInstallOff: "Uygulamadan kurulum kapalı. TV ayarlarından açın: Uygulama → Güncellemeleri uygulamadan yükle.",
-    verAutoOff: 'Günlük kontrol kapalı (Ayarlar → Hakkında → Güncellemeleri denetle); "Şimdi kontrol et" yine de çalışır.',
-    verDownloading: p => `İndiriliyor … %${p}`, verVerifying: "Doğrulandı. Kurulumu TV'de Tamam ile onaylayın.",
-    verErrors: { disabled: 'Uygulamadan kurulum kapalı.', none: 'Bilinen daha yeni sürüm yok. Önce kontrol edin.', need_permission: 'TV\'de ShrugTV için "Bilinmeyen uygulamaları yükle" iznini verin, sonra tekrar deneyin.',
-      permission_unavailable: 'Bu TV\'de "Bilinmeyen uygulamaları yükle" ekranı yok.', no_file: 'Sürümde yüklenebilir dosya yok.', bad_checksum: 'Sağlama toplamı uyuşmuyor, hiçbir şey yüklenmedi.',
-      download_failed: 'İndirme başarısız oldu.' },
-    verNotes: 'Yenilikler',
-    favAdd: 'Favori olarak işaretle', favRemove: 'Favorilerden kaldır', favFailed: 'Yıldız kaydedilemedi.',
-    listsLabel: 'Kanal değiştiricinin listeleri', listFollowed: 'Takip edilenler', listSameGame: 'Aynı kategori', listSameGameLanguage: 'Aynı kategori, benim dilim',
-    listHistory: 'Son izlenenler', listTopStreams: 'En çok izlenen yayınlar', listTopLanguage: 'Dilimde en çok izlenenler',
-    listEmpty: 'Bu listede şu an bir şey yok.', listNeedsPlaying: 'Bu liste çalışan bir yayın gerektirir: oynatılan kanalın kategorisini gösterir.',
-    homeTitle: 'Ana ekranda', homeHint: 'Bu sayfayı uygulama simgesi olarak açın:',
-    homeIos: 'iPhone: Safari → Paylaş → Ana Ekrana Ekle.', homeAndroid: 'Android: Chrome menüsü ⋮ → Ana ekrana ekle.'
-  },
-  it: {
-    pairText: 'Inquadra il codice QR sul TV oppure inserisci il PIN mostrato lì.', pinLabel: 'PIN', connect: 'Connetti',
-    pinWrong: 'PIN errato o scaduto. Mostra un nuovo codice sul TV.', expired: 'Questo codice è scaduto. Mostra un nuovo codice sul TV.',
-    offline: 'TV non raggiungibile. ShrugTV è aperto?', tabRemote: 'Telecomando', tabChat: 'Chat', tabFind: 'Cerca', tabPlayer: 'Player',
-    up: 'Su', down: 'Giù', left: 'Sinistra', right: 'Destra', back: 'Indietro', more: 'Altro', playPause: 'Riproduci/Pausa',
-    prev: '◀ Canale', live: 'Diretta', next: 'Canale ▶', volume: 'Volume dello stream', message: 'Messaggio', send: 'Invia',
-    chatOff: 'Scrivere in chat dal telefono è disattivato nelle impostazioni del TV.', search: 'Cerca', liveNow: 'In diretta ora',
-    results: 'Risultati', quality: 'Qualità', chatLayout: 'Layout della chat', layoutSide: 'Accanto al video',
-    layoutOverlay: 'Sopra il video', layoutTransparent: 'Trasparente', chatOn: 'Chat attiva', chatOffBtn: 'Chat disattivata',
-    stats: 'Statistiche', close: 'Chiudi il player', openTwitch: 'Apri su Twitch', nothing: 'Nessuna riproduzione',
-    viewers: n => `${n.toLocaleString()} spettatori`, since: m => `in diretta da ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} h`,
-    behind: s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} di ritardo`, removed: 'messaggio rimosso', offlineCh: 'offline',
-    tabSettings: 'Impostazioni', tabRemoteShort: 'Telecomando', tabChatShort: 'Chat', tabFindShort: 'Cerca', tabPlayerShort: 'Player', tabSettingsShort: 'Impostazioni',
-    searchChannels: 'Nome del canale', tabLog: 'Log',
-    logOff: 'Il log nel browser è disattivato sul TV (Impostazioni → Telefono e browser → Log nel browser).',
-    logAbout: "Il log di ShrugTV su questo TV, in tempo reale. Token e password vengono sempre rimossi. Clicca una riga per i dettagli.",
-    logSearch: 'Cerca nel log', logSource: 'Origine', logAllSources: 'Tutte le origini', logLevel: 'Livello',
-    logAll: 'Tutti', logErrors: 'Errori', logWarnings: 'Avvisi', logInfo: 'Info', logDebug: 'Debug',
-    logPause: 'Pausa', logResume: 'Riprendi', logCopy: 'Copia', logExport: 'Salva .txt', logPrivate: 'Nascondi i dettagli privati',
-    logLatest: 'Vai all\'ultima ↓', logCopied: n => `${n} righe copiate`, logSaved: n => `${n} righe salvate`,
-    logShown: (n, total) => `${n} di ${total} righe`, logEmpty: 'Nessuna riga corrispondente.', logPaused: 'in pausa',
-    logTime: 'Ora', logTag: 'Origine', logThread: 'Processo/thread', logMessage: 'Messaggio', settingsOff: 'La modifica delle impostazioni dal browser è disattivata sul TV (Impostazioni → Telefono e browser).',
-    settingsSearch: 'Cerca nelle impostazioni', export: 'Salva su file', import: 'Carica da file', saved: 'Salvato', notSaved: 'Non salvato: valore non consentito',
-    imported: (n, m) => `${n} impostazioni caricate` + (m ? `, ${m} saltate` : ''), importBad: 'Questo non è un file di impostazioni di ShrugTV.',
-    moveUp: 'Sposta su', run: 'Esegui', done: 'Fatto', tvOnly: 'Solo sul TV', noScreen: 'Apri prima ShrugTV sul TV.', noResults: 'Nessuna impostazione trovata.',
-    secretSet: 'salvato – scrivi per sostituire', secretEmpty: 'non impostato', on: 'Attivo', off: 'Disattivato', status: 'Stato',
-    pinned: 'Fissate', pin: 'Fissa nella barra laterale', unpin: 'Rimuovi dai fissati', noPins: 'Fissa le impostazioni con ☆ per trovarle qui.',
-    exported: n => `${n} impostazioni salvate nel file (senza MQTT e telefono, che appartengono a questo TV).`,
-    searchHint: '/ o Ctrl+K: cerca', theme: 'Chiaro o scuro', guide: 'Guida', guideShow: 'Mostra la guida',
-    connection: 'Connessione', mqttBroker: 'Broker MQTT', noBroker: 'nessun indirizzo del broker', entities: n => `${n} entità`,
-    lastPublish: s => `inviato ${ago(s, 'it')}`, connectedFor: s => `connesso da ${ago(s, 'it', true)}`, deviceId: 'ID del dispositivo',
-    stateTopic: 'Stato', commandTopic: 'Comandi', devicesTitle: 'Dispositivi collegati', thisDevice: 'questo dispositivo', remove: 'Rimuovi', justNow: 'proprio ora',
-    fromSkin: 'Dal tema', designTitle: 'Temi personali', designSave: 'Salva il design attuale come tema', designName: 'Nome',
-    designExport: 'Esporta (.json)', designImport: 'Importa', designDelete: n => `Eliminare il tema ${n}?`, designFull: 'Al massimo 10 temi personali.',
-    designBad: 'Questo non è un file di design di ShrugTV.', designNone: 'Ancora nessun tema personale.', designSaved: n => `Salvato come ${n}.`, designImported: n => `Importato come ${n}.`,
-    deviceSeen: (seen, paired) => `ultimo utilizzo ${seen} · associato ${paired}`, removeDevice: n => `Rimuovere ${n}? Servirà di nuovo il codice QR o il PIN.`,
-    noDevices: 'Ancora nessun dispositivo ricordato.', rememberOff: '"Ricorda i dispositivi collegati" è disattivato: i dispositivi richiedono un codice a ogni avvio dell\'app.', nameTaken: 'nome usato da un altro TV, codice aggiunto', noTls: 'senza TLS', reachable: 'raggiungibile',
-    mqttStates: { connected: 'connesso', connecting: 'connessione …', off: 'disattivato', 'no broker address': 'nessun indirizzo del broker' },
-    remoteMode: 'Modalità telecomando', modePad: 'Touchpad', modeKeys: 'Tasti', padLabel: 'Touchpad: scorri per le frecce, tocca per OK',
-    padHint: 'Scorrere = frecce\nToccare = OK · Due dita = Indietro', replay: '⟲ Replay', audioOnly: 'Solo audio',
-    recent: 'Visti di recente', replyTo: n => `Rispondi a ${n}`, replyCancel: 'Annulla risposta', emotes: 'Emote',
-    noEmotes: 'Nessuna emote vista in questa chat finora. Compaiono qui non appena qualcuno ne usa una.', quickAdd: 'Aggiungi una frase rapida',
-    quickNew: 'Nuova frase rapida (max. 60 caratteri)', quickRemove: t => `Rimuovere "${t}" dalle frasi rapide?`,
-    chatHint: 'Tocca un messaggio per rispondere con @nome. Tieni premuta una frase rapida per rimuoverla.',
-    tabUpdate: 'Versione', tabUpdateShort: 'Info', verInstalled: 'Installata', verEdition: 'Edizione', verEditionPublic: 'Pubblica', verEditionPrivate: 'Privata',
-    verDevice: 'TV', verAndroid: 'Android', verLastCheck: 'Ultimo controllo', verNever: 'non ancora', verCurrent: 'Hai la versione più recente.',
-    verUnknown: 'Non ancora controllato.', verUnsupported: "Questa edizione non si aggiorna dall'app e qui non c'è il controllo delle nuove versioni.",
-    verAvailable: v => `È disponibile la versione ${v}`, verCheck: 'Controlla ora', verChecking: 'Controllo in corso …', verInstall: "Installa l'aggiornamento",
-    verInstallConfirm: v => `Scaricare la versione ${v} e avviare l'installazione sul TV? Il TV ti chiede di confermare.`,
-    verRelease: 'Pagina della versione', verInstallOff: "L'installazione dall'app è disattivata. Attivala nelle impostazioni del TV: App → Installa aggiornamenti nell'app.",
-    verAutoOff: 'Il controllo giornaliero è disattivato (Impostazioni → Info → Cerca aggiornamenti); "Controlla ora" funziona comunque.',
-    verDownloading: p => `Download in corso … ${p} %`, verVerifying: "Verificato. Conferma l'installazione sul TV con OK.",
-    verErrors: { disabled: "L'installazione dall'app è disattivata.", none: 'Nessuna versione più recente nota. Controlla prima.', need_permission: 'Consenti "Installa app sconosciute" per ShrugTV sul TV, poi riprova.',
-      permission_unavailable: 'Questo TV non ha una schermata per "Installa app sconosciute".', no_file: 'La versione non ha alcun file installabile.', bad_checksum: 'Il checksum non corrisponde, non è stato installato nulla.',
-      download_failed: 'Il download non è riuscito.' },
-    verNotes: 'Novità',
-    favAdd: 'Segna come preferito', favRemove: 'Rimuovi dai preferiti', favFailed: 'Non è stato possibile salvare la stella.',
-    listsLabel: 'Liste del cambio canale', listFollowed: 'Seguiti', listSameGame: 'Stessa categoria', listSameGameLanguage: 'Stessa categoria, nella mia lingua',
-    listHistory: 'Visti di recente', listTopStreams: 'Stream più visti', listTopLanguage: 'Più visti nella mia lingua',
-    listEmpty: "In questo momento non c'è nulla in questa lista.", listNeedsPlaying: 'Questa lista richiede uno stream in riproduzione: mostra la categoria del canale in corso.',
-    homeTitle: 'Nella schermata Home', homeHint: 'Apri questa pagina come icona di app:',
-    homeIos: 'iPhone: Safari → Condividi → Aggiungi alla schermata Home.', homeAndroid: 'Android: menu di Chrome ⋮ → Aggiungi a schermata Home.'
-  },
-  ja: {
-    pairText: 'テレビのQRコードを読み取るか、表示されているPINを入力してください。', pinLabel: 'PIN', connect: '接続',
-    pinWrong: 'PINが違うか期限切れです。テレビで新しいコードを表示してください。', expired: 'このコードは期限切れです。テレビで新しいコードを表示してください。',
-    offline: 'テレビに接続できません。ShrugTVは起動していますか?', tabRemote: 'リモコン', tabChat: 'チャット', tabFind: '検索', tabPlayer: 'プレーヤー',
-    up: '上', down: '下', left: '左', right: '右', back: '戻る', more: 'その他', playPause: '再生/一時停止',
-    prev: '◀ チャンネル', live: 'ライブ', next: 'チャンネル ▶', volume: '配信の音量', message: 'メッセージ', send: '送信',
-    chatOff: 'スマホからのチャット書き込みは、テレビの設定でオフになっています。', search: '検索', liveNow: '配信中',
-    results: '結果', quality: '画質', chatLayout: 'チャットのレイアウト', layoutSide: '映像の横',
-    layoutOverlay: '映像の上', layoutTransparent: '透明', chatOn: 'チャットオン', chatOffBtn: 'チャットオフ',
-    stats: '統計', close: 'プレーヤーを閉じる', openTwitch: 'Twitchで開く', nothing: '再生中のものはありません',
-    viewers: n => `視聴者 ${n.toLocaleString()} 人`, since: m => `配信 ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} 時間`,
-    behind: s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} 遅れ`, removed: 'メッセージは削除されました', offlineCh: 'オフライン',
-    tabSettings: '設定', tabRemoteShort: 'リモコン', tabChatShort: 'チャット', tabFindShort: '検索', tabPlayerShort: '再生', tabSettingsShort: '設定',
-    searchChannels: 'チャンネル名', tabLog: 'ログ',
-    logOff: 'ブラウザでのログ表示は、テレビでオフになっています(設定 → スマホとブラウザ → ブラウザでログを表示)。',
-    logAbout: "このテレビのShrugTV自身のログをライブで表示します。トークンとパスワードは常に除去されます。行をクリックすると詳細を表示します。",
-    logSearch: 'ログを検索', logSource: '発生源', logAllSources: 'すべての発生源', logLevel: 'レベル',
-    logAll: 'すべて', logErrors: 'エラー', logWarnings: '警告', logInfo: '情報', logDebug: 'デバッグ',
-    logPause: '一時停止', logResume: '再開', logCopy: 'コピー', logExport: '.txtで保存', logPrivate: '個人情報を隠す',
-    logLatest: '最新へ移動 ↓', logCopied: n => `${n} 行をコピーしました`, logSaved: n => `${n} 行を保存しました`,
-    logShown: (n, total) => `${total} 行中 ${n} 行`, logEmpty: '一致する行がありません。', logPaused: '一時停止中',
-    logTime: '時刻', logTag: '発生源', logThread: 'プロセス/スレッド', logMessage: 'メッセージ', settingsOff: 'ブラウザからの設定変更は、テレビでオフになっています(設定 → スマホとブラウザ)。',
-    settingsSearch: '設定を検索', export: 'ファイルに保存', import: 'ファイルから読み込み', saved: '保存しました', notSaved: '保存されませんでした: 値が許可されていません',
-    imported: (n, m) => `${n} 件の設定を読み込みました` + (m ? `(${m} 件スキップ)` : ''), importBad: 'ShrugTVの設定ファイルではありません。',
-    moveUp: '上へ', run: '実行', done: '完了', tvOnly: 'テレビでのみ', noScreen: '先にテレビでShrugTVを開いてください。', noResults: '設定が見つかりません。',
-    secretSet: '保存済み - 入力すると置き換わります', secretEmpty: '未設定', on: 'オン', off: 'オフ', status: '状態',
-    pinned: 'ピン留め', pin: 'サイドバーにピン留め', unpin: 'ピン留めを解除', noPins: '☆ で設定をピン留めすると、ここに表示されます。',
-    exported: n => `${n} 件の設定をファイルに保存しました(MQTTとコンパニオンはこのテレビ専用のため含まれません)。`,
-    searchHint: '/ または Ctrl+K: 検索', theme: 'ライト/ダーク', guide: 'ガイド', guideShow: 'ガイドを表示',
-    connection: '接続', mqttBroker: 'MQTTブローカー', noBroker: 'ブローカーのアドレスなし', entities: n => `エンティティ ${n} 件`,
-    lastPublish: s => `${ago(s, 'ja')}に送信`, connectedFor: s => `${ago(s, 'ja', true)}接続中`, deviceId: 'デバイスID',
-    stateTopic: '状態', commandTopic: 'コマンド', devicesTitle: '接続済みデバイス', thisDevice: 'このデバイス', remove: '削除', justNow: 'たった今',
-    fromSkin: 'スキンに従う', designTitle: 'オリジナルスキン', designSave: '現在のデザインをスキンとして保存', designName: '名前',
-    designExport: 'エクスポート(.json)', designImport: 'インポート', designDelete: n => `スキン「${n}」を削除しますか?`, designFull: 'オリジナルスキンは最大10個までです。',
-    designBad: 'ShrugTVのデザインファイルではありません。', designNone: 'オリジナルスキンはまだありません。', designSaved: n => `「${n}」として保存しました。`, designImported: n => `「${n}」としてインポートしました。`,
-    deviceSeen: (seen, paired) => `最終利用 ${seen} · ペアリング ${paired}`, removeDevice: n => `${n}を削除しますか? 再びQRコードまたはPINが必要になります。`,
-    noDevices: '記憶されているデバイスはまだありません。', rememberOff: '「接続したデバイスを記憶」がオフです。アプリの起動のたびにコードが必要です。', nameTaken: '他のテレビが使用中の名前のため、コードを追加しました', noTls: 'TLSなし', reachable: '到達可能',
-    mqttStates: { connected: '接続済み', connecting: '接続中…', off: 'オフ', 'no broker address': 'ブローカーのアドレスなし' },
-    remoteMode: 'リモコンモード', modePad: 'タッチパッド', modeKeys: 'キー', padLabel: 'タッチパッド: スワイプで矢印、タップでOK',
-    padHint: 'スワイプ = 矢印キー\nタップ = OK · 2本指 = 戻る', replay: '⟲ リプレイ', audioOnly: '音声のみ',
-    recent: '最近見たもの', replyTo: n => `${n}に返信`, replyCancel: '返信をキャンセル', emotes: 'エモート',
-    noEmotes: 'このチャットではまだエモートが見つかっていません。誰かが使うとすぐここに表示されます。', quickAdd: 'クイックフレーズを追加',
-    quickNew: '新しいクイックフレーズ(60文字まで)', quickRemove: t => `「${t}」をクイックフレーズから削除しますか?`,
-    chatHint: 'メッセージをタップすると @名前 で返信できます。クイックフレーズを長押しすると削除できます。',
-    tabUpdate: 'バージョン', tabUpdateShort: '情報', verInstalled: 'インストール済み', verEdition: 'エディション', verEditionPublic: '公開版', verEditionPrivate: '非公開版',
-    verDevice: 'テレビ', verAndroid: 'Android', verLastCheck: '最終確認', verNever: 'まだありません', verCurrent: '最新バージョンです。',
-    verUnknown: 'まだ確認していません。', verUnsupported: 'このエディションはアプリからは更新されず、ここでは新バージョンの確認もできません。',
-    verAvailable: v => `バージョン ${v} が利用できます`, verCheck: '今すぐ確認', verChecking: '確認中 …', verInstall: 'アップデートをインストール',
-    verInstallConfirm: v => `バージョン ${v} をダウンロードして、テレビでインストールを開始しますか? テレビで確認が求められます。`,
-    verRelease: 'リリースページ', verInstallOff: 'アプリからのインストールはオフです。テレビの設定でオンにしてください: アプリ → アプリからアップデートをインストール。',
-    verAutoOff: '毎日の確認はオフです(設定 → 情報 → アップデートを確認)。「今すぐ確認」は使えます。',
-    verDownloading: p => `ダウンロード中 … ${p} %`, verVerifying: '確認しました。テレビでOKを押してインストールを承認してください。',
-    verErrors: { disabled: 'アプリからのインストールはオフです。', none: '新しいバージョンは見つかっていません。先に確認してください。', need_permission: 'テレビでShrugTVに「不明なアプリのインストール」を許可してから、もう一度お試しください。',
-      permission_unavailable: 'このテレビには「不明なアプリのインストール」の画面がありません。', no_file: 'このリリースにはインストールできるファイルがありません。', bad_checksum: 'チェックサムが一致しないため、何もインストールされませんでした。',
-      download_failed: 'ダウンロードに失敗しました。' },
-    verNotes: '新機能',
-    favAdd: 'お気に入りに追加', favRemove: 'お気に入りから削除', favFailed: '星を保存できませんでした。',
-    listsLabel: 'チャンネル切り替えのリスト', listFollowed: 'フォロー中', listSameGame: '同じカテゴリ', listSameGameLanguage: '同じカテゴリ(自分の言語)',
-    listHistory: '最近見たもの', listTopStreams: '人気の配信', listTopLanguage: '自分の言語の人気配信',
-    listEmpty: '今このリストには何もありません。', listNeedsPlaying: 'このリストには再生中の配信が必要です。再生中のチャンネルのカテゴリを表示します。',
-    homeTitle: 'ホーム画面に追加', homeHint: 'このページをアプリのアイコンとして開く:',
-    homeIos: 'iPhone: Safari → 共有 → ホーム画面に追加。', homeAndroid: 'Android: Chromeのメニュー ⋮ → ホーム画面に追加。'
-  },
-  ko: {
-    pairText: 'TV의 QR 코드를 스캔하거나 TV에 표시된 PIN을 입력하세요.', pinLabel: 'PIN', connect: '연결',
-    pinWrong: 'PIN이 틀렸거나 만료됐어요. TV에서 새 코드를 표시하세요.', expired: '코드가 만료됐어요. TV에서 새 코드를 표시하세요.',
-    offline: 'TV에 연결할 수 없어요. ShrugTV가 열려 있나요?', tabRemote: '리모컨', tabChat: '채팅', tabFind: '찾기', tabPlayer: '플레이어',
-    up: '위', down: '아래', left: '왼쪽', right: '오른쪽', back: '뒤로', more: '더보기', playPause: '재생/일시정지',
-    prev: '◀ 채널', live: '라이브', next: '채널 ▶', volume: '스트림 볼륨', message: '메시지', send: '보내기',
-    chatOff: '휴대폰에서 채팅 쓰기가 TV 설정에서 꺼져 있어요.', search: '검색', liveNow: '지금 라이브',
-    results: '결과', quality: '화질', chatLayout: '채팅 레이아웃', layoutSide: '영상 옆',
-    layoutOverlay: '영상 위', layoutTransparent: '투명', chatOn: '채팅 켜기', chatOffBtn: '채팅 끄기',
-    stats: '통계', close: '플레이어 닫기', openTwitch: 'Twitch에서 열기', nothing: '재생 중인 항목 없음',
-    viewers: n => `시청자 ${n.toLocaleString()}명`, since: m => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}시간째 방송 중`,
-    behind: s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} 지연`, removed: '삭제된 메시지', offlineCh: '오프라인',
-    tabSettings: '설정', tabRemoteShort: '리모컨', tabChatShort: '채팅', tabFindShort: '찾기', tabPlayerShort: '플레이어', tabSettingsShort: '설정',
-    searchChannels: '채널 이름', tabLog: '로그',
-    logOff: 'TV에서 브라우저 로그가 꺼져 있어요 (설정 → 휴대폰 및 브라우저 → 브라우저에서 로그 보기).',
-    logAbout: "이 TV의 ShrugTV 자체 로그를 실시간으로 보여 줘요. 토큰과 비밀번호는 항상 제거돼요. 줄을 클릭하면 자세히 볼 수 있어요.",
-    logSearch: '로그 검색', logSource: '출처', logAllSources: '모든 출처', logLevel: '수준',
-    logAll: '전체', logErrors: '오류', logWarnings: '경고', logInfo: '정보', logDebug: '디버그',
-    logPause: '일시정지', logResume: '계속', logCopy: '복사', logExport: '.txt로 저장', logPrivate: '개인 정보 숨기기',
-    logLatest: '최신으로 이동 ↓', logCopied: n => `${n}줄 복사됨`, logSaved: n => `${n}줄 저장됨`,
-    logShown: (n, total) => `${total}줄 중 ${n}줄`, logEmpty: '일치하는 줄이 없어요.', logPaused: '일시정지됨',
-    logTime: '시간', logTag: '출처', logThread: '프로세스/스레드', logMessage: '메시지', settingsOff: '브라우저에서 설정 변경이 TV에서 꺼져 있어요 (설정 → 휴대폰 및 브라우저).',
-    settingsSearch: '설정 검색', export: '파일로 저장', import: '파일에서 불러오기', saved: '저장됨', notSaved: '저장되지 않음: 허용되지 않는 값',
-    imported: (n, m) => `설정 ${n}개를 불러왔어요` + (m ? `, ${m}개는 건너뜀` : ''), importBad: 'ShrugTV 설정 파일이 아니에요.',
-    moveUp: '위로', run: '실행', done: '완료', tvOnly: 'TV에서만 가능', noScreen: '먼저 TV에서 ShrugTV를 여세요.', noResults: '설정을 찾을 수 없어요.',
-    secretSet: '저장됨 – 입력하면 교체', secretEmpty: '설정되지 않음', on: '켜짐', off: '꺼짐', status: '상태',
-    pinned: '고정됨', pin: '사이드바에 고정', unpin: '고정 해제', noPins: '☆로 설정을 고정하면 여기에서 찾을 수 있어요.',
-    exported: n => `설정 ${n}개를 파일에 저장했어요 (MQTT와 연동 정보는 이 TV에 속하므로 제외).`,
-    searchHint: '/ 또는 Ctrl+K: 검색', theme: '밝게 또는 어둡게', guide: '안내', guideShow: '안내 보기',
-    connection: '연결', mqttBroker: 'MQTT 브로커', noBroker: '브로커 주소 없음', entities: n => `엔티티 ${n}개`,
-    lastPublish: s => `${ago(s, 'ko')} 전송`, connectedFor: s => `${ago(s, 'ko', true)} 동안 연결됨`, deviceId: '기기 ID',
-    stateTopic: '상태', commandTopic: '명령', devicesTitle: '연결된 기기', thisDevice: '이 기기', remove: '삭제', justNow: '방금',
-    fromSkin: '스킨 기준', designTitle: '나만의 스킨', designSave: '현재 디자인을 스킨으로 저장', designName: '이름',
-    designExport: '내보내기 (.json)', designImport: '가져오기', designDelete: n => `스킨 ${n}을(를) 삭제할까요?`, designFull: '나만의 스킨은 최대 10개예요.',
-    designBad: 'ShrugTV 디자인 파일이 아니에요.', designNone: '나만의 스킨이 아직 없어요.', designSaved: n => `${n}(으)로 저장했어요.`, designImported: n => `${n}(으)로 가져왔어요.`,
-    deviceSeen: (seen, paired) => `마지막 사용 ${seen} · 연결 ${paired}`, removeDevice: n => `${n}을(를) 삭제할까요? 다시 QR 코드나 PIN이 필요해요.`,
-    noDevices: '기억된 기기가 아직 없어요.', rememberOff: '"연결된 기기 기억"이 꺼져 있어요: 앱을 시작할 때마다 기기에 코드가 필요해요.', nameTaken: '다른 TV가 사용 중인 이름이라 코드를 추가했어요', noTls: 'TLS 없음', reachable: '연결 가능',
-    mqttStates: { connected: '연결됨', connecting: '연결 중 …', off: '꺼짐', 'no broker address': '브로커 주소 없음' },
-    remoteMode: '리모컨 모드', modePad: '터치패드', modeKeys: '버튼', padLabel: '터치패드: 밀어서 방향키, 탭하면 확인',
-    padHint: '밀기 = 방향키\n탭 = 확인 · 두 손가락 = 뒤로', replay: '⟲ 다시보기', audioOnly: '오디오만',
-    recent: '최근 시청', replyTo: n => `${n}에게 답장`, replyCancel: '답장 취소', emotes: '이모티콘',
-    noEmotes: '이 채팅에서는 아직 이모티콘이 보이지 않았어요. 누군가 사용하면 바로 여기에 나타나요.', quickAdd: '빠른 문구 추가',
-    quickNew: '새 빠른 문구 (최대 60자)', quickRemove: t => `빠른 문구에서 "${t}"를 삭제할까요?`,
-    chatHint: '메시지를 탭하면 @이름으로 답장할 수 있어요. 빠른 문구를 길게 누르면 삭제돼요.',
-    tabUpdate: '버전', tabUpdateShort: '정보', verInstalled: '설치됨', verEdition: '에디션', verEditionPublic: '공개', verEditionPrivate: '비공개',
-    verDevice: 'TV', verAndroid: 'Android', verLastCheck: '마지막 확인', verNever: '아직 없음', verCurrent: '최신 버전이에요.',
-    verUnknown: '아직 확인하지 않았어요.', verUnsupported: '이 에디션은 앱에서 업데이트되지 않고, 여기서는 새 버전 확인도 없어요.',
-    verAvailable: v => `버전 ${v}을(를) 사용할 수 있어요`, verCheck: '지금 확인', verChecking: '확인하는 중 …', verInstall: '업데이트 설치',
-    verInstallConfirm: v => `버전 ${v}을(를) 내려받아 TV에서 설치를 시작할까요? TV에서 확인을 요청해요.`,
-    verRelease: '릴리스 페이지', verInstallOff: '앱에서 설치가 꺼져 있어요. TV 설정에서 켜 주세요: 앱 → 앱에서 업데이트 설치.',
-    verAutoOff: '매일 확인이 꺼져 있어요 (설정 → 정보 → 업데이트 확인). "지금 확인"은 그래도 작동해요.',
-    verDownloading: p => `내려받는 중 … ${p} %`, verVerifying: '확인했어요. TV에서 확인 버튼으로 설치를 승인해 주세요.',
-    verErrors: { disabled: '앱에서 설치가 꺼져 있어요.', none: '알려진 새 버전이 없어요. 먼저 확인해 주세요.', need_permission: 'TV에서 ShrugTV에 "출처를 알 수 없는 앱 설치"를 허용한 뒤 다시 시도해 주세요.',
-      permission_unavailable: '이 TV에는 "출처를 알 수 없는 앱 설치" 화면이 없어요.', no_file: '이 릴리스에는 설치할 수 있는 파일이 없어요.', bad_checksum: '체크섬이 일치하지 않아 아무것도 설치되지 않았어요.',
-      download_failed: '내려받기에 실패했어요.' },
-    verNotes: '새로운 기능',
-    favAdd: '즐겨찾기로 표시', favRemove: '즐겨찾기에서 삭제', favFailed: '별을 저장하지 못했어요.',
-    listsLabel: '채널 전환 목록', listFollowed: '팔로우 중', listSameGame: '같은 카테고리', listSameGameLanguage: '같은 카테고리, 내 언어',
-    listHistory: '최근 시청', listTopStreams: '인기 스트림', listTopLanguage: '내 언어 인기 스트림',
-    listEmpty: '지금은 이 목록에 아무것도 없어요.', listNeedsPlaying: '이 목록은 재생 중인 스트림이 필요해요. 재생 중인 채널의 카테고리를 보여줘요.',
-    homeTitle: '홈 화면에', homeHint: '이 페이지를 앱 아이콘으로 열어 보세요:',
-    homeIos: 'iPhone: Safari → 공유 → 홈 화면에 추가.', homeAndroid: 'Android: Chrome 메뉴 ⋮ → 홈 화면에 추가.'
-  },
-  zh: {
-    pairText: '请扫描电视上的二维码,或输入电视上显示的 PIN。', pinLabel: 'PIN', connect: '连接',
-    pinWrong: 'PIN 错误或已过期。请在电视上显示新的验证码。', expired: '此验证码已过期。请在电视上显示新的验证码。',
-    offline: '无法连接电视。ShrugTV 是否已打开?', tabRemote: '遥控', tabChat: '聊天', tabFind: '查找', tabPlayer: '播放器',
-    up: '上', down: '下', left: '左', right: '右', back: '返回', more: '更多', playPause: '播放/暂停',
-    prev: '◀ 频道', live: '直播', next: '频道 ▶', volume: '直播音量', message: '消息', send: '发送',
-    chatOff: '电视设置中已关闭用手机在聊天中发言。', search: '搜索', liveNow: '正在直播',
-    results: '结果', quality: '画质', chatLayout: '聊天布局', layoutSide: '视频旁边',
-    layoutOverlay: '覆盖在视频上', layoutTransparent: '透明', chatOn: '聊天开', chatOffBtn: '聊天关',
-    stats: '统计', close: '关闭播放器', openTwitch: '在 Twitch 打开', nothing: '没有正在播放的内容',
-    viewers: n => `${n.toLocaleString()} 位观众`, since: m => `已直播 ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} 小时`,
-    behind: s => `落后 ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`, removed: '消息已移除', offlineCh: '离线',
-    tabSettings: '设置', tabRemoteShort: '遥控', tabChatShort: '聊天', tabFindShort: '查找', tabPlayerShort: '播放器', tabSettingsShort: '设置',
-    searchChannels: '频道名称', tabLog: '日志',
-    logOff: '电视上已关闭浏览器中的日志(设置 → 手机和浏览器 → 浏览器中的日志)。',
-    logAbout: "这台电视上 ShrugTV 自己的日志,实时显示。令牌和密码一律会被移除。点击一行查看详情。",
-    logSearch: '搜索日志', logSource: '来源', logAllSources: '所有来源', logLevel: '级别',
-    logAll: '全部', logErrors: '错误', logWarnings: '警告', logInfo: '信息', logDebug: '调试',
-    logPause: '暂停', logResume: '继续', logCopy: '复制', logExport: '保存 .txt', logPrivate: '隐藏私密细节',
-    logLatest: '跳到最新 ↓', logCopied: n => `已复制 ${n} 行`, logSaved: n => `已保存 ${n} 行`,
-    logShown: (n, total) => `${n} / ${total} 行`, logEmpty: '没有匹配的行。', logPaused: '已暂停',
-    logTime: '时间', logTag: '来源', logThread: '进程/线程', logMessage: '消息', settingsOff: '电视上已关闭从浏览器更改设置(设置 → 手机和浏览器)。',
-    settingsSearch: '搜索设置', export: '保存到文件', import: '从文件加载', saved: '已保存', notSaved: '未保存:不允许该值',
-    imported: (n, m) => `已加载 ${n} 项设置` + (m ? `,跳过 ${m} 项` : ''), importBad: '这不是 ShrugTV 设置文件。',
-    moveUp: '上移', run: '运行', done: '完成', tvOnly: '仅限电视', noScreen: '请先在电视上打开 ShrugTV。', noResults: '未找到设置。',
-    secretSet: '已保存 – 输入可替换', secretEmpty: '未设置', on: '开', off: '关', status: '状态',
-    pinned: '已固定', pin: '固定到侧边栏', unpin: '取消固定', noPins: '用 ☆ 固定设置,即可在这里找到它们。',
-    exported: n => `已将 ${n} 项设置保存到文件(不含 MQTT 和手机连接,它们属于这台电视)。`,
-    searchHint: '/ 或 Ctrl+K:搜索', theme: '浅色或深色', guide: '指南', guideShow: '显示指南',
-    connection: '连接', mqttBroker: 'MQTT 代理', noBroker: '无代理地址', entities: n => `${n} 个实体`,
-    lastPublish: s => `${ago(s, 'zh')}发送`, connectedFor: s => `已连接 ${ago(s, 'zh', true)}`, deviceId: '设备 ID',
-    stateTopic: '状态', commandTopic: '命令', devicesTitle: '已连接设备', thisDevice: '这台设备', remove: '移除', justNow: '刚刚',
-    fromSkin: '来自主题', designTitle: '自定义主题', designSave: '将当前设计保存为主题', designName: '名称',
-    designExport: '导出 (.json)', designImport: '导入', designDelete: n => `删除主题 ${n}?`, designFull: '最多 10 个自定义主题。',
-    designBad: '这不是 ShrugTV 设计文件。', designNone: '还没有自定义主题。', designSaved: n => `已保存为 ${n}。`, designImported: n => `已导入为 ${n}。`,
-    deviceSeen: (seen, paired) => `上次使用 ${seen} · 配对于 ${paired}`, removeDevice: n => `移除 ${n}?之后需要重新使用二维码或 PIN。`,
-    noDevices: '尚未记住任何设备。', rememberOff: '“记住已连接的设备”已关闭:每次应用启动后设备都需要验证码。', nameTaken: '名称已被另一台电视使用,已加短码', noTls: '未使用 TLS', reachable: '可连接',
-    mqttStates: { connected: '已连接', connecting: '连接中 …', off: '关', 'no broker address': '无代理地址' },
-    remoteMode: '遥控模式', modePad: '触控板', modeKeys: '按键', padLabel: '触控板:滑动为方向键,轻点为确定',
-    padHint: '滑动 = 方向键\n轻点 = 确定 · 双指 = 返回', replay: '⟲ 回放', audioOnly: '仅音频',
-    recent: '最近观看', replyTo: n => `回复 ${n}`, replyCancel: '取消回复', emotes: '表情',
-    noEmotes: '这个聊天里还没有出现过表情。有人使用后会立即显示在这里。', quickAdd: '添加快捷短语',
-    quickNew: '新快捷短语(最多 60 个字符)', quickRemove: t => `从快捷短语中移除“${t}”?`,
-    chatHint: '轻点消息即可用 @名称 回复。长按快捷短语可将其移除。',
-    tabUpdate: '版本', tabUpdateShort: '信息', verInstalled: '已安装', verEdition: '版本类型', verEditionPublic: '公开版', verEditionPrivate: '私有版',
-    verDevice: '电视', verAndroid: 'Android', verLastCheck: '上次检查', verNever: '尚未检查', verCurrent: '已是最新版本。',
-    verUnknown: '尚未检查。', verUnsupported: '此版本类型不能通过应用更新,这里也没有新版本检查。',
-    verAvailable: v => `有可用的新版本 ${v}`, verCheck: '立即检查', verChecking: '正在检查 …', verInstall: '安装更新',
-    verInstallConfirm: v => `下载版本 ${v} 并在电视上开始安装?电视会要求你确认。`,
-    verRelease: '发布页面', verInstallOff: '已关闭通过应用安装。请在电视设置中开启:应用 → 通过应用安装更新。',
-    verAutoOff: '每日检查已关闭(设置 → 关于 → 检查更新);“立即检查”仍可使用。',
-    verDownloading: p => `正在下载 … ${p} %`, verVerifying: '已校验。请在电视上按确定键确认安装。',
-    verErrors: { disabled: '已关闭通过应用安装。', none: '没有已知的新版本。请先检查。', need_permission: '请在电视上允许 ShrugTV“安装未知应用”,然后重试。',
-      permission_unavailable: '这台电视没有“安装未知应用”的界面。', no_file: '该版本没有可安装的文件。', bad_checksum: '校验值不匹配,未安装任何内容。',
-      download_failed: '下载失败。' },
-    verNotes: '新增内容',
-    favAdd: '标为收藏', favRemove: '取消收藏', favFailed: '无法保存星标。',
-    listsLabel: '换台列表', listFollowed: '已关注', listSameGame: '相同分类', listSameGameLanguage: '相同分类,我的语言',
-    listHistory: '最近观看', listTopStreams: '热门直播', listTopLanguage: '我的语言中的热门',
-    listEmpty: '此列表目前没有内容。', listNeedsPlaying: '此列表需要有正在播放的直播:它显示当前播放频道的分类。',
-    homeTitle: '添加到主屏幕', homeHint: '将此页面作为应用图标打开:',
-    homeIos: 'iPhone:Safari → 分享 → 添加到主屏幕。', homeAndroid: 'Android:Chrome 菜单 ⋮ → 添加到主屏幕。'
-  },
-  pl: {
-    pairText: 'Zeskanuj kod QR na telewizorze lub wpisz wyświetlony tam PIN.', pinLabel: 'PIN', connect: 'Połącz',
-    pinWrong: 'PIN jest błędny lub wygasł. Pokaż nowy kod na telewizorze.', expired: 'Ten kod wygasł. Pokaż nowy na telewizorze.',
-    offline: 'Telewizor jest niedostępny. Czy ShrugTV jest otwarte?', tabRemote: 'Pilot', tabChat: 'Czat', tabFind: 'Szukaj', tabPlayer: 'Odtwarzacz',
-    up: 'Góra', down: 'Dół', left: 'Lewo', right: 'Prawo', back: 'Wstecz', more: 'Więcej', playPause: 'Odtwarzaj/Pauza',
-    prev: '◀ Kanał', live: 'Na żywo', next: 'Kanał ▶', volume: 'Głośność transmisji', message: 'Wiadomość', send: 'Wyślij',
-    chatOff: 'Pisanie na czacie z telefonu jest wyłączone w ustawieniach telewizora.', search: 'Szukaj', liveNow: 'Teraz na żywo',
-    results: 'Wyniki', quality: 'Jakość', chatLayout: 'Układ czatu', layoutSide: 'Obok wideo',
-    layoutOverlay: 'Nad wideo', layoutTransparent: 'Przezroczysty', chatOn: 'Czat wł.', chatOffBtn: 'Czat wył.',
-    stats: 'Statystyki', close: 'Zamknij odtwarzacz', openTwitch: 'Otwórz na Twitchu', nothing: 'Nic nie jest odtwarzane',
-    viewers: n => `${n.toLocaleString()} widzów`, since: m => `na żywo od ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} h`,
-    behind: s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} za transmisją`, removed: 'wiadomość usunięta', offlineCh: 'offline',
-    tabSettings: 'Ustawienia', tabRemoteShort: 'Pilot', tabChatShort: 'Czat', tabFindShort: 'Szukaj', tabPlayerShort: 'Odtw.', tabSettingsShort: 'Ustaw.',
-    searchChannels: 'Nazwa kanału', tabLog: 'Dziennik',
-    logOff: 'Dziennik w przeglądarce jest wyłączony na telewizorze (Ustawienia → Telefon i przeglądarka → Dziennik w przeglądarce).',
-    logAbout: "Własny dziennik ShrugTV na tym telewizorze, na żywo. Tokeny i hasła są zawsze usuwane. Kliknij linię, aby zobaczyć szczegóły.",
-    logSearch: 'Przeszukaj dziennik', logSource: 'Źródło', logAllSources: 'Wszystkie źródła', logLevel: 'Poziom',
-    logAll: 'Wszystkie', logErrors: 'Błędy', logWarnings: 'Ostrzeżenia', logInfo: 'Info', logDebug: 'Debug',
-    logPause: 'Pauza', logResume: 'Wznów', logCopy: 'Kopiuj', logExport: 'Zapisz .txt', logPrivate: 'Ukryj dane prywatne',
-    logLatest: 'Przejdź do najnowszych ↓', logCopied: n => `Skopiowano linii: ${n}`, logSaved: n => `Zapisano linii: ${n}`,
-    logShown: (n, total) => `${n} z ${total} linii`, logEmpty: 'Żadna linia nie pasuje.', logPaused: 'wstrzymano',
-    logTime: 'Czas', logTag: 'Źródło', logThread: 'Proces/wątek', logMessage: 'Wiadomość', settingsOff: 'Zmiana ustawień z przeglądarki jest wyłączona na telewizorze (Ustawienia → Telefon i przeglądarka).',
-    settingsSearch: 'Szukaj w ustawieniach', export: 'Zapisz do pliku', import: 'Wczytaj z pliku', saved: 'Zapisano', notSaved: 'Nie zapisano: niedozwolona wartość',
-    imported: (n, m) => `Wczytano ustawień: ${n}` + (m ? `, pominięto: ${m}` : ''), importBad: 'To nie jest plik ustawień ShrugTV.',
-    moveUp: 'W górę', run: 'Uruchom', done: 'Gotowe', tvOnly: 'Tylko na telewizorze', noScreen: 'Najpierw otwórz ShrugTV na telewizorze.', noResults: 'Nie znaleziono ustawień.',
-    secretSet: 'zapisano – wpisz, aby zastąpić', secretEmpty: 'nie ustawiono', on: 'Wł.', off: 'Wył.', status: 'Status',
-    pinned: 'Przypięte', pin: 'Przypnij do paska bocznego', unpin: 'Odepnij', noPins: 'Przypnij ustawienia przez ☆, aby znaleźć je tutaj.',
-    exported: n => `Zapisano ustawień do pliku: ${n} (bez MQTT i aplikacji towarzyszącej, bo należą do tego telewizora).`,
-    searchHint: '/ lub Ctrl+K: szukaj', theme: 'Jasny lub ciemny', guide: 'Przewodnik', guideShow: 'Pokaż przewodnik',
-    connection: 'Połączenie', mqttBroker: 'Broker MQTT', noBroker: 'brak adresu brokera', entities: n => `encji: ${n}`,
-    lastPublish: s => `wysłano ${ago(s, 'pl')}`, connectedFor: s => `połączono od ${ago(s, 'pl', true)}`, deviceId: 'ID urządzenia',
-    stateTopic: 'Stan', commandTopic: 'Polecenia', devicesTitle: 'Połączone urządzenia', thisDevice: 'to urządzenie', remove: 'Usuń', justNow: 'przed chwilą',
-    fromSkin: 'Z motywu', designTitle: 'Własne motywy', designSave: 'Zapisz bieżący wygląd jako motyw', designName: 'Nazwa',
-    designExport: 'Eksportuj (.json)', designImport: 'Importuj', designDelete: n => `Usunąć motyw ${n}?`, designFull: 'Najwyżej 10 własnych motywów.',
-    designBad: 'To nie jest plik wyglądu ShrugTV.', designNone: 'Brak własnych motywów.', designSaved: n => `Zapisano jako ${n}.`, designImported: n => `Zaimportowano jako ${n}.`,
-    deviceSeen: (seen, paired) => `ostatnio użyte ${seen} · sparowane ${paired}`, removeDevice: n => `Usunąć ${n}? Będzie potrzebować kodu QR lub PIN-u ponownie.`,
-    noDevices: 'Nie zapamiętano jeszcze żadnych urządzeń.', rememberOff: '„Zapamiętuj połączone urządzenia” jest wyłączone: urządzenia potrzebują kodu po każdym uruchomieniu aplikacji.', nameTaken: 'nazwa używana przez inny telewizor, dodano kod', noTls: 'bez TLS', reachable: 'dostępny',
-    mqttStates: { connected: 'połączono', connecting: 'łączenie …', off: 'wyłączone', 'no broker address': 'brak adresu brokera' },
-    remoteMode: 'Tryb pilota', modePad: 'Panel dotykowy', modeKeys: 'Przyciski', padLabel: 'Panel dotykowy: przesuń palcem dla strzałek, dotknij dla OK',
-    padHint: 'Przesunięcie = strzałki\nDotknięcie = OK · Dwa palce = Wstecz', replay: '⟲ Powtórka', audioOnly: 'Tylko dźwięk',
-    recent: 'Ostatnio oglądane', replyTo: n => `Odpowiedz do ${n}`, replyCancel: 'Anuluj odpowiedź', emotes: 'Emotki',
-    noEmotes: 'Na tym czacie nie widziano jeszcze żadnych emotek. Pojawią się tutaj, gdy ktoś jakiejś użyje.', quickAdd: 'Dodaj szybką frazę',
-    quickNew: 'Nowa szybka fraza (maks. 60 znaków)', quickRemove: t => `Usunąć "${t}" z szybkich fraz?`,
-    chatHint: 'Dotknij wiadomości, aby odpowiedzieć przez @nazwa. Przytrzymaj szybką frazę, aby ją usunąć.',
-    tabUpdate: 'Wersja', tabUpdateShort: 'Info', verInstalled: 'Zainstalowana', verEdition: 'Edycja', verEditionPublic: 'Publiczna', verEditionPrivate: 'Prywatna',
-    verDevice: 'Telewizor', verAndroid: 'Android', verLastCheck: 'Ostatnie sprawdzenie', verNever: 'jeszcze nie', verCurrent: 'Masz najnowszą wersję.',
-    verUnknown: 'Jeszcze nie sprawdzono.', verUnsupported: 'Ta edycja nie jest aktualizowana z aplikacji, a sprawdzania nowych wersji tu nie ma.',
-    verAvailable: v => `Dostępna jest wersja ${v}`, verCheck: 'Sprawdź teraz', verChecking: 'Sprawdzanie …', verInstall: 'Zainstaluj aktualizację',
-    verInstallConfirm: v => `Pobrać wersję ${v} i rozpocząć instalację na telewizorze? Telewizor poprosi o potwierdzenie.`,
-    verRelease: 'Strona wydania', verInstallOff: 'Instalowanie z aplikacji jest wyłączone. Włącz je w ustawieniach telewizora: Aplikacja → Instaluj aktualizacje w aplikacji.',
-    verAutoOff: 'Codzienne sprawdzanie jest wyłączone (Ustawienia → O aplikacji → Sprawdzaj aktualizacje); "Sprawdź teraz" i tak działa.',
-    verDownloading: p => `Pobieranie … ${p} %`, verVerifying: 'Sprawdzono. Potwierdź instalację na telewizorze przyciskiem OK.',
-    verErrors: { disabled: 'Instalowanie z aplikacji jest wyłączone.', none: 'Brak znanej nowszej wersji. Najpierw sprawdź.', need_permission: 'Zezwól ShrugTV na "Instalowanie nieznanych aplikacji" na telewizorze i spróbuj ponownie.',
-      permission_unavailable: 'Ten telewizor nie ma ekranu "Instalowanie nieznanych aplikacji".', no_file: 'Wydanie nie ma pliku do zainstalowania.', bad_checksum: 'Suma kontrolna się nie zgadza, nic nie zainstalowano.',
-      download_failed: 'Pobieranie nie powiodło się.' },
-    verNotes: 'Co nowego',
-    favAdd: 'Oznacz jako ulubiony', favRemove: 'Usuń z ulubionych', favFailed: 'Nie udało się zapisać gwiazdki.',
-    listsLabel: 'Listy przełącznika kanałów', listFollowed: 'Obserwowane', listSameGame: 'Ta sama kategoria', listSameGameLanguage: 'Ta sama kategoria, mój język',
-    listHistory: 'Ostatnio oglądane', listTopStreams: 'Najpopularniejsze transmisje', listTopLanguage: 'Najpopularniejsze w moim języku',
-    listEmpty: 'Na tej liście na razie nic nie ma.', listNeedsPlaying: 'Ta lista wymaga trwającej transmisji: pokazuje kategorię odtwarzanego kanału.',
-    homeTitle: 'Na ekranie głównym', homeHint: 'Otwórz tę stronę jako ikonę aplikacji:',
-    homeIos: 'iPhone: Safari → Udostępnij → Dodaj do ekranu początkowego.', homeAndroid: 'Android: menu Chrome ⋮ → Dodaj do ekranu głównego.'
-  },
-};
+const T = window.T || { en: {} };
 // "55 s ago" / "vor 55 s"; plain duration with bare = true
 const AGO = {
   en: d => `${d} ago`, de: d => `vor ${d}`, es: d => `hace ${d}`, fr: d => `il y a ${d}`, pt: d => `há ${d}`, it: d => `${d} fa`,
@@ -790,14 +33,67 @@ function applyTexts() {
   for (const el of document.querySelectorAll('[data-i18n-title]')) el.title = L[el.dataset.i18nTitle];
 }
 
+// ---------------------------------------------------------------- shared helpers
+// Pure functions without the DOM, so a plain Node script can test them.
+
+/** Keeps only the newest of overlapping requests: begin() aborts the one before, stale() tells an old answer. */
+function newestOnly() {
+  let n = 0;
+  let ctl = null;
+  return {
+    begin() {
+      if (ctl) ctl.abort();
+      ctl = typeof AbortController === 'function' ? new AbortController() : null;
+      const id = ++n;
+      return { signal: ctl ? ctl.signal : undefined, stale: () => id !== n };
+    },
+    cancel() {
+      if (ctl) ctl.abort();
+      ctl = null;
+      n++;
+    }
+  };
+}
+
+/** Calls fn once, ms after the last call. */
+function debounce(fn, ms) {
+  let t = 0;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  };
+}
+// ---------------------------------------------------------------- end of shared helpers
+
+/** Every answer of the TV; 401 always leads back to the pairing page, the caller only sees the error. */
 async function api(path, options) {
   const r = await fetch(path, Object.assign({ credentials: 'same-origin' }, options || {}));
-  if (r.status === 401) throw new Error('unpaired');
+  if (r.status === 401) { showPair(''); throw new Error('unpaired'); }
   return r.json();
 }
 
+/**
+ * Loading, empty and error in place of a list, like the TV's StatusNote (docs/ui_rules.md): kind is 'loading',
+ * 'empty' (with the page's own reason), 'error' (with "Try again", which calls retry) or null (hide).
+ */
+function setStatus(el, kind, text, retry) {
+  el.hidden = !kind;
+  el.className = 'status-note' + (kind === 'error' ? ' error' : '');
+  if (!kind) { el.replaceChildren(); return; }
+  const p = document.createElement('p');
+  p.textContent = kind === 'loading' ? L.stLoading : kind === 'error' ? L.stError : text;
+  el.replaceChildren(p);
+  if (kind === 'error' && retry) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = L.stRetry;
+    b.addEventListener('click', retry);
+    el.append(b);
+  }
+}
+
 function showPair(message) {
-  $('app').hidden = true;
+  $('app').hidden = true; // also ends the log and update polling, which check it
   $('pair').hidden = false;
   $('pair-error').textContent = message || '';
 }
@@ -821,33 +117,70 @@ async function start() {
 
 $('pin-form').addEventListener('submit', async ev => {
   ev.preventDefault();
-  const r = await fetch('/api/pin', { method: 'POST', body: JSON.stringify({ pin: $('pin').value }), credentials: 'same-origin' });
-  if (r.ok) start(); else showPair(L.pinWrong);
+  let r;
+  try {
+    r = await fetch('/api/pin', { method: 'POST', body: JSON.stringify({ pin: $('pin').value }), credentials: 'same-origin' });
+  } catch (e) {
+    showPair(L.offline); // TV not reachable, the PIN may well be right
+    return;
+  }
+  if (r.ok) start(); else showPair(r.status === 401 ? L.pinWrong : L.offline);
 });
 
+let reconnectTimer = 0;
+let everConnected = false;
+// The server sends a sign of life every 20 s; after 50 s of silence the connection is dead without the browser noticing
+let lastHeard = Date.now();
+setInterval(() => {
+  if (ws && ws.readyState === WebSocket.OPEN && Date.now() - lastHeard > 50000) ws.close();
+}, 5000);
+
+// One socket at a time; a late close of an old one must not start another
 function connect() {
-  ws = new WebSocket(`ws://${location.host}/ws`);
-  ws.onopen = () => {
+  if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) return;
+  clearTimeout(reconnectTimer);
+  const sock = new WebSocket(`ws://${location.host}/ws`);
+  ws = sock;
+  sock.onopen = () => {
     $('offline').hidden = true;
     reconnectDelay = 1000;
-    if (chatOn) send({ t: 'chat', on: true });
+    lastHeard = Date.now();
+    if (chatOn) { $('chat').replaceChildren(); send({ t: 'chat', on: true }); }
+    // After a break the settings may have changed on the TV meanwhile
+    if (everConnected && currentTab === 'settings') loadSettings();
+    everConnected = true;
   };
-  ws.onmessage = ev => {
+  sock.onmessage = ev => {
+    lastHeard = Date.now();
     const msg = JSON.parse(ev.data);
     if (msg.t === 'state') render(msg.d);
     else if (msg.t === 'chat') addChat(msg.d.lines);
     else if (msg.t === 'settings') { settingsChanged(msg.d.key); if (/^pref_(theme_|skin$|custom_skins$|companion_skin$)/.test(msg.d.key || '')) loadSkin(); }
   };
-  ws.onclose = ev => {
+  sock.onclose = ev => {
+    if (sock !== ws) return;
     $('offline').hidden = false;
     if (ev.code === 1008) { showPair(''); return; } // session no longer valid
-    setTimeout(connect, reconnectDelay);
+    // With jitter, so phones that lost the Wi-Fi together do not knock together
+    reconnectTimer = setTimeout(connect, reconnectDelay * (0.8 + Math.random() * 0.4));
     reconnectDelay = Math.min(reconnectDelay * 2, 15000);
   };
 }
 
+// Back in the network or in front again: do not wait for the next retry
+function reconnectNow() {
+  if ($('app').hidden || (ws && ws.readyState !== WebSocket.CLOSED)) return;
+  reconnectDelay = 1000;
+  connect();
+}
+window.addEventListener('online', reconnectNow);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) reconnectNow(); });
+
+// True if it was sent. Otherwise the banner says why nothing happens, and callers keep what the user typed.
 function send(obj) {
-  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+  if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify(obj)); return true; }
+  $('offline').hidden = false;
+  return false;
 }
 const key = k => send({ t: 'key', k });
 const cmd = (name, payload) => send({ t: 'cmd', name, payload: payload == null ? '' : String(payload) });
@@ -882,6 +215,7 @@ function render(s) {
   $('chat-form').hidden = !s.chat_allowed;
   $('chat-off').hidden = !!s.chat_allowed;
   $('btn-replay').hidden = s.kind !== 'live';
+  renderSeek(s);
   const ao = $('btn-audio');
   ao.hidden = !active;
   ao.setAttribute('aria-pressed', String(!!s.audio_only));
@@ -900,6 +234,7 @@ function addChat(lines) {
       if (old) markDeleted(old);
       continue;
     }
+    if (l.id != null && box.querySelector(`[data-id="${l.id}"]`)) continue; // the backlog arrives again after a tab change or reconnect
     const div = document.createElement('div');
     div.className = 'msg' + (l.no ? ' notice' : '') + (l.hl ? ' hl' : '');
     div.dataset.id = l.id;
@@ -963,15 +298,18 @@ $('chat-form').addEventListener('submit', ev => {
   ev.preventDefault();
   let text = $('chat-input').value.trim();
   if (text && replyTo && !/^@/.test(text)) text = `@${replyTo} ${text}`;
-  if (text) cmd('chat_message', text.slice(0, 500));
+  if (!text) return;
+  if (!cmd('chat_message', text.slice(0, 500))) return; // not connected: keep the text
   $('chat-input').value = '';
   setReply(null);
   showEmotes(false);
 });
 
 // ---------------------------------------------------------------- find
-function renderCards(items, title) {
+/** Channel cards; a search adds its categories below them. */
+function renderCards(items, title, categories) {
   $('find-title').textContent = title;
+  const cats = (categories || []).filter(c => c.id && /^[0-9]{1,12}$/.test(c.id));
   $('cards').replaceChildren(...items.map(it => {
     const li = document.createElement('li');
     const b = document.createElement('button');
@@ -999,7 +337,84 @@ function renderCards(items, title) {
     if (it.id && /^[0-9]{1,12}$/.test(it.id)) {
       li.classList.add('has-star');
       li.append(starButton(it.id, !!it.favorite));
+      if (it.login) {
+        // Recordings and clips of the channel
+        li.classList.add('has-more');
+        const m = document.createElement('button');
+        m.type = 'button';
+        m.className = 'more-btn';
+        m.textContent = '⋯';
+        m.title = L.chMore;
+        m.setAttribute('aria-label', `${L.chMore}: ${it.name || it.login}`);
+        m.addEventListener('click', ev => { ev.stopPropagation(); openChannel({ id: it.id, login: it.login, name: it.name || it.login }, 'videos'); });
+        li.append(m);
+      }
     }
+    return li;
+  }), ...(cats.length ? [sectionRow(L.catSection)] : []), ...cats.map(c => {
+    const li = document.createElement('li');
+    const b = document.createElement('button');
+    const img = document.createElement('img');
+    img.alt = '';
+    img.className = 'box';
+    if (c.image) img.src = c.image;
+    const t = document.createElement('div');
+    t.className = 't';
+    const name = document.createElement('div');
+    name.textContent = c.name || '';
+    name.style.fontWeight = '700';
+    t.append(name);
+    b.append(img, t);
+    b.addEventListener('click', () => openCategory({ id: c.id, name: c.name || '' }));
+    li.append(b);
+    return li;
+  }));
+}
+
+function sectionRow(text) {
+  const li = document.createElement('li');
+  li.className = 'sep';
+  li.textContent = text;
+  return li;
+}
+
+/** "1:02:03" or "4:05" for a length in seconds. */
+function fmtLength(s) {
+  s = Math.max(0, Math.round(Number(s) || 0));
+  const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = String(s % 60).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
+}
+
+function fmtDay(iso) {
+  const d = iso ? new Date(iso) : null;
+  return d && !isNaN(d) ? d.toLocaleDateString(LANG) : '';
+}
+
+/** Recordings or clips of a channel; one tap starts it on the TV with the "watch" command. */
+function renderMedia(items, title, what) {
+  $('find-title').textContent = title;
+  $('cards').replaceChildren(...items.map(it => {
+    const li = document.createElement('li');
+    const b = document.createElement('button');
+    const img = document.createElement('img');
+    img.alt = '';
+    img.className = 'thumb';
+    if (it.image) img.src = it.image;
+    const t = document.createElement('div');
+    t.className = 't';
+    const name = document.createElement('div');
+    name.textContent = it.title || it.name || '';
+    name.style.fontWeight = '700';
+    const meta = document.createElement('div');
+    meta.className = 'muted';
+    meta.textContent = [fmtDay(it.date), it.duration_s ? fmtLength(it.duration_s) : '', it.views ? L.views(it.views) : ''].filter(Boolean).join(' · ');
+    t.append(name, meta);
+    b.append(img, t);
+    b.addEventListener('click', () => {
+      const payload = what === 'videos' ? { vod_id: Number(it.vod_id) } : { clip: it.clip };
+      if (cmd('watch', JSON.stringify(payload))) buzz(10);
+    });
+    li.append(b);
     return li;
   }));
 }
@@ -1010,7 +425,30 @@ const LIST_KEYS = { followed: 'listFollowed', same_game: 'listSameGame', same_ga
 let currentList = 'followed';
 let listEnabled = Object.keys(LIST_KEYS);
 
+// A category or a channel opened from the cards: null, {kind: 'category', id, name} or
+// {kind: 'channel', id, login, name, what: 'videos'|'clips'}. "Back" returns to the list or search it came from.
+let findView = null;
+
+function chip(text, pressed, onClick) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = text;
+  if (pressed !== null) b.setAttribute('aria-pressed', String(pressed));
+  b.addEventListener('click', onClick);
+  return b;
+}
+
 function renderListChips() {
+  if (findView) {
+    const v = findView;
+    const chips = [chip(L.findBack, null, leaveView)];
+    if (v.kind === 'channel') {
+      chips.push(chip(L.chVideos, v.what === 'videos', () => openChannel(v, 'videos')),
+        chip(L.chClips, v.what === 'clips', () => openChannel(v, 'clips')));
+    }
+    $('lists').replaceChildren(...chips);
+    return;
+  }
   $('lists').replaceChildren(...listEnabled.filter(n => LIST_KEYS[n]).map(n => {
     const b = document.createElement('button');
     b.type = 'button';
@@ -1021,30 +459,164 @@ function renderListChips() {
   }));
 }
 
-async function loadLive() {
-  renderListChips();
-  try {
-    const r = await api('/api/lists?name=' + encodeURIComponent(currentList));
-    if (Array.isArray(r.enabled)) { listEnabled = r.enabled; if (!listEnabled.includes(currentList)) currentList = listEnabled[0] || 'followed'; renderListChips(); }
-    renderCards(r.items || [], L[LIST_KEYS[currentList]] || L.liveNow);
-    let empty = $('cards-empty');
-    if (!empty) { empty = document.createElement('p'); empty.id = 'cards-empty'; empty.className = 'muted'; $('cards').after(empty); }
-    const needsPlaying = (currentList === 'same_game' || currentList === 'same_game_language') && !r.playing;
-    empty.textContent = (r.items || []).length ? '' : (needsPlaying ? L.listNeedsPlaying : L.listEmpty);
-  } catch (e) { /* not paired or offline */ }
+// One request at a time for the cards: a newer chip, search or list replaces the one still on its way
+const findReq = newestOnly();
+let cardsShown = null; // what the cards show: 'list:<name>' or 'search:<text>'
+
+/** Shows what is asked for: another list or search empties the cards at once, the same one keeps them while loading. */
+function cardsFor(what, title) {
+  if (cardsShown !== what) { renderCards([], title); cardsShown = what; }
+  $('find-title').textContent = title;
+  if (!$('cards').childElementCount) setStatus($('cards-status'), 'loading');
 }
 
-$('search-form').addEventListener('submit', async ev => {
+function openCategory(c) {
+  findView = { kind: 'category', id: c.id, name: c.name };
+  loadView();
+}
+
+function openChannel(ch, what) {
+  findView = { kind: 'channel', id: ch.id, login: ch.login, name: ch.name, what };
+  loadView();
+}
+
+function leaveView() {
+  findView = null;
+  const q = $('search').value.trim();
+  if (q) runSearch(q); else loadLive();
+}
+
+/** The find tab as it was left: a category or channel stays open when the tab is shown again. */
+function refreshFind() {
+  if (findView) loadView(); else loadLive();
+}
+
+async function loadView() {
+  const v = findView;
+  if (!v) { loadLive(); return; }
+  renderListChips();
+  const isCat = v.kind === 'category';
+  const title = isCat ? (v.name || L.catSection) : `${v.name} · ${v.what === 'videos' ? L.chVideos : L.chClips}`;
+  const req = findReq.begin();
+  cardsFor(isCat ? 'cat:' + v.id : `ch:${v.id}:${v.what}`, title);
+  const path = (isCat ? '/api/category' : `/api/channel/${v.what}`) + '?id=' + encodeURIComponent(v.id);
+  let r;
+  try {
+    r = await api(path, { signal: req.signal });
+    if (!r || !Array.isArray(r.items)) throw new Error('no list'); // an error answer is no empty list
+  } catch (e) {
+    if (!req.stale() && e.message !== 'unpaired') { cardsShown = null; renderCards([], title); setStatus($('cards-status'), 'error', null, loadView); }
+    return;
+  }
+  if (req.stale() || findView !== v) return;
+  if (isCat) renderCards(r.items, title); else renderMedia(r.items, title, v.what);
+  setStatus($('cards-status'), r.items.length ? null : 'empty', isCat ? L.catEmpty : v.what === 'videos' ? L.vodsEmpty : L.clipsEmpty);
+}
+
+async function loadLive() {
+  findView = null;
+  renderListChips();
+  const list = currentList;
+  const title = L[LIST_KEYS[list]] || L.liveNow;
+  const req = findReq.begin();
+  cardsFor('list:' + list, title);
+  let r;
+  try {
+    r = await api('/api/lists?name=' + encodeURIComponent(list), { signal: req.signal });
+    if (!r || !Array.isArray(r.items)) throw new Error('no list'); // an error answer is no empty list
+  } catch (e) {
+    if (!req.stale() && e.message !== 'unpaired') { cardsShown = null; renderCards([], title); setStatus($('cards-status'), 'error', null, loadLive); }
+    return;
+  }
+  if (req.stale()) return;
+  if (Array.isArray(r.enabled)) {
+    listEnabled = r.enabled;
+    // The list was switched off on the TV: show the first one still on instead
+    if (!listEnabled.includes(list)) { currentList = listEnabled[0] || 'followed'; if (currentList !== list) { loadLive(); return; } }
+    renderListChips();
+  }
+  const items = r.items;
+  renderCards(items, title);
+  const needsPlaying = (list === 'same_game' || list === 'same_game_language') && !r.playing;
+  setStatus($('cards-status'), items.length ? null : 'empty', needsPlaying ? L.listNeedsPlaying : L.listEmpty);
+}
+
+async function runSearch(q) {
+  findView = null;
+  const req = findReq.begin();
+  renderListChips();
+  cardsFor('search:' + q, L.results);
+  let r;
+  try {
+    r = await api('/api/search?q=' + encodeURIComponent(q), { signal: req.signal });
+    if (!r || !Array.isArray(r.items)) throw new Error('no list'); // an error answer is no empty list
+  } catch (e) {
+    if (!req.stale() && e.message !== 'unpaired') { cardsShown = null; renderCards([], L.results); setStatus($('cards-status'), 'error', null, () => runSearch(q)); }
+    return;
+  }
+  if (req.stale()) return;
+  const items = r.items;
+  const cats = Array.isArray(r.categories) ? r.categories : [];
+  renderCards(items, L.results, cats);
+  setStatus($('cards-status'), items.length || cats.length ? null : 'empty', L.searchEmpty);
+}
+
+$('search-form').addEventListener('submit', ev => {
   ev.preventDefault();
   const q = $('search').value.trim();
-  if (!q) { loadLive(); return; }
-  try {
-    renderCards((await api('/api/search?q=' + encodeURIComponent(q))).items, L.results);
-    renderListChips();
-    const e = $('cards-empty');
-    if (e) e.textContent = '';
-  } catch (e) { /* ignore */ }
+  if (q) runSearch(q); else loadLive();
 });
+
+// ---------------------------------------------------------------- statistics, short
+const statsReq = newestOnly();
+
+/** "1:05 h" for seconds watched. */
+function fmtWatched(s) {
+  const m = Math.round((Number(s) || 0) / 60);
+  return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} h`;
+}
+
+function statsTile(label, p) {
+  const d = document.createElement('div');
+  d.className = 'stats-tile';
+  const head = document.createElement('div');
+  head.className = 'muted';
+  head.textContent = label;
+  const big = document.createElement('div');
+  big.className = 'big';
+  big.textContent = fmtWatched(p.total_s);
+  d.append(head, big);
+  for (const [k, v] of [[L.statsTopChannel, p.channel], [L.statsTopCategory, p.category]]) {
+    if (!v) continue;
+    const line = document.createElement('div');
+    line.className = 'muted line';
+    line.textContent = `${k}: ${v}`;
+    d.append(line);
+  }
+  return d;
+}
+
+/** Today and the last 7 days from the TV's statistics, below the version. */
+async function loadStats() {
+  const req = statsReq.begin();
+  if (!$('stats-tiles').childElementCount) setStatus($('stats-status'), 'loading');
+  let r;
+  try {
+    r = await api('/api/stats', { signal: req.signal });
+    if (!r || !r.today || !r.week) throw new Error('no stats'); // an error answer is no empty statistics
+  } catch (e) {
+    if (!req.stale() && e.message !== 'unpaired') { $('stats-tiles').replaceChildren(); setStatus($('stats-status'), 'error', null, loadStats); }
+    return;
+  }
+  if (req.stale()) return;
+  if (!r.week.sessions) {
+    $('stats-tiles').replaceChildren();
+    setStatus($('stats-status'), 'empty', L.statsEmpty);
+    return;
+  }
+  $('stats-tiles').replaceChildren(statsTile(L.statsToday, r.today), statsTile(L.statsWeek, r.week));
+  setStatus($('stats-status'), null);
+}
 
 // ---------------------------------------------------------------- tabs, deep links and controls
 // Every tab and settings group has its own address: #remote, #chat, #find, #player, #settings,
@@ -1058,12 +630,15 @@ function showTab(name, updateHash) {
   for (const t of document.querySelectorAll('[role=tab]')) t.setAttribute('aria-selected', String(t.dataset.tab === name));
   for (const s of document.querySelectorAll('.tab')) s.hidden = s.id !== 'tab-' + name;
   $('set-groups').hidden = name !== 'settings';
+  const wasOn = chatOn;
   chatOn = name === 'chat';
+  // The server sends the backlog again whenever the chat is switched on: start from an empty box
+  if (chatOn && !wasOn) $('chat').replaceChildren();
   send({ t: 'chat', on: chatOn });
-  if (name === 'find') loadLive();
+  if (name === 'find') refreshFind();
   if (name === 'settings') loadSettings();
   if (name === 'log') logStart(); else logStop();
-  if (name === 'update') updateStart(); else updateStop();
+  if (name === 'update') { updateStart(); loadStats(); } else updateStop();
   if (updateHash !== false) setHash();
 }
 
@@ -1084,6 +659,18 @@ function routeFromHash() {
 window.addEventListener('hashchange', routeFromHash);
 
 for (const tab of document.querySelectorAll('[role=tab]')) tab.addEventListener('click', () => showTab(tab.dataset.tab));
+// Arrow keys, Home and End move between the tabs (tablist pattern)
+$('side').addEventListener('keydown', ev => {
+  const tabs = [...document.querySelectorAll('[role=tab]')];
+  const at = tabs.indexOf(document.activeElement);
+  if (at < 0) return;
+  const to = { ArrowRight: at + 1, ArrowDown: at + 1, ArrowLeft: at - 1, ArrowUp: at - 1, Home: 0, End: tabs.length - 1 }[ev.key];
+  if (to == null) return;
+  ev.preventDefault();
+  const next = tabs[(to + tabs.length) % tabs.length];
+  next.focus();
+  showTab(next.dataset.tab);
+});
 for (const b of document.querySelectorAll('[data-key]')) b.addEventListener('click', () => key(b.dataset.key));
 for (const b of document.querySelectorAll('[data-cmd]')) b.addEventListener('click', () => cmd(b.dataset.cmd, b.dataset.payload));
 $('volume').addEventListener('change', ev => cmd('volume', ev.target.value));
@@ -1118,6 +705,18 @@ document.addEventListener('keydown', ev => {
     renderGroups();
     renderSettings();
   }
+});
+
+// Computer keyboard as the remote on the Remote and Player tabs: arrows, Enter, Backspace/Escape, Space.
+// Not while something that has its own use for the keys has the focus.
+document.addEventListener('keydown', ev => {
+  if ($('app').hidden || ev.ctrlKey || ev.metaKey || ev.altKey || (currentTab !== 'remote' && currentTab !== 'player')) return;
+  const t = ev.target;
+  if (t && (t.closest('input, select, textarea, button, a, [contenteditable], #pad') || t.isContentEditable)) return;
+  const k = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', Enter: 'ok', Backspace: 'back', Escape: 'back', ' ': 'play_pause' }[ev.key];
+  if (!k) return;
+  ev.preventDefault();
+  key(k);
 });
 
 // Small per-browser memory (theme, pinned settings, opened sections)
@@ -1603,6 +1202,12 @@ function renderEntry(e) {
     control.id = id;
     if (e.key) control.dataset.key = e.key;
     row.append(control);
+    // Without a PIN the TV keeps these to itself: shown, but not changeable from here
+    if (e.tv_only) {
+      row.classList.add('tv-only');
+      label.append(para(L.tvOnlyPin, 'muted'));
+      for (const c of [control, ...control.querySelectorAll('input, select, button')]) c.disabled = true;
+    }
   } else if (e.type === 'action') {
     row.append(para(e.info || L.tvOnly, e.info ? 'set-info' : 'muted'));
   }
@@ -1764,7 +1369,7 @@ function toggleText(e) {
 function updateActive() {
   for (const el of document.querySelectorAll('#set-content [data-dep]')) el.classList.toggle('inactive', !setValues[el.dataset.dep]);
   for (const c of document.querySelectorAll('#set-content .set-row > input, #set-content .set-row > select, #set-content .set-row > button')) {
-    c.disabled = !!c.closest('.inactive');
+    c.disabled = !!c.closest('.inactive, .tv-only');
   }
 }
 
@@ -1773,6 +1378,7 @@ function flash(row, text, bad) {
   if (old) old.remove();
   const s = document.createElement('span');
   s.className = 'flash' + (bad ? ' error' : '');
+  s.setAttribute('role', bad ? 'alert' : 'status');
   s.textContent = text;
   row.querySelector('.set-head').append(s);
   setTimeout(() => s.remove(), 2500);
@@ -1809,7 +1415,7 @@ async function save(e, value, row, control) {
       updateActive();
     } else {
       revert(e, control);
-      flash(row, res.error === 'disabled' ? L.settingsOff : L.notSaved, true);
+      flash(row, res.error === 'disabled' ? L.settingsOff : res.error === 'tv only' ? L.tvOnlyPin : L.notSaved, true);
     }
   } catch (err) {
     revert(e, control);
@@ -1866,7 +1472,9 @@ $('set-import').addEventListener('change', async ev => {
   for (const k of Object.keys(clean)) ownKeys.set(k, Date.now());
   try {
     const res = await postJson('/api/settings', { values: clean, backup: true });
-    $('set-status').textContent = L.imported(res.stored || 0, (res.rejected || []).length + (res.skipped || []).length);
+    // Keys the TV keeps to itself without a PIN (tv_only) count as skipped, each key once
+    const skipped = new Set([...(res.rejected || []), ...(res.skipped || []), ...(res.tv_only || [])]);
+    $('set-status').textContent = L.imported(res.stored || 0, skipped.size);
     loadSettings();
   } catch (e) { $('set-status').textContent = L.offline; }
 });
@@ -1876,10 +1484,15 @@ const LOG_MAX = 5000;
 let logLines = [];      // [seq, time, level, tag, msg, pid, tid]
 let logLast = 0;
 let logTimer = null;
+let logBusy = false;    // a request is on its way: no second poll chain
 let logLevel = 'all';
 let logPaused = false;
 let logInfo = {};
 let logOpen = null;     // seq of the line whose details are open
+// Kept up to date line by line instead of scanning the whole buffer on every poll
+const logN = { E: 0, W: 0 };
+const logTags = new Map(); // tag -> number of lines
+let logShownN = 0;         // lines in the view
 
 const levelOf = l => (l === 'F' || l === 'A') ? 'E' : l === 'V' ? 'D' : l;
 
@@ -1892,11 +1505,22 @@ function logStop() {
   logTimer = null;
 }
 
+/** Adds (by = 1) or removes (by = -1) a line from the counters. */
+function logCount(row, by) {
+  const l = levelOf(row[2]);
+  if (l in logN) logN[l] += by;
+  const n = (logTags.get(row[3]) || 0) + by;
+  if (n > 0) logTags.set(row[3], n); else logTags.delete(row[3]);
+}
+
+/** Exactly one chain: a call while a request is on its way or a timer is set only moves the timer. */
 async function logPoll() {
   clearTimeout(logTimer);
-  if (currentTab !== 'log') return;
+  logTimer = null;
+  if (currentTab !== 'log' || $('app').hidden || logBusy) return;
   // Fetch only what is new; nothing while paused or while the browser tab is hidden
   if (!logPaused && !document.hidden) {
+    logBusy = true;
     try {
       const r = await fetch(`/api/log?after=${logLast}`, { credentials: 'same-origin' });
       if (r.status === 401) { showPair(''); return; }
@@ -1906,27 +1530,47 @@ async function logPoll() {
       if (!off) {
         const d = await r.json();
         logInfo = d;
-        if (d.lines.length) {
-          logLines = logLines.concat(d.lines).slice(-LOG_MAX);
-          logLast = d.lines[d.lines.length - 1][0];
-          logAppend(d.lines);
-        } else if (!$('log-view').childElementCount) {
-          logRender();
-        }
+        // Only lines after the last one: an answer that overlaps the one before adds nothing twice
+        const fresh = d.lines.filter(l => l[0] > logLast);
+        if (fresh.length) logAdd(fresh);
+        else if (!$('log-view').childElementCount) logRender();
       }
-    } catch (e) { /* offline: the banner says so */ }
+    } catch (e) {
+      /* offline: the banner says so */
+    } finally {
+      logBusy = false;
+    }
   }
-  logTimer = setTimeout(logPoll, 2000);
+  if (currentTab === 'log' && !$('app').hidden && !logTimer) logTimer = setTimeout(logPoll, 2000);
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && currentTab === 'log') logPoll(); });
 
-function logMatches(row) {
-  const [, , level, tag, msg] = row;
-  if (logLevel !== 'all' && levelOf(level) !== logLevel) return false;
+/** New lines into the buffer and the view; the oldest beyond LOG_MAX leave both. */
+function logAdd(fresh) {
+  for (const row of fresh) logCount(row, 1);
+  logLines = logLines.concat(fresh);
+  logLast = fresh[fresh.length - 1][0];
+  const extra = logLines.length - LOG_MAX;
+  let dropUpTo = -Infinity;
+  if (extra > 0) {
+    for (const row of logLines.slice(0, extra)) logCount(row, -1);
+    dropUpTo = logLines[extra - 1][0];
+    logLines = logLines.slice(extra);
+  }
+  logAppend(fresh, dropUpTo);
+}
+
+/** The filter of the view as one function (level, source and search read once, not per line). */
+function logFilter() {
+  const level = logLevel;
   const src = $('log-tag').value;
-  if (src && tag !== src) return false;
   const q = $('log-search').value.trim().toLowerCase();
-  return !q || msg.toLowerCase().includes(q) || tag.toLowerCase().includes(q);
+  return row => {
+    const [, , lv, tag, msg] = row;
+    if (level !== 'all' && levelOf(lv) !== level) return false;
+    if (src && tag !== src) return false;
+    return !q || msg.toLowerCase().includes(q) || tag.toLowerCase().includes(q);
+  };
 }
 
 const pad = (n, w) => String(n).padStart(w || 2, '0');
@@ -1955,9 +1599,8 @@ function marked(text, q) {
   return out;
 }
 
-function logRow(row) {
+function logRow(row, q) {
   const [seq, t, level, tag, msg] = row;
-  const q = $('log-search').value.trim().toLowerCase();
   const div = document.createElement('div');
   div.className = 'll lv-' + levelOf(level);
   div.dataset.seq = seq;
@@ -2008,57 +1651,56 @@ function atBottom(el) {
 
 function logRender() {
   const view = $('log-view');
-  const shown = logLines.filter(logMatches);
+  const ok = logFilter();
+  const q = $('log-search').value.trim().toLowerCase();
+  const shown = logLines.filter(r => ok(r));
   const frag = document.createDocumentFragment();
   for (const row of shown) {
-    frag.append(logRow(row));
+    frag.append(logRow(row, q));
     if (logOpen === row[0]) frag.append(logDetails(row));
   }
   view.replaceChildren(frag);
+  logShownN = shown.length;
   if (!shown.length) view.append(para(logLines.length ? L.logEmpty : '…', 'muted'));
   view.scrollTop = view.scrollHeight;
   $('log-latest').hidden = true;
   logCounts();
 }
 
-function logAppend(rows) {
+/** Appends the new lines that pass the filter and removes the lines up to dropUpTo, which left the buffer. */
+function logAppend(rows, dropUpTo) {
   const view = $('log-view');
   const follow = atBottom(view) || !view.querySelector('.ll');
   if (!view.querySelector('.ll')) view.replaceChildren();
+  const ok = logFilter();
+  const q = $('log-search').value.trim().toLowerCase();
   const frag = document.createDocumentFragment();
-  for (const row of rows) if (logMatches(row)) frag.append(logRow(row));
+  for (const row of rows) if (ok(row)) { frag.append(logRow(row, q)); logShownN++; }
   view.append(frag);
-  // Keep the DOM as long as the buffer
-  let extra = view.querySelectorAll('.ll').length - LOG_MAX;
-  while (extra-- > 0) {
-    const first = view.querySelector('.ll');
+  // The view holds no line the buffer has dropped; the oldest are at the top
+  for (let first = view.firstElementChild; first && first.classList.contains('ll') && Number(first.dataset.seq) <= dropUpTo; first = view.firstElementChild) {
     if (first.nextElementSibling && first.nextElementSibling.classList.contains('ld')) first.nextElementSibling.remove();
     first.remove();
+    logShownN--;
   }
   if (follow) view.scrollTop = view.scrollHeight; else $('log-latest').hidden = false;
   logCounts();
 }
 
+let logTagsKey = '';
 function logCounts() {
-  const n = { E: 0, W: 0 };
-  const tags = new Set();
-  for (const row of logLines) {
-    const l = levelOf(row[2]);
-    if (l in n) n[l]++;
-    tags.add(row[3]);
-  }
-  $('n-E').textContent = n.E || '';
-  $('n-W').textContent = n.W || '';
+  $('n-E').textContent = logN.E || '';
+  $('n-W').textContent = logN.W || '';
   const sel = $('log-tag');
-  const current = sel.value;
-  const list = [...tags].sort((a, b) => a.localeCompare(b));
-  if (sel.dataset.tags !== list.join('|')) {
+  const key = [...logTags.keys()].sort().join('|');
+  if (logTagsKey !== key) {
+    const current = sel.value;
+    const list = [...logTags.keys()].sort((a, b) => a.localeCompare(b));
     sel.replaceChildren(new Option(L.logAllSources, ''), ...list.map(t => new Option(t, t)));
-    sel.dataset.tags = list.join('|');
-    sel.value = list.includes(current) ? current : '';
+    sel.value = logTags.has(current) ? current : '';
+    logTagsKey = key;
   }
-  const shown = $('log-view').querySelectorAll('.ll').length;
-  $('log-status').textContent = L.logShown(shown, logLines.length) + (logPaused ? ` · ${L.logPaused}` : '') +
+  $('log-status').textContent = L.logShown(logShownN, logLines.length) + (logPaused ? ` · ${L.logPaused}` : '') +
     (logInfo.version ? ` · ShrugTV ${logInfo.version} · ${logInfo.device || ''}` : '');
 }
 
@@ -2085,7 +1727,7 @@ for (const b of document.querySelectorAll('[data-level]')) {
     logRender();
   });
 }
-$('log-search').addEventListener('input', logRender);
+$('log-search').addEventListener('input', debounce(logRender, 250)); // up to 5000 lines: not on every key
 $('log-tag').addEventListener('change', logRender);
 $('log-pause').addEventListener('click', () => {
   logPaused = !logPaused;
@@ -2109,7 +1751,8 @@ function scrub(text) {
 }
 
 function logText() {
-  const shown = logLines.filter(logMatches);
+  const ok = logFilter();
+  const shown = logLines.filter(r => ok(r));
   const head = `ShrugTV ${logInfo.version || ''} log, ${logInfo.device || ''}, exported ${logTime(Date.now(), true)}` +
     ($('log-search').value ? `, search "${$('log-search').value}"` : '') + (logLevel !== 'all' ? `, level ${logLevel}` : '') +
     ($('log-tag').value ? `, source ${$('log-tag').value}` : '');
@@ -2385,25 +2028,50 @@ renderQuick();
 
 // ---------------------------------------------------------------- version and update
 let updTimer = 0;
+let updGen = 0; // a chain from before the last start or stop ends itself
 let updInfo = null;
 
-function updateStop() { clearInterval(updTimer); updTimer = 0; }
+// Every 30 s while the tab is open and visible, every 1.5 s while the TV checks, downloads or verifies
+function updateStop() { clearTimeout(updTimer); updTimer = 0; updGen++; }
 function updateStart() {
   updateStop();
-  updateLoad();
-  updTimer = setInterval(() => {
-    const busy = updInfo && (updInfo.checking || ['downloading', 'verifying'].includes(updInfo.install.phase));
-    if (busy || Date.now() % 30000 < 3000) updateLoad();
-  }, 1500);
+  if (!updInfo) setStatus($('upd-status'), 'loading');
+  updateTick(updGen);
 }
+async function updateTick(gen) {
+  if (!document.hidden) await updateLoad();
+  if (gen !== updGen) return;
+  updateSchedule();
+}
+function updateSchedule() {
+  clearTimeout(updTimer);
+  updTimer = 0;
+  if (currentTab !== 'update' || $('app').hidden) return;
+  const gen = updGen;
+  const busy = updInfo && (updInfo.checking || ['downloading', 'verifying'].includes(updInfo.install.phase));
+  updTimer = setTimeout(() => updateTick(gen), busy ? 1500 : 30000);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && currentTab === 'update') updateStart(); });
+const updReq = newestOnly();
 async function updateLoad() {
-  try { updInfo = await api('/api/update'); } catch (e) { return; }
+  const req = updReq.begin();
+  try {
+    const u = await api('/api/update', { signal: req.signal });
+    if (req.stale()) return;
+    updInfo = u;
+  } catch (e) {
+    // Without a first answer the tab would stay empty: say so, with "Try again"
+    if (!req.stale() && !updInfo && e.message !== 'unpaired') setStatus($('upd-status'), 'error', null, updateStart);
+    return;
+  }
   updateRender();
 }
 async function updatePost(path) {
+  updReq.cancel(); // an older answer must not overwrite this one
   try {
     updInfo = await api(path, { method: 'POST', body: '{}' });
     updateRender();
+    updateSchedule(); // a check or download that just started is followed closely
   } catch (e) { /* offline or not paired */ }
 }
 
@@ -2422,7 +2090,8 @@ function fact(dl, k, v) { dl.append(mk('dt', null, k), mk('dd', null, v)); }
 
 function updateRender() {
   const u = updInfo;
-  if (!u) return;
+  if (!u) { if (!$('upd').childElementCount) setStatus($('upd-status'), 'loading'); return; }
+  setStatus($('upd-status'), null);
   document.querySelector('[data-tab=update] .new-dot').hidden = u.status !== 'available';
 
   const cur = mk('div', 'card');
@@ -2524,4 +2193,64 @@ function applySkin(s) {
 }
 async function loadSkin() {
   try { applySkin(await api('/api/theme')); } catch (e) { /* offline or not paired */ }
+}
+
+// ---------------------------------------------------------------- text and links to the TV, seeking, held keys
+// Text for the field that has the focus on the TV (search, dialogs)
+$('type-form').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const text = $('type-input').value;
+  if (!text || !send({ t: 'text', s: text.slice(0, 200) })) return;
+  $('type-input').value = '';
+});
+
+// A Twitch link, a recording or clip address or just a channel name -> the payload of the "watch" command
+function watchPayload(text) {
+  const t = text.trim().replace(/^@/, '');
+  if (!t) return null;
+  let m = t.match(/^(?:https?:\/\/)?(?:www\.|m\.)?twitch\.tv\/videos\/(\d{1,12})(?:[/?#].*)?$/i);
+  if (m) return JSON.stringify({ vod_id: Number(m[1]) });
+  m = t.match(/^(?:https?:\/\/)?clips\.twitch\.tv\/([A-Za-z0-9_-]{5,120})(?:[/?#].*)?$/i)
+    || t.match(/^(?:https?:\/\/)?(?:www\.|m\.)?twitch\.tv\/[A-Za-z0-9_]{1,25}\/clip\/([A-Za-z0-9_-]{5,120})(?:[/?#].*)?$/i);
+  if (m) return JSON.stringify({ clip: m[1] });
+  m = t.match(/^(?:https?:\/\/)?(?:www\.|m\.)?twitch\.tv\/([A-Za-z0-9_]{1,25})(?:[/?#].*)?$/i) || t.match(/^([A-Za-z0-9_]{1,25})$/);
+  return m ? m[1].toLowerCase() : null;
+}
+$('link-form').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const payload = watchPayload($('link-input').value);
+  const err = $('link-error');
+  err.hidden = !!payload;
+  if (!payload) return;
+  if (cmd('watch', payload)) $('link-input').value = '';
+});
+
+// Recordings: the slider moves to a place by opening the recording there again (the TV has no seek command)
+$('seek').addEventListener('input', ev => { $('seek-time').textContent = clock(Number(ev.target.value)); });
+$('seek').addEventListener('change', ev => {
+  if (state.vod_id > 0) cmd('watch', JSON.stringify({ vod_id: state.vod_id, position_s: Number(ev.target.value) }));
+});
+function clock(sec) {
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = Math.floor(sec % 60);
+  return (h ? h + ':' + pad(m) : String(m)) + ':' + pad(s);
+}
+function renderSeek(s) {
+  const on = s.vod_id > 0 && s.vod_length_s > 0;
+  $('seek-row').hidden = !on;
+  if (!on || document.activeElement === $('seek')) return;
+  $('seek').max = s.vod_length_s;
+  $('seek').value = s.vod_position_s || 0;
+  $('seek-time').textContent = clock(s.vod_position_s || 0);
+}
+
+// Holding an arrow button repeats the key (like holding it on the real remote)
+for (const b of document.querySelectorAll('.k[data-key]')) {
+  let wait = 0, every = 0;
+  const stop = () => { clearTimeout(wait); clearInterval(every); };
+  b.addEventListener('pointerdown', ev => {
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    stop();
+    wait = setTimeout(() => { every = setInterval(() => key(b.dataset.key), 110); }, 450);
+  });
+  for (const t of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(t, stop);
 }

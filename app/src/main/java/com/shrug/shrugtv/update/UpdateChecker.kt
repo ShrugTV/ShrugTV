@@ -1,9 +1,9 @@
 package com.shrug.shrugtv.update
 
 import android.content.Context
-import androidx.preference.PreferenceManager
 import com.shrug.shrugtv.BuildConfig
 import com.shrug.shrugtv.net.Http
+import com.shrug.shrugtv.prefs.Prefs
 import okhttp3.Request
 
 /**
@@ -13,7 +13,6 @@ import okhttp3.Request
  */
 object UpdateChecker {
 
-    const val PREF_ENABLED = "pref_update_check"
     const val PREF_NOW = "pref_update_check_now"
     private const val DAY_MS = 24L * 60 * 60 * 1000
 
@@ -26,7 +25,7 @@ object UpdateChecker {
     private fun store(ctx: Context) = ctx.getSharedPreferences("update_check", Context.MODE_PRIVATE)
 
     fun enabled(ctx: Context): Boolean =
-        BuildConfig.UPDATE_CHECK && PreferenceManager.getDefaultSharedPreferences(ctx).getBoolean(PREF_ENABLED, false)
+        BuildConfig.UPDATE_CHECK && Prefs.updateCheck.get(ctx)
 
     /**
      * Blocking; call from a background thread. [force] ignores the daily limit (the "Check now" action). [source] and

@@ -20,7 +20,6 @@ class ChatMessageProcessor(
     fontSize: Int,
     lineHeight: Int,
     private val filterSettings: ChatFilterSettings?,
-    private val messageDelayMs: Int,
     private val channelName: String,
     animated: Boolean,
     highlights: ChatHighlights = ChatHighlights.NONE,
@@ -38,7 +37,7 @@ class ChatMessageProcessor(
 
     init {
         start()
-        val processorHandler = ProcessorHandler(looper, filterSettings, messageDelayMs)
+        val processorHandler = ProcessorHandler(looper, filterSettings)
         this.handler = processorHandler
         processorHandler.post {
             Thread.currentThread().name = "Thread ChatMessageConstructor $channelName"
@@ -47,8 +46,7 @@ class ChatMessageProcessor(
 
     inner class ProcessorHandler(
         looper: Looper,
-        private val filterSettings: ChatFilterSettings?,
-        private val messageDelayMs: Int
+        private val filterSettings: ChatFilterSettings?
     ) : Handler(looper) {
 
         override fun handleMessage(message: Message) {
@@ -69,15 +67,8 @@ class ChatMessageProcessor(
                         renderer.render(chatMessage)
                         // formatted check removed #137
 
-                        val sink = uiSink ?: return
-
-                        if (messageDelayMs != 0 && !chatMessage.isHistorical) {
-                            Handler(Looper.getMainLooper()).postDelayed({
-                                sink.onEvent(ChatUiEvent.Message(chatMessage))
-                            }, messageDelayMs.toLong())
-                            return
-                        }
-                        sink.onEvent(ChatUiEvent.Message(chatMessage))
+                        // The delay towards the picture is applied by the player (ChatDelay)
+                        uiSink?.onEvent(ChatUiEvent.Message(chatMessage))
                     }
                 }
             } catch (e: Exception) {

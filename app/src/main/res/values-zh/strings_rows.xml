@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home row titles added after the bulk translation -->
+<resources>
+    <string name="home_row_language_streams">你的语言的热门直播</string>
+</resources>

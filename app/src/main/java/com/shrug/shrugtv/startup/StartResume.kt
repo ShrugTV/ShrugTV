@@ -8,13 +8,13 @@ import com.shrug.shrugtv.api.helix.HelixApi
 import com.shrug.shrugtv.api.helix.HelixParser
 import com.shrug.shrugtv.model.Enums
 import com.shrug.shrugtv.model.Movie
+import com.shrug.shrugtv.prefs.Prefs
 
 /**
  * "Open the last channel on start": while the setting is on, the app remembers the login of the live
  * stream it plays; on a cold start it asks Twitch whether that channel is live and then opens the player.
  */
 object StartResume {
-    const val PREF_ENABLED = "pref_start_last_channel"
     const val PREF_LAST_LOGIN = "pref_start_last_login"
 
     /** Once per process: a recreated home screen (rotation, theme change) must not open the player again. */
@@ -22,7 +22,7 @@ object StartResume {
     private var done = false
 
     fun isEnabled(context: Context): Boolean =
-        PreferenceManager.getDefaultSharedPreferences(context).getBoolean(PREF_ENABLED, false)
+        Prefs.startLastChannel.get(context)
 
     /** A Twitch login: 1 to 25 letters, digits or underscores. Anything else is never queried. */
     fun validLogin(login: String?): String? =
@@ -33,7 +33,7 @@ object StartResume {
         if (movie.itemType != Enums.ContentType.STREAM || movie.archiveOfLive || movie.videoId > 0L) return
         val login = validLogin(movie.login) ?: return
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-        if (!prefs.getBoolean(PREF_ENABLED, false)) return
+        if (!Prefs.startLastChannel.get(prefs)) return
         if (prefs.getString(PREF_LAST_LOGIN, null) != login) prefs.edit().putString(PREF_LAST_LOGIN, login).apply()
     }
 

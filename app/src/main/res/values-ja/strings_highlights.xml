@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Highlights of the running stream in the player -->
+<resources>
+    <string name="player_btn_highlights">ハイライト</string>
+    <string name="player_highlights_title">この配信のハイライト</string>
+    <string name="player_highlights_hint">配信開始以降で最も再生されたクリップ。OK で再生、戻るでライブに戻ります。</string>
+    <string name="player_highlights_empty">この配信のクリップはまだありません</string>
+    <string name="player_highlights_error">クリップを読み込めませんでした</string>
+    <string name="player_highlights_after">%1$s 経過時</string>
+    <string name="settings_player_highlights">プレーヤーのハイライト</string>
+    <string name="settings_player_highlights_summary">ライブ配信のプレーヤーバーにある「ハイライト」ボタン：配信開始以降で最も再生された 5 本のクリップ。</string>
+</resources>

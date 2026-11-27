@@ -37,6 +37,19 @@ class TrustedDevicesTest {
     }
 
     @Test
+    fun `a key that was not used for 90 days expires`() {
+        val devices = TrustedDevices(MemoryStore(), { clock })
+        val (_, key) = devices.add("UA", "192.168.0.23")
+        clock += TrustedDevices.EXPIRES_MS - 1
+        assertNotNull("still valid, and used", devices.find(key, null))
+        clock += TrustedDevices.EXPIRES_MS - 1
+        assertNotNull("use renews it", devices.find(key, null))
+        clock += TrustedDevices.EXPIRES_MS + 1
+        assertNull(devices.find(key, null))
+        assertEquals(0, devices.list().size)
+    }
+
+    @Test
     fun `removing a device ends its access, the list is capped`() {
         val devices = TrustedDevices(MemoryStore(), { clock })
         val (first, key) = devices.add("Mozilla/5.0 (Windows NT 10.0) Chrome/130.0 Safari/537.36", null)

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Highlights of the running stream in the player -->
+<resources>
+    <string name="player_btn_highlights">Momenti salienti</string>
+    <string name="player_highlights_title">Momenti salienti di questa diretta</string>
+    <string name="player_highlights_hint">Le clip più viste dall’inizio della diretta. OK avvia una clip, Indietro torna alla diretta.</string>
+    <string name="player_highlights_empty">Ancora nessuna clip di questa diretta</string>
+    <string name="player_highlights_error">Impossibile caricare le clip</string>
+    <string name="player_highlights_after">dopo %1$s</string>
+    <string name="settings_player_highlights">Momenti salienti nel player</string>
+    <string name="settings_player_highlights_summary">Il pulsante “Momenti salienti” nella barra del player di una diretta: le cinque clip più viste dall’inizio.</string>
+</resources>

@@ -12,20 +12,23 @@ import androidx.preference.PreferenceManager
 import com.shrug.shrugtv.BuildConfig
 import com.shrug.shrugtv.hub.HubCommandRouter
 import com.shrug.shrugtv.hub.PlaybackStateHub
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
-import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
-import org.eclipse.paho.client.mqttv3.MqttAsyncClient
-import org.eclipse.paho.client.mqttv3.MqttCallbackExtended
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions
-import org.eclipse.paho.client.mqttv3.MqttMessage
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
+import com.hivemq.client.mqtt.MqttClient
+import com.hivemq.client.mqtt.MqttGlobalPublishFilter
+import com.hivemq.client.mqtt.datatypes.MqttQos
+import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient
+import java.net.URI
+import java.util.concurrent.TimeUnit
 
 /**
  * Home Assistant integration via MQTT (docs/mqtt_ha_plan.md). Connected while ShrugTV is in the
@@ -42,7 +45,7 @@ object MqttBridge : DefaultLifecycleObserver {
     private val main = Handler(Looper.getMainLooper())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    @Volatile private var client: MqttAsyncClient? = null
+    @Volatile private var client: Mqtt3AsyncClient? = null
     @Volatile private var discovery: HaDiscovery? = null
     private var jobs: List<Job> = emptyList()
     private var publishedQualities: List<String>? = null
@@ -123,52 +126,53 @@ object MqttBridge : DefaultLifecycleObserver {
         discovery = d
         settings = s
         try {
+            val uri = URI(s.url)
+            val tls = s.url.startsWith("ssl://")
+            var everConnected = false
             // Client id with the device hash: two TVs with the same name must not kick each other off
-            val c = MqttAsyncClient(s.url, "shrugtv-${d.deviceId}-${s.deviceHash}", MemoryPersistence())
-            c.setCallback(object : MqttCallbackExtended {
-                override fun connectComplete(reconnect: Boolean, serverURI: String?) {
-                    status = "connected"
-                    connectedSinceMs = System.currentTimeMillis()
-                    Log.i(TAG, "Connected to $serverURI (reconnect=$reconnect)")
-                    onConnected(c, d, s)
+            val builder = MqttClient.builder().useMqttVersion3()
+                .identifier("shrugtv-${d.deviceId}-${s.deviceHash}")
+                .serverHost(uri.host.removeSurrounding("[", "]"))
+                .serverPort(if (uri.port > 0) uri.port else if (tls) 8883 else 1883)
+                .transportConfig().mqttConnectTimeout(10, TimeUnit.SECONDS).applyTransportConfig()
+                // Reconnects after a lost connection and after a failed first attempt, up to once a minute
+                .automaticReconnect().initialDelay(1, TimeUnit.SECONDS).maxDelay(60, TimeUnit.SECONDS).applyAutomaticReconnect()
+            if (tls) builder.sslWithDefaultConfig()
+            lateinit var c: Mqtt3AsyncClient
+            builder.addConnectedListener {
+                everConnected = true
+                status = "connected"
+                connectedSinceMs = System.currentTimeMillis()
+                Log.i(TAG, "Connected to ${s.url}")
+                onConnected(c, d, s)
+            }
+            builder.addDisconnectedListener { ctx ->
+                // Stopped or replaced: no reconnect for this client
+                if (client !== c) { ctx.reconnector.reconnect(false); return@addDisconnectedListener }
+                status = (if (everConnected) "connection lost: " else "cannot connect: ") + (ctx.cause.message ?: "?")
+                Log.w(TAG, status)
+            }
+            c = builder.buildAsync()
+            // Every message no subscription callback took (the owner check has its own): the commands
+            c.publishes(MqttGlobalPublishFilter.REMAINING) { msg ->
+                if (!s.commandsEnabled) return@publishes
+                val name = msg.topic.toString().substringAfterLast('/')
+                if (name in HubCommandRouter.NAMES) {
+                    HubCommandRouter.dispatch(appContext, name, String(msg.payloadAsBytes, Charsets.UTF_8).take(2_000))
                 }
-                override fun connectionLost(cause: Throwable?) {
-                    status = "connection lost: ${cause?.message ?: "?"}"
-                    Log.w(TAG, status)
-                }
-                override fun messageArrived(topic: String, message: MqttMessage) {
-                    if (!s.commandsEnabled) return
-                    val name = topic.substringAfterLast('/')
-                    if (name in HubCommandRouter.NAMES) {
-                        HubCommandRouter.dispatch(appContext, name, String(message.payload, Charsets.UTF_8).take(2_000))
-                    }
-                }
-                override fun deliveryComplete(token: IMqttDeliveryToken?) = Unit
-            })
-            val options = MqttConnectOptions().apply {
-                isAutomaticReconnect = true
-                maxReconnectDelay = 60_000
-                isCleanSession = true
-                keepAliveInterval = 30
-                connectionTimeout = 10
-                // Discovery sends ~25 retained configs at once; Paho's default of 10 unacknowledged
-                // messages dropped the rest ("too many publishes in progress")
-                maxInflight = 100
-                if (s.user.isNotEmpty()) userName = s.user
-                if (s.password.isNotEmpty()) password = s.password.toCharArray()
-                setWill(d.availabilityTopic, "offline".toByteArray(), 1, true)
             }
             client = c
             status = "connecting"
-            c.connect(options, null, object : org.eclipse.paho.client.mqttv3.IMqttActionListener {
-                override fun onSuccess(asyncActionToken: org.eclipse.paho.client.mqttv3.IMqttToken?) = Unit
-                override fun onFailure(asyncActionToken: org.eclipse.paho.client.mqttv3.IMqttToken?, exception: Throwable?) {
-                    status = "cannot connect: ${exception?.message ?: "?"}"
-                    Log.w(TAG, status)
-                    // Paho retries only after a first successful connect: try again later
-                    main.postDelayed({ if (client === c) { stop(); start() } }, 30_000L)
+            c.connectWith()
+                .cleanSession(true)
+                .keepAlive(30)
+                .apply {
+                    if (s.user.isNotEmpty()) simpleAuth().username(s.user)
+                        .apply { if (s.password.isNotEmpty()) password(s.password.toByteArray(Charsets.UTF_8)) }
+                        .applySimpleAuth()
                 }
-            })
+                .willPublish().topic(d.availabilityTopic).payload("offline".toByteArray()).qos(MqttQos.AT_LEAST_ONCE).retain(true).applyWillPublish()
+                .send()
         } catch (e: Exception) {
             status = "error: ${e.message}"
             Log.w(TAG, "MQTT start failed", e)
@@ -182,12 +186,12 @@ object MqttBridge : DefaultLifecycleObserver {
 
     private fun overrideKey(s: MqttSettings) = "id_for_${s.topicPrefix}/${s.deviceId}"
 
-    private fun onConnected(c: MqttAsyncClient, d: HaDiscovery, s: MqttSettings) {
-        // Off the Paho callback thread: the owner check waits for a retained message
+    private fun onConnected(c: Mqtt3AsyncClient, d: HaDiscovery, s: MqttSettings) {
+        // Off the client's network thread: the owner check waits for a retained message
         scope.launch { claimAndPublish(c, d, s) }
     }
 
-    private suspend fun claimAndPublish(c: MqttAsyncClient, d: HaDiscovery, s: MqttSettings) {
+    private suspend fun claimAndPublish(c: Mqtt3AsyncClient, d: HaDiscovery, s: MqttSettings) {
         val owner = readRetained(c, d.ownerTopic)
         if (!owner.isNullOrEmpty() && owner != s.deviceHash && d.deviceId == s.deviceId) {
             // Another TV already uses this name: switch to "<id>_<hash>" and reconnect, so the Last
@@ -214,19 +218,22 @@ object MqttBridge : DefaultLifecycleObserver {
         publishedQualities = null
         publishDiscovery(c, d, PlaybackStateHub.state.value.qualities)
         if (s.commandsEnabled) {
-            try { c.subscribe(d.commandWildcard, 1) } catch (e: Exception) { Log.w(TAG, "subscribe", e) }
+            // Without a callback: commands go to the one handler set up in start(), also after a reconnect
+            c.subscribeWith().topicFilter(d.commandWildcard).qos(MqttQos.AT_LEAST_ONCE).send()
+                .whenComplete { _, e -> if (e != null) Log.w(TAG, "subscribe", e) }
         }
         publishState(c, d)
         if (jobs.isEmpty()) startCollectors()
     }
 
     /** The retained message on [topic], or null if there is none within 1.5 s. */
-    private suspend fun readRetained(c: MqttAsyncClient, topic: String): String? {
+    private suspend fun readRetained(c: Mqtt3AsyncClient, topic: String): String? {
         val got = kotlinx.coroutines.CompletableDeferred<String>()
         return try {
-            c.subscribe(topic, 1, null, null) { _, msg -> got.complete(String(msg.payload, Charsets.UTF_8)) }
+            c.subscribeWith().topicFilter(topic).qos(MqttQos.AT_LEAST_ONCE)
+                .callback { msg -> got.complete(String(msg.payloadAsBytes, Charsets.UTF_8)) }.send()
             val value = kotlinx.coroutines.withTimeoutOrNull(1_500L) { got.await() }
-            try { c.unsubscribe(topic) } catch (_: Exception) {}
+            c.unsubscribeWith().topicFilter(topic).send()
             value
         } catch (e: Exception) {
             Log.w(TAG, "owner check: ${e.message}")
@@ -275,7 +282,7 @@ object MqttBridge : DefaultLifecycleObserver {
         )
     }
 
-    private fun publishDiscovery(c: MqttAsyncClient, d: HaDiscovery, qualities: List<String>) {
+    private fun publishDiscovery(c: Mqtt3AsyncClient, d: HaDiscovery, qualities: List<String>) {
         publishedQualities = qualities
         followedSignature = null
         for ((topic, payload) in d.configs(qualities)) publish(c, topic, payload, retained = true)
@@ -286,8 +293,12 @@ object MqttBridge : DefaultLifecycleObserver {
     @Volatile private var followedSignature: String? = null
     private val followedLock = Any()
 
-    /** Fetches who is live and who is followed and publishes it, unless the group is off or nothing changed. */
-    private fun publishFollowed(c: MqttAsyncClient, d: HaDiscovery) {
+    /**
+     * Fetches who is live and who is followed and publishes it, unless the group is off or nothing changed. Both lists
+     * load in parallel in the bridge's scope (before one after the other in runBlocking); the
+     * followed channels come from the cache of FollowedChannels when home asked for them within the last minute.
+     */
+    private suspend fun publishFollowed(c: Mqtt3AsyncClient, d: HaDiscovery) {
         val groups = settings?.groups ?: return
         if (HaDiscovery.FOLLOWED !in groups) {
             // Group switched off: the retained message goes away with the sensors
@@ -295,9 +306,11 @@ object MqttBridge : DefaultLifecycleObserver {
             return
         }
         val (live, followed) = try {
-            kotlinx.coroutines.runBlocking {
-                val liveMovies = com.shrug.shrugtv.ui.tv.home.HomeData.followedLive(appContext)
-                val all = com.shrug.shrugtv.ui.tv.home.HomeData.followedChannels(appContext)
+            coroutineScope {
+                val liveAsync = async { com.shrug.shrugtv.ui.tv.home.HomeData.followedLive(appContext) }
+                val allAsync = async { com.shrug.shrugtv.ui.tv.home.HomeData.followedChannels(appContext) }
+                val liveMovies = liveAsync.await()
+                val all = allAsync.await()
                 val favorites = com.shrug.shrugtv.session.AppState.favoriteChannelIds
                 fun item(m: com.shrug.shrugtv.model.Movie) = FollowedList.Item(
                     login = m.login ?: "", name = m.displayName.ifEmpty { m.login ?: "" }, game = m.gameName,
@@ -306,6 +319,8 @@ object MqttBridge : DefaultLifecycleObserver {
                 )
                 liveMovies.filter { !it.login.isNullOrEmpty() }.map(::item) to all.filter { !it.login.isNullOrEmpty() }.map(::item)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w(TAG, "followed: ${e.message}")
             return
@@ -320,15 +335,16 @@ object MqttBridge : DefaultLifecycleObserver {
         }
     }
 
-    private fun publishState(c: MqttAsyncClient, d: HaDiscovery) {
+    private fun publishState(c: Mqtt3AsyncClient, d: HaDiscovery) {
         val json = PlaybackStateHub.state.value.toJson(System.currentTimeMillis(), BuildConfig.VERSION_NAME)
         publish(c, d.stateTopic, json.toString(), retained = true)
     }
 
-    private fun publish(c: MqttAsyncClient, topic: String, payload: String, retained: Boolean) {
+    private fun publish(c: Mqtt3AsyncClient, topic: String, payload: String, retained: Boolean) {
         try {
-            if (c.isConnected) {
-                c.publish(topic, payload.toByteArray(Charsets.UTF_8), 1, retained)
+            if (c.state.isConnected) {
+                c.publishWith().topic(topic).payload(payload.toByteArray(Charsets.UTF_8)).qos(MqttQos.AT_LEAST_ONCE).retain(retained).send()
+                    .whenComplete { _, e -> if (e != null) Log.w(TAG, "publish $topic: ${e.message}") }
                 lastPublishMs = System.currentTimeMillis()
             }
         } catch (e: Exception) {
@@ -347,12 +363,18 @@ object MqttBridge : DefaultLifecycleObserver {
         scope.launch {
             try {
                 // Clean goodbye; the Last Will only fires on an unclean disconnect
-                if (c.isConnected && d != null) c.publish(d.availabilityTopic, "offline".toByteArray(), 1, true).waitForCompletion(2_000)
-                if (c.isConnected) c.disconnect(2_000).waitForCompletion(3_000)
+                if (c.state.isConnected && d != null) {
+                    c.publishWith().topic(d.availabilityTopic).payload("offline".toByteArray()).qos(MqttQos.AT_LEAST_ONCE).retain(true)
+                        .send().get(2_000, TimeUnit.MILLISECONDS)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "goodbye: ${e.message}")
+            }
+            try {
+                // Also ends a running reconnect
+                c.disconnect().get(3_000, TimeUnit.MILLISECONDS)
             } catch (e: Exception) {
                 Log.w(TAG, "disconnect: ${e.message}")
-            } finally {
-                try { c.close(true) } catch (_: Exception) {}
             }
         }
         status = "off"

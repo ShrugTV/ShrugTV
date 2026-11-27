@@ -1,6 +1,7 @@
 package com.shrug.shrugtv.ui.tv.player
 
 import android.view.KeyEvent
+import com.shrug.shrugtv.prefs.Prefs
 import com.shrug.shrugtv.ui.tv.TvShapes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -154,6 +155,8 @@ fun PlayerControlsOverlay(
     onSeekStep: (Int) -> Unit = {},
     onSpeedClick: () -> Unit = {},
     onChaptersClick: () -> Unit = {},
+    /** "Highlights" of a live stream; null = no button (recording, clip, setting off). */
+    onHighlightsClick: (() -> Unit)? = null,
     /** Jump to the previous / next category of a recording. */
     onPreviousCategoryClick: () -> Unit = {},
     onNextCategoryClick: () -> Unit = {},
@@ -179,6 +182,7 @@ fun PlayerControlsOverlay(
     moreMenuState: androidx.compose.runtime.MutableState<Boolean> = remember { mutableStateOf(false) },
     modifier: Modifier = Modifier
 ) {
+    CountRecompositions("ControlsOverlay")
     var showMoreMenu by moreMenuState
     val moreMenuFocusRequester = remember { FocusRequester() }
     val buttonsRowFocusRequester = remember { FocusRequester() }
@@ -260,6 +264,10 @@ fun PlayerControlsOverlay(
         ))
     }
     items.add(BarItem(R.drawable.magnify, stringResource(R.string.player_btn_search), onSearchClick))
+    // Not first: OK out of habit on the first button must not open a strip
+    if (!isVod && onHighlightsClick != null) {
+        items.add(BarItem(R.drawable.ic_highlights, stringResource(R.string.player_btn_highlights), onHighlightsClick))
+    }
     moreActions.forEach { action ->
         items.add(BarItem(action.iconRes, stringResource(action.titleRes)) { onMoreAction(action) })
     }
@@ -503,10 +511,10 @@ fun PlayerControlsOverlay(
 private fun ControlsClock(modifier: Modifier = Modifier) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val prefs = remember { androidx.preference.PreferenceManager.getDefaultSharedPreferences(context) }
-    if (!prefs.getBoolean("pref_clock_showclock", true) || !prefs.getBoolean("pref_clock_showlocal", true)) return
-    val timeFormat = remember { SimpleDateFormat(prefs.getString("pref_clock_time_format", "H:mm") ?: "H:mm", Locale.getDefault()) }
-    val showDate = remember { prefs.getBoolean("pref_clock_show_date_v2", false) }
-    val dateFormat = remember { SimpleDateFormat(prefs.getString("pref_clock_date_format", "yyyy-MM-dd") ?: "yyyy-MM-dd", Locale.getDefault()) }
+    if (!Prefs.clockShowclock.get(prefs) || !Prefs.clockShowlocal.get(prefs)) return
+    val timeFormat = remember { SimpleDateFormat(Prefs.clockTimeFormat.get(prefs), Locale.getDefault()) }
+    val showDate = remember { Prefs.clockShowDateV2.get(prefs) }
+    val dateFormat = remember { SimpleDateFormat(Prefs.clockDateFormat.get(prefs), Locale.getDefault()) }
     // Ticks at the full minute
     val now by produceState(System.currentTimeMillis()) {
         while (true) {
@@ -514,7 +522,7 @@ private fun ControlsClock(modifier: Modifier = Modifier) {
             kotlinx.coroutines.delay(60_000L - value % 60_000L + 50L)
         }
     }
-    val drift = prefs.getBoolean("pref_player_burn_in", false)
+    val drift = Prefs.playerBurnIn.get(prefs)
     // A dark rounded plate: over the chat (layout "over the video") or a bright picture the bare digits were hard to read
     Column(
         modifier = modifier

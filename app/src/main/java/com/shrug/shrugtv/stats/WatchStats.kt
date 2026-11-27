@@ -62,7 +62,13 @@ data class PeriodStats(
     /** Clips watched in the period, the time they played, and the channels most of them came from. */
     val clipCount: Int = 0,
     val clipSec: Long = 0L,
-    val topClipChannels: List<Ranked> = emptyList()
+    val topClipChannels: List<Ranked> = emptyList(),
+    /** Seconds per weekday (Monday first) and hour of the day: the week grid of the statistics page. */
+    val secPerWeekdayHour: List<LongArray> = List(7) { LongArray(24) },
+    /** Seconds of clips per hour of the day (the inner ring of the 24-hour clock). */
+    val clipSecPerHour: LongArray = LongArray(24),
+    /** Days the period has (7, 30, 365 or the length of the month). */
+    val periodDays: Int = 0
 ) {
     /** Average length of a clip watched, 0 without clips. */
     val clipAverageSec: Long get() = if (clipCount > 0) clipSec / clipCount else 0L
@@ -80,7 +86,8 @@ data class PeriodStats(
         other.topCategories == topCategories && other.liveSec == liveSec && other.vodSec == vodSec &&
         other.longestSec == longestSec && other.secPerHour.contentEquals(secPerHour) && other.previousTotalSec == previousTotalSec &&
         other.buckets == buckets && other.bucketUnit == bucketUnit && other.clipCount == clipCount && other.clipSec == clipSec &&
-        other.topClipChannels == topClipChannels
+        other.topClipChannels == topClipChannels && other.periodDays == periodDays &&
+        other.clipSecPerHour.contentEquals(clipSecPerHour) && other.secPerWeekdayHour.indices.all { other.secPerWeekdayHour[it].contentEquals(secPerWeekdayHour[it]) }
 
     override fun hashCode(): Int = totalSec.hashCode() * 31 + sessions
 }
@@ -101,17 +108,22 @@ object WatchStats {
         val (from, to) = range.bounds(today)
         val (pFrom, pTo) = range.previous(today)
         val inRange = rows.filter { inside(it, from, to) }
+        val channelKey = channelKey(inRange)
         val before = rows.filter { inside(it, pFrom, pTo) }.sumOf { it.playedSec }
         val comparable = oldest != null && !oldest.isAfter(pTo)
 
         val perHour = LongArray(24)
         inRange.forEach { perHour[it.hour.coerceIn(0, 23)] += it.playedSec }
+        val grid = List(7) { LongArray(24) }
+        inRange.forEach { grid[LocalDate.parse(it.day).dayOfWeek.value - 1][it.hour.coerceIn(0, 23)] += it.playedSec }
+        val clipHours = LongArray(24)
+        inRange.filter { it.isClip }.forEach { clipHours[it.hour.coerceIn(0, 23)] += it.playedSec }
 
         return PeriodStats(
             totalSec = inRange.sumOf { it.playedSec },
             daysWatched = inRange.map { it.day }.distinct().size,
             sessions = inRange.size,
-            topChannels = rank(inRange, top, rankBy, { (if (it.channelId > 0) "id:${it.channelId}" else "login:${it.login.lowercase()}") }) {
+            topChannels = rank(inRange, top, rankBy, channelKey) {
                 it.channelName.ifBlank { it.login }
             },
             topCategories = rank(inRange.filter { it.category.isNotBlank() }, top, rankBy, { it.category.lowercase() }) { it.category },
@@ -125,9 +137,12 @@ object WatchStats {
             bucketUnit = if (monthly(range)) BucketUnit.MONTH else BucketUnit.DAY,
             clipCount = inRange.count { it.isClip },
             clipSec = inRange.filter { it.isClip }.sumOf { it.playedSec },
-            topClipChannels = rank(inRange.filter { it.isClip }, top, RankBy.SESSIONS, { (if (it.channelId > 0) "id:${it.channelId}" else "login:${it.login.lowercase()}") }) {
+            topClipChannels = rank(inRange.filter { it.isClip }, top, RankBy.SESSIONS, channelKey) {
                 it.channelName.ifBlank { it.login }
-            }
+            },
+            secPerWeekdayHour = grid,
+            clipSecPerHour = clipHours,
+            periodDays = (java.time.temporal.ChronoUnit.DAYS.between(from, to) + 1).toInt()
         )
     }
 
@@ -159,6 +174,21 @@ object WatchStats {
     /** The four parts of the day (night, morning, afternoon, evening: six hours each) from the 24 hours. */
     @JvmStatic
     fun dayParts(secPerHour: LongArray): LongArray = LongArray(4) { part -> (part * 6 until part * 6 + 6).sumOf { secPerHour.getOrElse(it) { 0L } } }
+
+    /**
+     * Groups the sessions of one channel: by channel ID, and a session saved without ID (0, e.g. started before the
+     * channel lookup answered) joins the ID that another session with the same login (any case) has. Without this a
+     * channel showed up twice in the ranking.
+     */
+    internal fun channelKey(rows: List<WatchSessionData>): (WatchSessionData) -> String {
+        val idOfLogin = rows.filter { it.channelId > 0 && it.login.isNotBlank() }
+            .groupBy { it.login.lowercase() }
+            .mapValues { e -> e.value.maxByOrNull { it.id }!!.channelId }
+        return { s ->
+            val id = if (s.channelId > 0) s.channelId else idOfLogin[s.login.lowercase()] ?: 0
+            if (id > 0) "id:$id" else "login:${s.login.lowercase()}"
+        }
+    }
 
     private fun rank(
         rows: List<WatchSessionData>, top: Int, rankBy: RankBy, key: (WatchSessionData) -> String, label: (WatchSessionData) -> String

@@ -1,5 +1,6 @@
 package com.shrug.shrugtv.ui.tv.home
 
+import com.shrug.shrugtv.ui.tv.components.ShrugButton
 import androidx.compose.foundation.BorderStroke
 import com.shrug.shrugtv.ui.tv.themeBackground
 import com.shrug.shrugtv.ui.tv.TvShapes
@@ -122,6 +123,8 @@ class HomeActions(
     val contextMenu: (Movie) -> Unit = {},
     /** The row list is scrolling (true) or at rest (false); the hero waits for it. */
     val scrolls: (Boolean) -> Unit = {},
+    /** Load the page again, after Twitch could not be reached. */
+    val retry: () -> Unit = {},
 )
 
 private val HeroHeight = 340.dp
@@ -280,7 +283,14 @@ private fun HeroInfo(heroSource: () -> Movie?, z: HomeState, a: HomeActions, her
             z.loginState is Login.LoggedOut -> {
                 Text(stringResource(R.string.home_sign_in_title), fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = TvColors.Text)
                 Text(stringResource(R.string.home_sign_in_hint), fontSize = 13.sp, color = TvColors.TextMedium)
-                Button(onClick = a.profile, colors = whiteButton()) { Text(stringResource(R.string.home_sign_in), fontWeight = FontWeight.Bold) }
+                ShrugButton(onClick = a.profile, primary = true) { Text(stringResource(R.string.home_sign_in), fontWeight = FontWeight.Bold) }
+            }
+            // Twitch not reachable: an error with "Try again", not "nobody is live"
+            z.loginState is Login.Error && hero == null -> {
+                com.shrug.shrugtv.ui.tv.components.StatusNote(
+                    com.shrug.shrugtv.ui.tv.components.ListStatus.ERROR, "", retry = a.retry,
+                    errorText = z.loginState.text.ifBlank { null },
+                )
             }
             hero == null -> {
                 Text(stringResource(if (z.loading) R.string.home_loading else R.string.home_nobody_live), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TvColors.Text)
@@ -301,13 +311,13 @@ private fun HeroInfo(heroSource: () -> Movie?, z: HomeState, a: HomeActions, her
                 Text(hero.title ?: "", fontSize = 13.sp, color = TvColors.TextMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 LaunchedEffect(Unit) { runCatching { heroFocus.requestFocus() } }
                 Row(Modifier.focusProperties { down = rowFocus }, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { a.watch(hero) }, colors = whiteButton(), modifier = Modifier.focusRequester(heroFocus)) {
+                    ShrugButton(onClick = { a.watch(hero) }, primary = true, modifier = Modifier.focusRequester(heroFocus)) {
                         Icon(HomeIcons.Play, contentDescription = null, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(stringResource(R.string.home_watch), fontWeight = FontWeight.Bold)
                     }
-                    Button(onClick = { a.toChannel(hero) }, colors = glassButton()) { Text(stringResource(R.string.home_to_channel)) }
-                    Button(onClick = { a.multiview(hero) }, colors = glassButton()) { Text(stringResource(R.string.home_multiview)) }
+                    ShrugButton(onClick = { a.toChannel(hero) }) { Text(stringResource(R.string.home_to_channel)) }
+                    ShrugButton(onClick = { a.multiview(hero) }) { Text(stringResource(R.string.home_multiview)) }
                 }
             }
         }

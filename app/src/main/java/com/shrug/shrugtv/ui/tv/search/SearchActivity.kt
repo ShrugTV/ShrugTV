@@ -59,14 +59,18 @@ import com.shrug.shrugtv.ui.tv.home.HomeIcons
 import com.shrug.shrugtv.ui.tv.components.FocusBorder
 import com.shrug.shrugtv.ui.tv.components.focusEdgeLeft
 import com.shrug.shrugtv.ui.tv.components.rowKeepsRight
-import com.shrug.shrugtv.ui.tv.components.TvData
 import com.shrug.shrugtv.ui.tv.components.ContentCard
 import com.shrug.shrugtv.ui.tv.components.Destinations
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.shrug.shrugtv.api.helix.HelixApi
+import com.shrug.shrugtv.api.helix.HelixParser
+import com.shrug.shrugtv.model.Enums
+import com.shrug.shrugtv.ui.tv.components.StatusNote
+import com.shrug.shrugtv.ui.tv.components.listStatus
 
 /**
  * Search in Compose (step 2): one input field, search after 0.6 s of quiet,
@@ -91,16 +95,42 @@ class SearchActivity : ComponentActivity() {
 /** One result row; [title] is a string resource, resolved in the composable (app language). */
 private data class Hits(@androidx.annotation.StringRes val title: Int, val entries: List<Movie>)
 
-private suspend fun search(ctx: android.content.Context, text: String): List<Hits> = coroutineScope {
-    fun kind(f: (com.shrug.shrugtv.apihelpers.SearchCallback) -> Unit) = async {
-        suspendCancellableCoroutine<List<Movie>> { c -> f(com.shrug.shrugtv.apihelpers.SearchCallback { l -> if (c.isActive) c.resume(l?.toList() ?: emptyList()) }) }
+/** A search request that got no answer or an error answer; shown as an error, not as "no results". */
+private class SearchFailed : Exception()
+
+/** The "data" array of a Helix answer; throws [SearchFailed] for no answer or an error object. */
+private fun dataOf(j: com.google.gson.JsonObject?): com.google.gson.JsonArray {
+    if (j == null || j.has("error")) throw SearchFailed()
+    val d = j.get("data")
+    return if (d == null || !d.isJsonArray) com.google.gson.JsonArray() else d.asJsonArray
+}
+
+/**
+ * Live streams, channels and categories in parallel. The same requests as apihelpers/Search, but a failure reaches the
+ * page as [SearchFailed] instead of an empty list.
+ */
+private suspend fun search(ctx: android.content.Context, text: String): List<Hits> = withContext(Dispatchers.IO) {
+    val q = java.net.URLEncoder.encode(text, "utf-8")
+    coroutineScope {
+        val live = async {
+            val ids = dataOf(HelixApi.searchChannels(ctx, q, true))
+                .mapNotNull { it.asJsonObject.get("id")?.takeIf { id -> !id.isJsonNull }?.asString?.takeIf { id -> id.isNotEmpty() } }
+            if (ids.isEmpty()) emptyList()
+            else dataOf(HelixApi.getStreamsByQuery(ctx, "user_id=" + ids.joinToString("&user_id=")))
+                .let { if (it.size() == 0) emptyList() else HelixParser.parseStreams(ctx, Enums.RowType.SEARCH_STREAM, it).toList() }
+        }
+        val channels = async {
+            dataOf(HelixApi.searchChannels(ctx, q, false))
+                .let { if (it.size() == 0) emptyList() else HelixParser.parseChannelSearchResults(it, Enums.RowType.SEARCH_CHANNEL).toList() }
+        }
+        val games = async {
+            dataOf(HelixApi.searchCategories(ctx, q))
+                .let { if (it.size() == 0) emptyList() else HelixParser.parseCategories(it, Enums.RowType.SEARCH_GAME).toList() }
+        }
+        listOf(Hits(R.string.search_live, live.await()), Hits(R.string.search_channels, channels.await()),
+            Hits(R.string.search_categories, games.await()))
+            .filter { it.entries.isNotEmpty() }
     }
-    val live = kind { TvData.searchLive(ctx, text, it) }
-    val channels = kind { TvData.searchChannels(ctx, text, it) }
-    val games = kind { TvData.searchGames(ctx, text, it) }
-    listOf(Hits(R.string.search_live, live.await()), Hits(R.string.search_channels, channels.await()),
-        Hits(R.string.search_categories, games.await()))
-        .filter { it.entries.isNotEmpty() }
 }
 
 @Composable
@@ -109,6 +139,8 @@ private fun SearchScreen(open: (Movie) -> Unit, contextMenu: (Movie) -> Unit) {
     var text by remember { mutableStateOf("") }
     var hits by remember { mutableStateOf<List<Hits>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
+    var failed by remember { mutableStateOf(false) }
+    var attempt by remember { mutableStateOf(0) }
     var fieldFocus by remember { mutableStateOf(false) }
     val field = remember { FocusRequester() }
     // While the on-screen keyboard is open, it takes the arrow keys itself. "Search" on the keyboard
@@ -118,11 +150,15 @@ private fun SearchScreen(open: (Movie) -> Unit, contextMenu: (Movie) -> Unit) {
     val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
     fun toResults() { keyboard?.hide(); if (hits.isNotEmpty()) runCatching { results.requestFocus() } }
     LaunchedEffect(Unit) { runCatching { field.requestFocus() } }
-    LaunchedEffect(text) {
+    LaunchedEffect(text, attempt) {
+        failed = false
         if (text.trim().length < 2) { hits = emptyList(); return@LaunchedEffect }
         delay(600)
         loading = true
-        hits = runCatching { search(ctx, text.trim()) }.getOrDefault(emptyList())
+        // A failed request is an error on the page, not "no results"
+        val r = try { Result.success(search(ctx, text.trim())) } catch (e: SearchFailed) { Result.failure(e) }
+        hits = r.getOrDefault(emptyList())
+        failed = r.isFailure
         loading = false
     }
 
@@ -148,14 +184,9 @@ private fun SearchScreen(open: (Movie) -> Unit, contextMenu: (Movie) -> Unit) {
                 )
             }
         }
-        Text(
-            when {
-                loading -> stringResource(R.string.search_searching)
-                text.trim().length >= 2 && hits.isEmpty() -> stringResource(R.string.search_no_results)
-                else -> ""
-            },
-            fontFamily = Inter, fontSize = 11.sp, color = TvColors.TextMuted, modifier = Modifier.padding(top = 10.dp),
-        )
+        if (text.trim().length >= 2) listStatus(loading, failed, hits.isEmpty())?.let {
+            StatusNote(it, stringResource(R.string.search_no_results), Modifier.padding(top = 10.dp), retry = { attempt++ })
+        }
         LazyColumn(contentPadding = PaddingValues(top = 6.dp, bottom = 48.dp), verticalArrangement = Arrangement.spacedBy(22.dp)) {
             items(hits.size) { i ->
                 val t = hits[i]

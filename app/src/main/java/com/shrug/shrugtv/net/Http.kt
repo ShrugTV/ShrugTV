@@ -7,6 +7,9 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.shrug.shrugtv.login.TwitchDeviceAuth
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -155,17 +158,47 @@ object Http {
         private val checkStatus: Boolean,
         private val converter: Converter<T>
     ) {
+        /**
+         * Blocking. With a [group], [CallGroup.cancel] from another thread aborts the request and
+         * this throws.
+         */
+        @JvmOverloads
         @Throws(ExecutionException::class)
-        fun get(): T {
+        fun get(group: CallGroup? = null): T {
+            val call = request.call()
             return try {
-                request.call().execute().use { response ->
-                    val body = text(response)
-                    if (checkStatus && !response.isSuccessful) throw StatusException(response.code, body)
-                    converter.convert(body)
-                }
+                if (group != null && !group.add(call)) throw IOException("Canceled")
+                call.execute().use { response -> read(response) }
             } catch (e: Exception) {
                 throw ExecutionException(e)
+            } finally {
+                group?.remove(call)
             }
+        }
+
+        /**
+         * Suspending form of [setCallback] on top of [Call.await]: cancelling the coroutine cancels
+         * the OkHttp call, so the request does not keep running. Fails like
+         * [get] (e.g. [StatusException]), only without the ExecutionException wrapper; the body is
+         * read on [Dispatchers.IO] and the caller resumes on its own dispatcher.
+         */
+        suspend fun await(): T = withContext(Dispatchers.IO) {
+            request.call().await().use { response -> read(response) }
+        }
+
+        /** [await], with null for any failure; cancellation still propagates. */
+        suspend fun awaitOrNull(): T? = try {
+            await()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
+        }
+
+        private fun read(response: Response): T {
+            val body = text(response)
+            if (checkStatus && !response.isSuccessful) throw StatusException(response.code, body)
+            return converter.convert(body)
         }
 
         fun setCallback(callback0: ResultCallback<T>?) {
@@ -179,11 +212,7 @@ object Http {
                     var value: T? = null
                     var error: Exception? = null
                     try {
-                        response.use { resp ->
-                            val body = text(resp)
-                            if (checkStatus && !resp.isSuccessful) throw StatusException(resp.code, body)
-                            value = converter.convert(body)
-                        }
+                        value = response.use { resp -> read(resp) }
                     } catch (e: Exception) {
                         value = null
                         error = e

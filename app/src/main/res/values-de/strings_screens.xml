@@ -6,10 +6,10 @@
     <string name="dialog_logout_question">Abmelden?</string>
     <string name="dialog_logout_text">Gefolgte Kanäle und eigene Emotes sind danach nicht mehr verfügbar.</string>
     <string name="dialog_logout_confirm">Abmelden</string>
-    <string name="dialog_vod_history_question">VOD-Verlauf löschen?</string>
+    <string name="dialog_vod_history_question">Aufzeichnungsverlauf löschen?</string>
     <string name="dialog_vod_history_text">Alle gespeicherten Wiedergabepositionen gehen verloren.</string>
     <string name="dialog_vod_history_confirm">Löschen</string>
-    <string name="dialog_vod_history_cleared">VOD-Verlauf gelöscht</string>
+    <string name="dialog_vod_history_cleared">Aufzeichnungsverlauf gelöscht</string>
     <string name="dialog_qr_follow_title">Folgen auf dem Handy</string>
     <string name="dialog_qr_follow_hint">Scanne den Code mit der Twitch-App, um dem Kanal zu folgen oder nicht mehr zu folgen. Danach mit Zurück schließen.</string>
     <string name="dialog_qr_chat_title">Chat auf dem Handy</string>
@@ -70,7 +70,6 @@
     <string name="category_follow">Folgen</string>
     <string name="category_all_languages">Alle Sprachen</string>
     <string name="category_clips">Clips</string>
-    <string name="category_loading">Lädt …</string>
     <string name="category_empty">Gerade streamt niemand in dieser Kategorie.</string>
     <string name="category_clips_empty">Keine Clips in dieser Kategorie.</string>
 
@@ -79,11 +78,9 @@
     <string name="search_channels">Kanäle</string>
     <string name="search_categories">Kategorien</string>
     <string name="search_hint">Kanäle, Streams oder Kategorien suchen</string>
-    <string name="search_searching">Suche …</string>
     <string name="search_no_results">Keine Treffer</string>
 
     <!-- Settings: texts that used to be hard-coded in res/xml*/settings.xml -->
-    <string name="settings_pref_language_row_main">„Sprachzeile“ auf dem Startbildschirm</string>
     <string name="settings_pref_language_row_games">„Sprachzeile“ in Kategorien</string>
     <string name="settings_pref_language_row_primary">Sprachzeile als erste Zeile in der Kategorie</string>
     <string name="settings_pref_select_language">Sprache wählen</string>
@@ -95,108 +92,41 @@
     <string name="settings_pref_watch_stats_summary">Zählt, welche Kanäle du wie lange schaust, nur auf diesem Gerät und nicht in Backups. Der Button „Statistik“ auf der Startseite zeigt es, dort wird auch gelöscht. Eine Sitzung zählt ab einer Minute.</string>
     <string name="settings_pref_start_last_channel">Beim Start den letzten Kanal öffnen</string>
     <string name="settings_pref_start_last_channel_summary">Beim Start der App öffnet sich gleich der Stream, den du zuletzt geschaut hast, wenn er live ist; sonst landest du auf der Startseite. „Zurück“ aus dem Player führt auf die Startseite. Gemerkt werden nur Streams, die du bei eingeschalteter Einstellung startest, nur auf diesem Gerät.</string>
-    <string name="settings_pref_followed">Gefolgt</string>
-    <string name="settings_pref_followed_games">Gefolgte Kategorien</string>
-    <string name="settings_pref_followed_channels">Gefolgte Kanäle</string>
-    <string name="settings_pref_past_broadcasts">Frühere Streams</string>
-    <string name="settings_pref_vod_history_row">VOD-Verlauf</string>
-    <string name="settings_pref_top_games">Top-Kategorien</string>
-    <string name="settings_pref_top_streamers">Top-Streamer</string>
     <string name="settings_pref_use_auto_refresh">Automatisch aktualisieren</string>
     <string name="settings_pref_minutes">Minuten</string>
-    <string name="settings_pref_auto_refresh_tip">Langes Drücken auf eine Karte aktualisiert die Ansicht, auf dem Startbildschirm und in einer Kategorie. Ausnahme ist die Zeile „Gefolgte Kanäle“: Dort macht langes Drücken den Kanal zum Favoriten.</string>
+    <string name="settings_pref_auto_refresh_tip">Langes Drücken auf eine Karte aktualisiert die Ansicht, auf der Startseite und in einer Kategorie. Ausnahme ist die Zeile „Gefolgte Kanäle“: Dort macht langes Drücken den Kanal zum Favoriten.</string>
     <string name="settings_pref_video_card_size">Kartengröße</string>
     <string name="settings_pref_stream_preview_category">Stream-Vorschau</string>
     <string name="settings_pref_show_stream_preview">Stream-Vorschau zeigen</string>
-    <string name="settings_pref_show_stream_preview_summary">Auf den Karten im Startbildschirm, in Kategorien und in der Suche läuft eine Vorschau des gewählten Streams</string>
-    <string name="settings_pref_compatibility_mode">Kompatibilitätsmodus</string>
-    <string name="settings_pref_preview_texture_summary">Hilft, wenn beim Wechsel zwischen Karten mit Vorschau kurz ein schwarzes Bild erscheint. Tauscht Bildauflösung gegen flüssige Animation. Neustart der App nötig!</string>
+    <string name="settings_pref_show_stream_preview_summary">Auf den Karten auf der Startseite, in Kategorien und in der Suche läuft eine Vorschau des gewählten Streams</string>
     <string name="settings_pref_clear_history">Verlauf löschen</string>
-    <string name="settings_pref_home_screen_channels">Kanäle auf dem Android-Startbildschirm</string>
-    <string name="settings_pref_channels_back_behavior">Stream vom Android-Startbildschirm geöffnet, dann Zurück: landen …</string>
     <string name="settings_pref_favorites_first">Favoriten vor den gefolgten Streams</string>
     <string name="settings_pref_favorites_first_summary">Deine Favoriten (⭐) stehen vor den gefolgten Streams</string>
     <string name="settings_pref_filter_users">Benutzer filtern</string>
     <string name="settings_pref_filter_users_dialog">Groß-/Kleinschreibung egal, Namen mit Komma trennen</string>
     <string name="settings_pref_filter_words">Wörter filtern</string>
     <string name="settings_pref_filter_words_dialog">Groß-/Kleinschreibung egal, Wörter mit Komma trennen</string>
-    <string name="settings_pref_filter_bots">Bots und ihre Befehle ausfiltern</string>
-    <string name="settings_pref_filter_predict_bots">Chat-Bots erraten und ausfiltern</string>
-    <string name="settings_pref_filter_predict_bots_summary">Endet der Name auf „bot“ (Groß-/Kleinschreibung egal) und ist der Benutzer Moderator, gilt er als Bot. Das ist nicht ganz zuverlässig.</string>
-    <string name="settings_pref_peek_select_current">Aktuellen Streamer auswählen, wenn möglich</string>
-    <string name="settings_pref_peek_select_current_summary">Beim Öffnen der Zeile wird der aktuelle Streamer darin ausgewählt. Das kann stören, wenn er mitten in der Zeile steht.</string>
-    <string name="settings_pref_multiview_position">Standardposition der Multiview</string>
-    <string name="settings_pref_multiview_size">Größe der Multiview</string>
-    <string name="settings_pref_side_by_side">Video und Chat standardmäßig nebeneinander</string>
-    <string name="settings_pref_side_by_side_on">Chat-Overlay ist dann nicht verfügbar</string>
-    <string name="settings_pref_side_by_side_scale">Skalierung bei Video und Chat nebeneinander</string>
-    <string name="settings_pref_hide_bottom_buttons">Steuer-Buttons beim Start des Streams ausblenden</string>
-    <string name="settings_pref_show_tooltips">Hinweise an den Steuer-Buttons zeigen</string>
-    <string name="settings_pref_keep_screen_on">Bildschirm anlassen</string>
-    <string name="settings_pref_stream_navigation_summary">Zwischen Streams wechseln mit den Pfeiltasten links und rechts</string>
-    <string name="settings_pref_navigation_cards">Vorschaukarten beim Streamwechsel zeigen</string>
-    <string name="settings_pref_navigation_cards_summary">Beim Wechsel mit links/rechts siehst du den nächsten und den vorigen Stream</string>
-    <string name="settings_pref_navigation_cards_mv">Multiview-Karten beim Streamwechsel zeigen</string>
-    <string name="settings_pref_navigation_cards_mv_summary">Beim Wechsel der Multiview-Streams mit LANGEM Druck auf links/rechts siehst du den nächsten und den vorigen Stream</string>
-    <string name="settings_pref_navigation_thumbnail">Vorschaubild auf der Karte zeigen</string>
-    <string name="settings_pref_navigation_on_bottombar">Navigationskarten bei jedem Öffnen der unteren Leiste zeigen</string>
-    <string name="settings_pref_bottombar_on_switch">Untere Leiste beim Streamwechsel zeigen</string>
+    <string name="settings_pref_filter_bots">Bots ausblenden</string>
     <string name="settings_pref_clock">Uhr</string>
     <string name="settings_pref_show_clock">Uhr zeigen</string>
-    <string name="settings_pref_time_format">Zeitformat</string>
+    <string name="settings_pref_time_format">Uhrzeitformat</string>
     <string name="settings_pref_date_format">Datumsformat</string>
     <string name="settings_pref_local_clock">Ortszeit</string>
     <string name="settings_pref_show_local_time">Ortszeit zeigen</string>
     <string name="settings_pref_show_local_date">Datum zeigen</string>
-    <string name="settings_pref_world_clock">Weltuhr</string>
-    <string name="settings_pref_show_world_clock">Weltuhr zeigen</string>
-    <string name="settings_pref_custom1_clock">Uhr 1</string>
-    <string name="settings_pref_show_custom1_clock">Uhr 1 zeigen</string>
-    <string name="settings_pref_clock_label">Beschriftung</string>
-    <string name="settings_pref_time_zone">Zeitzone</string>
-    <string name="settings_pref_custom2_clock">Uhr 2</string>
-    <string name="settings_pref_show_custom2_clock">Uhr 2 zeigen</string>
-    <string name="settings_pref_custom3_clock">Uhr 3</string>
-    <string name="settings_pref_show_custom3_clock">Uhr 3 zeigen</string>
-    <string name="settings_pref_remote_shortcuts">Tasten der Fernbedienung</string>
-    <string name="settings_pref_remote_playpause">Wiedergabe/Pause</string>
-    <string name="settings_pref_remote_playpause_long">Wiedergabe/Pause lang gedrückt</string>
-    <string name="settings_pref_remote_ff">Vorspulen / Weiter</string>
-    <string name="settings_pref_remote_ff_long">Vorspulen / Weiter lang gedrückt</string>
-    <string name="settings_pref_remote_rw">Zurückspulen / Zurück</string>
-    <string name="settings_pref_remote_rw_long">Zurückspulen / Zurück lang gedrückt</string>
-    <string name="settings_pref_remote_menu">Menü</string>
-    <string name="settings_pref_remote_menu_long">Menü lang gedrückt</string>
-    <string name="settings_pref_stream_auto_refresh">Stream automatisch neu laden</string>
-    <string name="settings_pref_stream_auto_refresh_summary">Startet die Wiedergabe neu, wenn der Stream mit einem Fehler abbricht</string>
-    <string name="settings_pref_mode">Modus</string>
-    <string name="settings_pref_reconnect_interval">Abstand der Neuversuche (5×)</string>
-    <string name="settings_pref_mode_normal">Modus: Normal</string>
-    <string name="settings_pref_mode_normal_summary">Prüft vor dem Neuladen, ob der Streamer noch online ist. Für eine gute Internetverbindung.</string>
-    <string name="settings_pref_mode_aggressive">Modus: Hartnäckig</string>
-    <string name="settings_pref_mode_aggressive_summary">Startet den Stream neu, egal ob der Streamer online ist. Für eine SCHLECHTE Internetverbindung.</string>
     <string name="settings_pref_use_live_notification">Live-Benachrichtigungen verwenden</string>
     <string name="settings_pref_live_card">Live-Hinweis im Player</string>
     <string name="settings_summary_live_card">Beim Schauen erscheint eine Karte, wenn ein gefolgter Kanal live geht (höchstens alle 2 Minuten, 10 Sekunden lang). OK schaltet um, Zurück bleibt.</string>
     <string name="settings_pref_favorites_only">Nur meine Favoriten</string>
     <string name="settings_pref_tip_favorites">Tipp: Favoriten</string>
-    <string name="settings_pref_message_settings">Meldung</string>
+    <string name="settings_pref_message_settings">Benachrichtigung</string>
     <string name="settings_pref_test_notification">Testbenachrichtigung</string>
-    <string name="settings_pref_peek_compat_summary">Schafft das Gerät nur zwei Streams gleichzeitig und läuft schon die Multiview, öffnet PeekView ohne Wiedergabe</string>
-    <string name="settings_pref_stats">Statistiken für Nerds</string>
-    <string name="settings_pref_stats_summary">Wenn an, mit der Taste „M“ einblendbar. Zeigt Diagramme zum Stream. Macht der Player damit Probleme, aus lassen.</string>
-    <string name="settings_pref_stats_auto">Statistiken für Nerds automatisch an</string>
-    <string name="settings_pref_stats_auto_summary">Beim Start des Streams sichtbar</string>
     <string name="settings_pref_version_name">Versionsname</string>
     <string name="settings_pref_version_code">Versionsnummer</string>
     <string name="settings_pref_user_id">Benutzer-ID</string>
     <string name="settings_pref_build_type">Build-Typ</string>
     <string name="settings_pref_build_variant">Build-Variante</string>
     <string name="settings_pref_developer">Entwickler</string>
-    <string name="settings_pref_token_streams">TOKEN für Streams verwenden</string>
-    <string name="settings_pref_token_vods">TOKEN für VODs verwenden</string>
-    <string name="settings_pref_memory_usage">Speicherverbrauch zeigen</string>
-    <string name="settings_pref_show_errors">Fehler und Ausnahmen zeigen</string>
     <string name="settings_proxy_url">Eigene Proxy-URL</string>
     <string name="settings_proxy_url_summary" formatted="false">Nur bei Auswahl „Eigene URL“. Vorlage mit %s für den Kanal, z. B. https://proxy.lan/hls-raw/%s.m3u8. Der Proxy muss die usher-Anfrage aus einer werbefreien Region weiterreichen.</string>
     <string-array name="settings_proxy_server_names">
@@ -207,14 +137,12 @@
 
     <!-- Settings: German for the English resources in values/strings.xml (same names) -->
     <string name="pref_title_root_title">Einstellungen</string>
-    <string name="pref_title_general_settings">Allgemein</string>
     <string name="pref_title_appearance">Aussehen</string>
     <string name="pref_title_languagestream">Streamsprachen</string>
-    <string name="pref_summary_languagestream">Eine Zeile, die nur Streams in der eingestellten Sprache zeigt</string>
-    <string name="pref_title_row_visibility">Zeilen auf dem Startbildschirm</string>
+    <string name="pref_title_row_visibility">Zeilen</string>
     <string name="summary_rowvisibilty_past_broadcast">Zeigt nur Videos von Favoriten (⭐)</string>
     <string name="pref_title_auto_refresh">Automatisch aktualisieren</string>
-    <string name="pref_summary_autorefresh">Warst du so viele Minuten in einem Stream, VOD, einer Kategorie oder einem Kanal, wird beim Schließen die Seite darunter (Startbildschirm oder Kategorie) neu geladen</string>
+    <string name="pref_summary_autorefresh">Warst du so viele Minuten in einem Stream, einer Aufzeichnung, einer Kategorie oder einem Kanal, wird beim Schließen die Seite darunter (Startseite oder Kategorie) neu geladen</string>
     <string name="pref_title_accent_color">Akzentfarbe</string>
     <string name="pref_title_filtering">Auf der Startseite ausblenden</string>
     <string name="pref_summary_filtering_exclude">Diese Einträge werden ausgefiltert und erscheinen in keiner Liste</string>
@@ -229,27 +157,25 @@
     <string name="settings_guide_show">Anleitung zeigen</string>
     <string name="pref_summary_filter_tip">„Kategorien filtern“ blendet auch einzelne Streams in dieser Kategorie aus</string>
     <string name="pref_title_stream_preview_quality">Qualität der Vorschau</string>
-    <string name="pref_title_Miscellaneous">Sonstiges</string>
     <string name="pref_title_chatsettings">Chat</string>
-    <string name="settings_title_chat_join_chat">Chat beitreten</string>
-    <string name="settings_summary_chat_join_chat">Nötig, damit Hostings funktionieren.</string>
-    <string name="settings_title_chat_show_chat_on_playback">Chat beim Start zeigen</string>
-    <string name="settings_title_chat_font_size">Schriftgröße</string>
+    <string name="settings_title_chat_join_chat">Chat (Hauptschalter)</string>
+    <string name="settings_title_chat_show_chat_on_playback">Chat beim Abspielen gleich zeigen</string>
+    <string name="settings_title_chat_font_size">Textgröße</string>
     <string name="settings_title_chat_delay">Chat-Verzögerung</string>
     <string name="settings_title_chat_reply_chars">Länge der beantworteten Nachricht</string>
     <string name="settings_summary_chat_reply_chars">Über einer Antwort zeigt der Chat die Nachricht, auf die geantwortet wird, bis zu dieser Zeichenzahl (mit dem Namen), danach mit „…“ abgeschnitten. Gilt für neue Nachrichten.</string>
     <string name="settings_number_hint">Links / Rechts ändern die Zahl in Schritten von %1$d, OK öffnet das Tastenfeld zum Eintippen.</string>
     <string name="settings_title_chat_height">Chat-Höhe</string>
     <string name="settings_title_chat_vertical">Lage des Chats (wenn nicht volle Höhe)</string>
-    <string name="settings_title_chat_default_height">Standardhöhe des Chats</string>
     <string name="settings_title_chat_default_width">Standardbreite des Chats</string>
     <string name="settings_title_chat_default_position">Standardposition des Chats</string>
     <string name="settings_title_chat_emote_size">Standardgröße der Emotes</string>
     <string name="settings_title_chat_background_opacity">Deckkraft des Chat-Hintergrunds</string>
-    <string name="settings_title_chat_background">Chat-Hintergrund bei „Nebeneinander“</string>
-    <string name="settings_title_chat_input_box_position">Höhe des Eingabefelds im Chat</string>
     <string name="settings_title_chat_show_gif">Animierte GIFs zeigen</string>
     <string name="settings_title_chat_show_subscriptions">Abo-Meldungen im Chat zeigen</string>
+    <string name="settings_summaryON_chat_show_subscriptions">Abo-Meldungen erscheinen im Chat</string>
+    <string name="settings_summaryOFF_chat_show_subscriptions">Abo-Meldungen sind ausgeblendet</string>
+    <string name="test_detailed_title">Das ist eine ausführliche Benachrichtigung: Hier steht der Titel des Streams, ein langer Titel bricht in eine zweite Zeile um.</string>
     <string name="settings_title_chat_show_prime">Prime-Abo-Symbol zeigen</string>
     <string name="settings_title_chat_show_gifted_subs">Verschenkte Abos im Chat zeigen</string>
     <string name="settings_title_chat_layout">Chat-Layout</string>
@@ -262,47 +188,26 @@
     <string name="settings_summary_chat_highlight_users">Markiert Nachrichten dieser Nutzer, z. B. von Freunden</string>
     <string name="settings_dialog_chat_highlight">Groß-/Kleinschreibung egal, mit Komma trennen</string>
     <string name="settings_title_chat_show_timestamp">Uhrzeit zeigen</string>
-    <string name="settings_title_chat_open_keyboard">Tastatur mit dem Chat öffnen</string>
-    <string name="settings_title_chat_hide_deleted_messages">Gelöschte Nachrichten ausblenden</string>
     <string name="settings_title_chat_deleted_style">Gelöschte Nachrichten</string>
     <string name="settings_title_chat_recent_messages">„Letzte Nachrichten“ zeigen</string>
     <string name="settings_summary_chat_recent_messages">Lädt frühere Nachrichten jedes Kanals über den Fremddienst https://recent-messages.robotty.de. Wer das einschaltet, stimmt dem zu.</string>
     <string name="pref_title_filter">Chat-Filter</string>
     <string name="pref_filter_users_summary">Blendet Nachrichten nach Benutzername aus</string>
     <string name="pref_filter_words_summary">Blendet Nachrichten nach Wörtern aus</string>
-    <string name="pref_title_stream_settings">Streams</string>
     <string name="pref_title_default_video_quality">Standardqualität für Streams</string>
-    <string name="pref_summary_Video_side_by_side">Normalerweise kehrt der Chat nach „Nebeneinander“ an seine alte Stelle zurück. Ist das hier an, bleibt er an der Seite, an der du ihn verlassen hast.</string>
-    <string name="pref_title_stream_navigation_category">Streamwechsel</string>
-    <string name="pref_title_stream_navigation_settings">Streamwechsel</string>
-    <string name="pref_title_other_settings">Weitere Einstellungen</string>
     <string name="pref_title_double_tap_back">Zweimal ZURÜCK schließt den Stream</string>
     <string name="pref_summary_double_tap_back">Gegen versehentliches Schließen</string>
     <string name="pref_title_show_incoming_raid_notification">Eingehende Raids melden</string>
-    <string name="pref_title_clock_label">Dieser Text steht vor der Uhrzeit</string>
-    <string name="title_remote_dpad_left">Links</string>
-    <string name="title_remote_dpad_left_long">Links lang gedrückt</string>
-    <string name="title_remote_dpad_right">Rechts</string>
-    <string name="title_remote_dpad_right_long">Rechts lang gedrückt</string>
-    <string name="title_remote_dpad_down">Runter</string>
-    <string name="title_remote_dpad_down_long">Runter lang gedrückt</string>
-    <string name="pref_title_vod_settings">VODs</string>
-    <string name="pref_title_default_VOD_video_quality">Standardqualität für VODs</string>
-    <string name="pref_title_vod_history">VOD-Verlauf</string>
-    <string name="pref_title_vod_remove_watched">Gesehene VODs aus dem Verlauf entfernen</string>
-    <string name="pref_summary_vod_remove_watched">Entfernt ein VOD aus dem Verlauf, wenn du es bis zum Ende gesehen hast</string>
-    <string name="pref_title_clear_vod_history">VOD-Verlauf löschen</string>
-    <string name="pref_summary_clear_vod_history">Leert den VOD-Verlauf. Die Fortsetzungspunkte der einzelnen VODs bleiben.</string>
-    <string name="pref_category_vod_auto_hide">Automatisch ausblenden</string>
-    <string name="pref_title_vod_auto_hide">VOD-Zeile automatisch ausblenden</string>
-    <string name="pref_summary_vod_auto_hide">Blendet die Zeile auf dem Startbildschirm aus, wenn du X Tage kein VOD geöffnet hast. Praktisch, wenn du selten VODs schaust.</string>
-    <string name="pref_title_vod_auto_hide_days">Zeile ausblenden nach …</string>
+    <string name="pref_title_default_VOD_video_quality">Standardqualität für Aufzeichnungen</string>
+    <string name="pref_title_vod_history">Aufzeichnungsverlauf</string>
+    <string name="pref_title_clear_vod_history">Aufzeichnungsverlauf löschen</string>
+    <string name="pref_summary_clear_vod_history">Leert den Aufzeichnungsverlauf. Die Fortsetzungspunkte der einzelnen Aufzeichnungen bleiben.</string>
     <string name="pref_title_Notification">Benachrichtigungen</string>
     <string name="pref_title_Live_Notification">Benachrichtigungen</string>
     <string name="pref_summary_live_notification">Meldet bei geöffnetem ShrugTV, wenn ein gefolgter Streamer live geht.</string>
     <string name="pref_summary_Notification">Kanäle lassen sich in der App zu Favoriten machen. Sie stehen dann vor den gefolgten Kanälen, und Benachrichtigungen lassen sich auf sie beschränken.</string>
     <string name="pref_notification_type_title">Art</string>
-    <string name="pref_notification_font_size">Schriftgröße</string>
+    <string name="pref_notification_font_size">Textgröße</string>
     <string name="pref_title_notification_position">Position</string>
     <string name="title_request_draw_over_permission">Berechtigung „Über anderen Apps einblenden“ anfordern</string>
     <string name="summary_request_draw_over_permission">„Dauer“ und „Animation“ brauchen diese Berechtigung</string>
@@ -310,9 +215,6 @@
     <string name="pref_title_notification_animation">Animation</string>
     <string name="pref_summary_live_notification3">Zeigt „Testbenachrichtigung“ nichts, prüfen, ob Benachrichtigungen für die App an sind: Android-Einstellungen → Apps → ShrugTV → Benachrichtigungen.</string>
     <string name="pref_title_proxy_server">Proxy-Server</string>
-    <string name="pref_application_info">App-Info</string>
-    <string name="theme_name_dark_grey">Dunkelgrau (Standard)</string>
-    <string name="theme_name_night_mode">Nachtmodus</string>
     <string name="array_display_chat_emote_size">Automatisch, passend zur Schrift</string>
     <string name="array_display_chat_emote_size_normal">Automatisch, passend zur Schrift (normal)</string>
     <string name="array_display_chat_emote_size_bigger">Automatisch, passend zur Schrift (größer)</string>
@@ -324,28 +226,6 @@
     <string name="display_notification_anim_zoom_in">Heranzoomen</string>
     <string name="display_notification_anim_slide_in">Hereingleiten</string>
     <string name="display_notification_anim_slide_up">Hochgleiten</string>
-    <string name="remote_shortcut_none">keine</string>
-    <string name="remote_shortcut_show_hide_chat">Chat zeigen/ausblenden</string>
-    <string name="remote_shortcut_modify_chat">Chat anpassen</string>
-    <string name="remote_shortcut_modify_multiview">Multiview anpassen</string>
-    <string name="remote_shortcut_video_size">Videogröße</string>
-    <string name="remote_shortcut_fast_forward">Vorspulen</string>
-    <string name="remote_shortcut_player_info">Player-Info</string>
-    <string name="remote_shortcut_send_chat_message">Chatnachricht senden</string>
-    <string name="remote_shortcut_video_quality">Videoqualität</string>
-    <string name="remote_shortcut_open_external_player">Stream in externem Player öffnen</string>
-    <string name="remote_shortcut_save_vod">Position des Streams als VOD-Fortsetzungspunkt merken</string>
-    <string name="remote_shortcut_pause_chat">Chat anhalten</string>
-    <string name="remote_shortcut_change_chat_background_color">Chat-Hintergrundfarbe wechseln</string>
-    <string name="remote_shortcut_swap_chat">Chat in der Multiview tauschen</string>
-    <string name="remote_shortcut_play_pause">Wiedergabe / Pause</string>
-    <string name="remote_shortcut_volume_control">Lautstärke der Multiview</string>
-    <string name="remote_shortcut_stream_navigation_prev">Voriger Stream</string>
-    <string name="remote_shortcut_stream_navigation_prev_mv">Voriger Stream in der Multiview</string>
-    <string name="remote_shortcut_stream_navigation_next">Nächster Stream</string>
-    <string name="remote_shortcut_stream_navigation_next_mv">Nächster Stream in der Multiview</string>
-    <string name="remote_shortcut_swap_multview">Hauptbild und Multiview tauschen</string>
-    <string name="remote_shortcut_swap_mv_audio">Ton zwischen Hauptbild und Multiview tauschen</string>
 
     <!-- Settings: German list entries (same names as values/arrays.xml) -->
     <string-array name="display_video_card_size">
@@ -392,17 +272,6 @@
         <item>4,5 s</item>
         <item>5 s</item>
     </string-array>
-    <string-array name="display_chat_size2">
-        <item>Horizontal</item>
-        <item>10%</item>
-        <item>15%</item>
-        <item>25%</item>
-        <item>33%</item>
-        <item>50%</item>
-        <item>66%</item>
-        <item>75%</item>
-        <item>100%</item>
-    </string-array>
     <string-array name="display_chat_width">
         <item>@string/array_display_chat_emote_size</item>
         <item>100</item>
@@ -443,15 +312,6 @@
         <item>60</item>
         <item>65</item>
     </string-array>
-    <string-array name="value_chat_background">
-        <item>Standard</item>
-        <item>Grau</item>
-    </string-array>
-    <string-array name="display_chat_input_box_position">
-        <item>Unten</item>
-        <item>Standard</item>
-        <item>Oben</item>
-    </string-array>
     <string-array name="display_name_colors">
         <item>Wie vom Nutzer gewählt</item>
         <item>Lesbar gemacht (empfohlen)</item>
@@ -463,44 +323,12 @@
         <item>Inhalt verbergen</item>
         <item>Wie gesendet</item>
     </string-array>
-    <string-array name="display_hide_modded_message">
-        <item>Nichts tun</item>
-        <item>Nachricht grau färben</item>
-        <item>Inhalt ausblenden</item>
-    </string-array>
     <string-array name="display_video_quality">
         <item>Auto</item>
         <item>Auto (höchstens 1080p)</item>
         <item>Auto (höchstens 720p)</item>
         <item>Auto (höchstens 480p)</item>
         <item>Original</item>
-    </string-array>
-    <string-array name="display_multiview_size">
-        <item>Größe 1</item>
-        <item>Größe 2</item>
-        <item>Größe 3 (Standard)</item>
-        <item>Größe 4</item>
-        <item>Größe 5</item>
-    </string-array>
-    <string-array name="display_video_scale_mode">
-        <item>An Bildschirm anpassen</item>
-        <item>Mittig zuschneiden</item>
-    </string-array>
-    <string-array name="display_vod_auto_hide_days">
-        <item>1 Tag</item>
-        <item>2 Tage</item>
-        <item>3 Tage</item>
-        <item>4 Tage</item>
-        <item>5 Tage</item>
-        <item>6 Tage</item>
-        <item>7 Tage</item>
-        <item>8 Tage</item>
-        <item>9 Tage</item>
-        <item>10 Tage</item>
-        <item>11 Tage</item>
-        <item>12 Tage</item>
-        <item>13 Tage</item>
-        <item>14 Tage</item>
     </string-array>
     <string-array name="display_notification_position">
         <item>Oben links</item>
@@ -527,12 +355,7 @@
         <item>12 Stunden</item>
         <item>24 Stunden</item>
     </string-array>
-    <string-array name="display_stream_autorefresh">
-        <item>Normal</item>
-        <item>Hartnäckig</item>
-    </string-array>
-    <string name="settings_player_category">Im Player</string>
-    <string name="settings_player_keys_tip">OK öffnet die Steuerleiste · ≡ (Menü) öffnet „Mehr“ · ◀ ▶ wechselt den Kanal (Live) bzw. springt 10 s (VOD) · ▲ Kanalwechsler (▲ ▼ schalten dort die Liste weiter) · Kanal ± und ⏮ ⏭ wechseln ebenfalls · Info zeigt die Statistik · Untertitel schaltet den Chat · ⏩ springt zurück zu Live · gedrückt halten wiederholt nichts.</string>
+    <string name="settings_player_keys_tip">OK öffnet die Steuerleiste · ≡ (Menü) öffnet „Mehr“ · ◀ ▶ wechselt den Kanal (Live) bzw. springt 10 s (Aufzeichnung) · ▲ Kanalwechsler (▲ ▼ schalten dort die Liste weiter) · Kanal ± und ⏮ ⏭ wechseln auch · Info zeigt die Statistik · Untertitel schaltet den Chat · ⏩ springt zu Live · „Highlights“ in der Leiste zeigt die Top-Clips des Livestreams.</string>
     <string name="settings_player_controls_timeout">Steuerleiste ausblenden nach</string>
     <string name="settings_player_timeout_5">5 Sekunden</string>
     <string name="settings_player_timeout_8">8 Sekunden</string>
@@ -576,7 +399,7 @@
     <string name="settings_chat_highlight_tip">Wörter oder Nutzernamen mit Komma trennen, Groß-/Kleinschreibung egal. Wörter bekommen einen Hintergrund, Nachrichten dieser Nutzer (und von Streamer, Moderatoren oder VIPs, wenn eingeschaltet) einen Streifen links und einen leichten Hintergrund, alles in der Farbe der Hervorhebung. Erwähnungen deines eigenen Namens werden immer markiert.</string>
     <string name="settings_mqtt_category">Home Assistant (MQTT)</string>
     <string name="settings_mqtt_connection_category">Verbindung</string>
-    <string name="settings_mqtt_tip">Verbindet ShrugTV über deinen MQTT-Broker (z. B. das Mosquitto-Add-on) mit Home Assistant. 1. Broker-Adresse, Benutzer und Passwort eintragen. 2. Einschalten. 3. In Home Assistant erscheint der TV von selbst unter Einstellungen → Geräte → MQTT, mit Status, Kanal, Bild, Steuerung und Ereignissen (Raid, Stream beendet, gefolgter Kanal live) für Automationen. Aktiv, solange ShrugTV offen ist, und 2 Minuten danach; bei geschlossener App startet der ADB-Deep-Link shrugtv://stream/&lt;kanal&gt; einen Kanal. Ohne TLS (ssl://) gehen Benutzer und Passwort unverschlüsselt durchs Netz.</string>
+    <string name="settings_mqtt_tip">Verbindet ShrugTV über deinen MQTT-Broker (z. B. Mosquitto) mit Home Assistant: Adresse, Benutzer und Passwort eintragen, einschalten; der TV erscheint unter Einstellungen → Geräte → MQTT mit Status, Steuerung und Ereignissen. Aktiv, solange ShrugTV offen ist, und 2 Minuten danach. Ohne TLS (ssl://) geht das Passwort unverschlüsselt durchs Netz.</string>
     <string name="settings_mqtt_enabled">Mit Home Assistant verbinden</string>
     <string name="settings_mqtt_url">Broker-Adresse</string>
     <string name="settings_mqtt_url_summary">z. B. 192.168.0.10 oder tcp://broker.lan:1883 (ssl://…:8883 für TLS)</string>
@@ -591,7 +414,7 @@
     <string name="settings_mqtt_status_summary">Zeigt, ob ShrugTV mit dem Broker verbunden ist</string>
     <string name="settings_mqtt_status_value">MQTT: %1$s</string>
     <string name="settings_mqtt_identity_category">Topics und Identität</string>
-    <string name="settings_mqtt_identity_tip">So erscheint dieser TV am Broker. Topics: &lt;Topic-Präfix&gt;/&lt;Geräte-ID&gt;/state, …/cmd/…, …/event; die Geräte-ID entsteht aus dem Gerätenamen (Kleinbuchstaben, Ziffern, Unterstriche). Jeder TV sollte einen eigenen Namen haben: nutzt ein anderer TV ihn schon, hängt dieser TV selbst ein kurzes Kürzel an seine ID (steht in den Browser-Einstellungen). Ändern sich Name oder Präfix, entfernt ShrugTV die alten Entitäten selbst aus Home Assistant. Tipp: dem TV einen eigenen Broker-Benutzer geben, der nur diese Topics und das Discovery-Präfix darf.</string>
+    <string name="settings_mqtt_identity_tip">So erscheint dieser TV am Broker: Topics &lt;Topic-Präfix>/&lt;Geräte-ID>/state, …/cmd/… und …/event; die ID entsteht aus dem Gerätenamen. Gib jedem TV einen eigenen Namen (bei Gleichstand kommt ein Kürzel dazu). Ändern sich Name oder Präfix, entfernt ShrugTV die alten Entitäten selbst. Tipp: ein eigener Broker-Benutzer nur für diese Topics.</string>
     <string name="settings_mqtt_topic_prefix">Topic-Präfix</string>
     <string name="settings_mqtt_topic_prefix_summary">Anfang jedes Topics, Standard shrugtv. Buchstaben, Ziffern, _ - und /; Namen anderer Systeme (zigbee2mqtt, tasmota, homeassistant …) werden abgelehnt, dann gilt shrugtv</string>
     <string name="settings_mqtt_advanced">Erweitert</string>
@@ -600,7 +423,7 @@
     <string name="settings_mqtt_discovery_prefix">Discovery-Präfix</string>
     <string name="settings_mqtt_discovery_prefix_summary">Nur ändern, wenn Home Assistant mit einem anderen eingerichtet ist (Standard homeassistant)</string>
     <string name="settings_mqtt_interval">Aktualisierung</string>
-    <string name="settings_mqtt_interval_summary">Wie oft Laufzeit und VOD-Position gesendet werden, solange etwas läuft; Änderungen gehen sowieso sofort raus</string>
+    <string name="settings_mqtt_interval_summary">Wie oft Laufzeit und Position in der Aufzeichnung gesendet werden, solange etwas läuft; Änderungen gehen sowieso sofort raus</string>
     <string name="settings_mqtt_entities_category">Entitäten in Home Assistant</string>
     <string name="settings_mqtt_entities_tip">Wähle, welche Entitäten Home Assistant bekommt. Eine ausgeschaltete Gruppe wird sauber aus Home Assistant entfernt, eingeschaltet kommt sie zurück. In den Browser-Einstellungen steht bei jeder Gruppe, wie viele Entitäten sie hat.</string>
     <string name="settings_mqtt_entities_info">Was läuft</string>
@@ -620,7 +443,7 @@
         <item>5 Minuten</item>
     </string-array>
     <string name="settings_companion_category">Handy &amp; Browser</string>
-    <string name="settings_companion_tip">Das Handy als Fernbedienung und Tastatur, ohne App: 1. Einschalten. 2. „Handy verbinden“ wählen (oder „Handy“ im Mehr-Menü des Players) und den QR-Code mit einem Handy im selben WLAN scannen. 3. Auf dem Handy: sehen, was läuft, den TV steuern, den Chat lesen und mit der Handytastatur schreiben, Kanäle suchen und an den TV schicken. 4. Am Computer: die beim QR-Code angezeigte Adresse im Browser öffnen und die PIN eingeben; im Reiter „Einstellungen“ lassen sich dort alle Einstellungen dieser App mit Maus und Tastatur ändern: Gruppen in der Seitenleiste, Suche mit / oder Strg+K, ☆ heftet eine Einstellung an, jede Gruppe hat eine eigene Adresse für Lesezeichen, Backup in eine Datei (ohne MQTT und Companion, die gehören zu diesem TV), hell oder dunkel. 5. Reiter „Log“: was ShrugTV gerade tut, live; nach Stufe und Quelle filtern, suchen, Zeile anklicken für Details, kopieren oder für einen Fehlerbericht sichern. Gekoppelte Geräte werden gemerkt und verbinden sich ohne Code wieder (Liste unter „Verbundene Geräte“). Nur im Heimnetz, nur solange ShrugTV offen ist.</string>
+    <string name="settings_companion_tip">Das Handy als Fernbedienung und Tastatur, ohne App: einschalten, „Handy verbinden“ wählen, QR-Code im selben WLAN scannen. Es zeigt, was läuft, steuert den TV, schreibt im Chat und schickt Kanäle. Im Browser am PC (Adresse und PIN beim QR-Code) änderst du jede Einstellung und siehst das Live-Log. Gekoppelte Geräte verbinden sich selbst wieder.</string>
     <string name="settings_companion_enabled">Handy &amp; Browser</string>
     <string name="settings_companion_pair">Handy verbinden</string>
     <string name="settings_companion_pair_summary">Zeigt einen QR-Code und eine PIN für das Handy</string>
@@ -647,7 +470,7 @@
     <string name="settings_chat_look_category">Darstellung</string>
     <string name="settings_chat_look_tip">Macht den Chat vom Sofa aus besser lesbar (wie die 7TV-Browsererweiterung): Namensfarben (wie gewählt, lesbar gemacht oder alle in der Akzentfarbe), abwechselnder Zeilenhintergrund, eine dünne Linie zwischen den Nachrichten, kompakter Abstand für mehr Nachrichten auf dem Schirm und Badges an oder aus. Gilt ab dem nächsten geöffneten Kanal.</string>
     <string name="settings_clock_summary">Zeigt die Uhrzeit oben rechts, solange die Leiste des Players offen ist. Format und Datum darunter; die Weltuhren haben noch keine Wirkung.</string>
-    <string name="settings_vod_chapters">VOD-Kategorien</string>
+    <string name="settings_vod_chapters">Kategorien der Aufzeichnung</string>
     <string name="settings_vod_chapters_summary">Markiert die Kategorien (Spiele) einer Aufzeichnung auf der Zeitleiste und bietet Buttons und Tasten (Kanal hoch/runter, Weiter/Zurück), um zur nächsten oder vorigen zu springen. Wiederholtes Links/Rechts springt in wachsenden Schritten.</string>
     <string name="settings_chat_vod_chat">Chat bei Aufzeichnungen</string>
     <string name="settings_chat_vod_chat_summary">Zeigt beim Abspielen einer Aufzeichnung (VOD) den Chat von damals, im Takt mit dem Bild. Nur lesen.</string>
@@ -660,7 +483,7 @@
     <string name="settings_chat_show_badges">Badges zeigen</string>
     <string name="settings_chat_show_badges_summary">Aus: keine Badges vor den Namen (Moderator, Abonnent, 7TV …)</string>
     <string name="settings_chat_emotes_category">Emotes und 7TV</string>
-    <string name="settings_chat_emotes_tip">Welche Emotes der Chat neben Twitchs eigenen zeigt: 7TV, BetterTTV und FrankerFaceZ, jeweils an oder aus (weniger Anbieter = schnellerer Start). Zero-Width-Emotes wie Hüte oder Regen liegen über dem Emote davor statt daneben. 7TV-Namensfarben (Verläufe), 7TV-Badges und persönliche 7TV-Emotes erscheinen bei Chattern, die 7TV nutzen, wie in der 7TV-Browsererweiterung; sie kommen vom Live-Dienst von 7TV. Gilt ab dem nächsten geöffneten Kanal.</string>
+    <string name="settings_chat_emotes_tip">Welche Emotes der Chat neben Twitchs eigenen zeigt: 7TV, BetterTTV und FrankerFaceZ (weniger = schnellerer Start). Zero-Width-Emotes wie Hüte liegen auf dem Emote davor. 7TV-Namensfarben, -Badges und persönliche Emotes kommen vom Live-Dienst von 7TV, bei Chattern, die 7TV nutzen. Gilt ab dem nächsten geöffneten Kanal.</string>
     <string name="settings_chat_emotes_7tv">Emotes von 7TV</string>
     <string name="settings_chat_emotes_7tv_summary">Kanal- und globale 7TV-Emotes</string>
     <string name="settings_chat_emotes_bttv">Emotes von BetterTTV</string>
@@ -707,11 +530,11 @@
         <item>1 s</item>
         <item>1,5 s</item>
     </string-array>
-    <string name="settings_pref_splash_style">Startbildschirm</string>
+    <string name="settings_pref_splash_style">Startbild</string>
     <string name="settings_pref_splash_style_summary">Erscheint beim Kaltstart, bis die Startseite steht. „Logo, Name und Begrüßung“ zeigt dazu einen Schein in der Akzentfarbe; „Aus“ zeigt nur das kurze Logo des Systems.</string>
-    <string name="settings_pref_splash_greeting">Begrüßung auf dem Startbildschirm</string>
+    <string name="settings_pref_splash_greeting">Begrüßung auf dem Startbild</string>
     <string name="settings_pref_splash_greeting_summary">Guten Morgen, guten Abend … mit deinem Twitch-Namen, je nach Tageszeit.</string>
-    <string name="settings_pref_splash_min">Startbildschirm mindestens zeigen</string>
+    <string name="settings_pref_splash_min">Startbild mindestens zeigen</string>
     <string name="settings_pref_splash_min_summary">Er bleibt, bis die Startseite geladen ist, mindestens so lange, höchstens 5 s.</string>
     <string name="splash_greeting_morning">Guten Morgen</string>
     <string name="splash_greeting_day">Hallo</string>
@@ -814,11 +637,10 @@
     <string name="cat_events">Ereignisse &amp; Nachrichten</string>
     <string name="settings_show_advanced">Erweiterte Einstellungen zeigen</string>
     <string name="settings_show_advanced_summary">Zeigt die selten nötigen Einstellungen (Zeiten, 7TV-Details, MQTT-Themen, Aussehen der Benachrichtigung) und die Seite „Erweitert“. Ausblenden schaltet nichts ab.</string>
-    <string name="settings_home_tip">Startseite: was du zuerst siehst. Welche Zeilen erscheinen, die Sprachzeile, was ausgeblendet wird, wie oft aktualisiert wird und wie groß die Karten sind. Die Vorschau rechts zeigt Karten und Startbild. Unter „Start“ stellst du Startbild und den letzten Kanal ein.</string>
+    <string name="settings_home_tip" formatted="false">Startseite: Start, Zeilen, Ausblenden, Aktualisierung und Kartengröße; die Vorschau rechts zeigt Karten und Startbild. Zu 90 % gesehene Aufzeichnungen werden ausgegraut oder ausgeblendet. Die Menütaste (≡) öffnet das Menü einer Karte, eines Kanals oder Clips wie langes OK; sonst wechselt sie die Ansicht oder öffnet im Player „Mehr“.</string>
     <string name="settings_quality_tip">Die Standardqualität für Live-Streams und Aufzeichnungen (VODs), geringe Verzögerung und Bildrate anpassen. Im Player ändert die Qualitätstaste sie für den laufenden Stream.</string>
     <string name="settings_live_tip">Was der Player mit einem Live-Stream macht: Taste „Zurück zu Live“, Zurückspulen im Live-Stream, Neustart eines hängenden Streams, die Wiederholen-Taste und was bei Streamende oder Raid passiert.</string>
     <string name="pref_title_row_order">Reihenfolge der Zeilen</string>
-    <string name="settings_row_order_tip">OK auf einer Zeile schiebt sie einen Platz nach oben; die erste Zeile geht ans Ende. Die Startseite zeigt die Zeilen in dieser Reihenfolge. Welche Zeilen erscheinen, stellst du eine Seite höher ein.</string>
     <string name="settings_row_order_reset">Zurück zur eingebauten Reihenfolge</string>
     <string name="settings_row_place">Platz %1$d</string>
     <string name="settings_row_order_reset_done">Reihenfolge zurückgesetzt</string>
@@ -866,7 +688,7 @@
     <string name="settings_reset_page_ask">Diese Seite zurücksetzen?</string>
     <string name="settings_reset_page_text">Jede geänderte Einstellung dieser Seite geht auf ihren Standard zurück. Geheimnisse wie das MQTT-Passwort und die App-Sprache bleiben unverändert.</string>
     <string name="settings_reset_do">Zurücksetzen</string>
-    <string name="settings_summary_chat_show_timestamp">Das Zeitformat stellst du unter Einstellungen → Player → Steuerung → Uhr → Zeitformat ein</string>
+    <string name="settings_summary_chat_show_timestamp">Uhrzeit im Live-Chat (24 Stunden), Position bei Aufzeichnungen</string>
     <string name="theme_preview">Vorschau</string>
     <string name="theme_preview_line">Dein Design, live: jede Änderung zeigt sich hier und sofort in der ganzen App.</string>
     <string name="theme_skin">Skin</string>
@@ -875,7 +697,6 @@
     <string name="theme_group_shapes">Ecken und Fokus</string>
     <string name="theme_group_surfaces">Flächen</string>
     <string name="theme_group_text">Schrift und Bewegung</string>
-    <string name="theme_group_start">Startbildschirm</string>
     <string name="theme_group_more">Weiteres</string>
     <string name="theme_background">Hintergrund</string>
     <string name="theme_background_summary">Seite hinter Startseite, Zeilen und Einstellungen.</string>
@@ -908,7 +729,7 @@
     <string name="theme_text_scale">Textgröße</string>
     <string name="theme_text_scale_summary">Aller Text der App, zusätzlich zur Größe am Gerät.</string>
     <string name="theme_animations">Animationen</string>
-    <string name="theme_animations_summary">Aus: kein Überblenden von Bildern und Startbildschirm.</string>
+    <string name="theme_animations_summary">Aus: kein Überblenden von Bildern und Startbild.</string>
     <string name="theme_reset">Alles auf den Skin zurücksetzen</string>
     <string name="theme_reset_none">Nichts geändert, alles kommt vom Skin</string>
     <string name="theme_from_skin">Vom Skin</string>
@@ -962,4 +783,65 @@
     <string name="settings_chat_merge_repeats_summary">Schreiben viele denselben Text (z. B. „!100“), bleibt die erste Zeile stehen und zeigt „×12“ statt zwölf Zeilen. Groß-/Kleinschreibung und Leerzeichen zählen nicht; der Zähler läuft weiter, solange der Text innerhalb der gewählten Zeit wiederkommt. Gilt ab dem nächsten Chatstart.</string>
     <string name="home_update_card">Version %1$s ist da</string>
     <string name="home_update_card_hint">Einstellungen → App → Jetzt prüfen</string>
+    <string-array name="display_chat_background_opacity">
+        <item>0 %</item>
+        <item>10 %</item>
+        <item>20 %</item>
+        <item>30 %</item>
+        <item>40 %</item>
+        <item>50 %</item>
+        <item>@string/array_chat_background_opacity_default</item>
+        <item>70 %</item>
+        <item>80 %</item>
+        <item>90 %</item>
+        <item>100 %</item>
+    </string-array>
+    <string-array name="display_languages">
+        <item>English</item>
+        <item>Dansk</item>
+        <item>Deutsch</item>
+        <item>Español</item>
+        <item>Français</item>
+        <item>Italiano</item>
+        <item>Magyar</item>
+        <item>Nederlands</item>
+        <item>Norsk</item>
+        <item>Polski</item>
+        <item>Português</item>
+        <item>Română</item>
+        <item>Slovenčina</item>
+        <item>Suomi</item>
+        <item>Svenska</item>
+        <item>Tiếng Việt</item>
+        <item>Türkçe</item>
+        <item>Čeština</item>
+        <item>Ελληνικά</item>
+        <item>Български</item>
+        <item>Русский</item>
+        <item>العربية</item>
+        <item>ภาษาไทย</item>
+        <item>中文</item>
+        <item>中文(粵語)</item>
+        <item>日本語</item>
+        <item>한국어</item>
+        <item>American Sign Language</item>
+        <item>Other</item>
+    </string-array>
+    <string name="status_loading">Wird geladen …</string>
+    <string name="status_error">Konnte nicht geladen werden. Prüfe das Netzwerk und versuche es noch einmal.</string>
+    <string name="status_retry">Erneut versuchen</string>
+    <string name="settings_vods_seen">Gesehene Aufzeichnungen</string>
+    <string name="settings_vods_seen_summary">Zu 90 % oder mehr gesehen; auf der Kanalseite und in den Zeilen der Startseite</string>
+    <string name="settings_rows_tip">Eine Gruppe je Zeile der Startseite, in der Reihenfolge der Startseite. „Auf der Startseite zeigen“ schaltet eine Zeile an oder aus; „Nach oben“ schiebt sie einen Platz hoch, die erste Zeile geht ans Ende. „Zurück zur eingebauten Reihenfolge“ macht jedes Verschieben rückgängig. Was die Clip-Zeilen zeigen, stellst du unter Startseite → Clips ein.</string>
+    <string name="settings_row_move_up">Nach oben</string>
+    <string name="settings_languages_tip">Eine Sendesprache für die App, gewählt unter „Sprache wählen“. Sie speist die Startseitenzeile „Top-Streams in deiner Sprache“ (Startseite → Zeilen), einen Reiter in jeder Kategorie, wenn der Schalter dafür an ist (der Schalter darunter öffnet Kategorien gleich dort), und Clips mit „Nur meine Stream-Sprache“.</string>
+    <string name="settings_appearance_tip">Der Skin legt das ganze Aussehen fest; Farben, Formen, Flächen und Text darunter ändern einzelne Teile davon, „Vom Skin“ folgt wieder dem Skin. Die Vorschau zeigt jede Änderung sofort. „Alles auf den Skin zurücksetzen“ entfernt deine eigenen Änderungen. Eine neue App-Sprache startet die Einstellungen neu, damit jeder Bildschirm wechselt.</string>
+    <string name="settings_clock_tip">Die Uhr oben rechts im Player, solange seine Leiste offen ist. „Uhrzeitformat“ (24 oder 12 Stunden) gilt auch für den Bildschirmschoner, das Datumsformat für die Datumszeile. Unter „Ortszeit“ schaltest du Uhrzeit und Datum an oder aus.</string>
+    <string name="settings_chat_filter_tip">Blendet Chat-Nachrichten aus, bevor sie erscheinen: von den Benutzern und mit den Wörtern der beiden Listen, von Bots oder Chat-Befehle. „Bots ausblenden“ erfasst bekannte Bots wie Nightbot, Moderatoren, deren Name auf „bot“ endet, und jeden Befehl; „Chat-Befehle ausblenden“ nur Nachrichten, die mit „!“ beginnen.</string>
+    <string name="settings_pref_filter_bots_summary">Bekannte Bots (z. B. Nightbot), Moderatoren, deren Name auf „bot“ endet, und jeder Chat-Befehl (!…)</string>
+    <string name="settings_proxy_tip">Schickt die Anfrage für einen Live-Stream über einen Proxy, damit der Stream aus einer Region ohne Werbung kommt. „Keiner“ spielt direkt; „Eigene URL“ nutzt deinen eigenen Proxy mit der Vorlage darunter.</string>
+    <string name="settings_developer_tip">Nur zur Fehlersuche. Build-Typ, Build-Variante und Benutzer-ID (ein kurzer Hash deines Kontos) helfen bei Fehlerberichten. Sechsmal OK auf Build-Typ beendet den Entwicklermodus, dreimal auf Build-Variante öffnet die Debug-Seite.</string>
+    <string name="settings_about_tip">Version und Pflege: „Erweiterte Einstellungen zeigen“ blendet selten gebrauchte Einstellungen und die Gruppe „Erweitert“ ein, „Cache leeren“ gibt Bilder und die gespeicherte Startseite frei. Wo diese Ausgabe nach Updates sucht, stehen hier auch deren Schalter. Sechsmal OK auf die Versionsnummer schaltet den Entwicklermodus ein.</string>
+    <string name="settings_join_chat_summary">Aus: ShrugTV tritt keinem Chat bei, weder live noch bei Aufzeichnungen, und die Chat-Einstellungen darunter wirken nicht</string>
+    <string name="settings_show_chat_summary">Aus: Der Chat läuft verborgen mit, du öffnest ihn im Player</string>
 </resources>

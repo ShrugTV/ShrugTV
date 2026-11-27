@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shown at once while the player closes after Back -->
+<resources>
+    <string name="player_leaving">Stream wird verlassen …</string>
+</resources>

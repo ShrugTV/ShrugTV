@@ -1,52 +1,42 @@
 package com.shrug.shrugtv.apihelpers
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import com.shrug.shrugtv.database.AppDatabase
 import com.shrug.shrugtv.database.FavoriteInfo
 import com.shrug.shrugtv.session.AppState
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 /**
  * Room-backed favorite channel helpers (replaces decompiled FavoriteChannels.java,
- * ).
+ * ). Suspend functions in the caller's scope since ; the writes run
+ * NonCancellable, so leaving the page right after the click still stores the favorite.
  */
 class FavoriteChannels {
 
     companion object {
-        private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        private val main = Handler(Looper.getMainLooper())
 
-        fun isFavorited(context: Context, channelId: String, callback: IsFavoritedCallback) {
-            scope.launch {
-                val ids = AppDatabase.getInstance(context).favoriteChannelDao().allChannelIds
-                AppState.favoriteChannelIds = ids
-                val favorited = ids.contains(channelId)
-                main.post { callback.onResult(favorited) }
-            }
+        /** Runs a write to the end even when the caller's scope is cancelled meanwhile; the caller continues after it. */
+        internal suspend fun <T> write(block: () -> T): T = withContext(NonCancellable + Dispatchers.IO) { block() }
+
+        suspend fun isFavorited(context: Context, channelId: String): Boolean = withContext(Dispatchers.IO) {
+            val ids = AppDatabase.getInstance(context).favoriteChannelDao().allChannelIds
+            AppState.favoriteChannelIds = ids
+            ids.contains(channelId)
         }
 
-        fun removeFavorite(context: Context, channelId: String, callback: FavoriteChangedCallback) {
-            scope.launch {
-                val dao = AppDatabase.getInstance(context).favoriteChannelDao()
-                dao.deleteByChannelId(channelId)
-                AppState.favoriteChannelIds = dao.allChannelIds
-                main.post { callback.onChanged() }
-            }
+        suspend fun removeFavorite(context: Context, channelId: String) = write {
+            val dao = AppDatabase.getInstance(context).favoriteChannelDao()
+            dao.deleteByChannelId(channelId)
+            AppState.favoriteChannelIds = dao.allChannelIds
         }
 
-        fun setFavorite(context: Context, channelId: String, callback: FavoriteChangedCallback) {
-            scope.launch {
-                val dao = AppDatabase.getInstance(context).favoriteChannelDao()
-                val info = FavoriteInfo().apply { this.channelId = channelId }
-                dao.insert(info)
-                AppState.favoriteChannelIds = dao.allChannelIds
-                main.post { callback.onChanged() }
-            }
+        suspend fun setFavorite(context: Context, channelId: String) = write {
+            val dao = AppDatabase.getInstance(context).favoriteChannelDao()
+            val info = FavoriteInfo().apply { this.channelId = channelId }
+            dao.insert(info)
+            AppState.favoriteChannelIds = dao.allChannelIds
         }
     }
 }

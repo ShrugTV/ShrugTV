@@ -1,8 +1,6 @@
 package com.shrug.shrugtv.apihelpers
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import androidx.preference.PreferenceManager
 import com.google.gson.JsonArray
 import com.shrug.shrugtv.api.helix.HelixApi
@@ -10,23 +8,20 @@ import com.shrug.shrugtv.api.helix.HelixParser
 import com.shrug.shrugtv.model.Enums
 import com.shrug.shrugtv.model.Movie
 import com.shrug.shrugtv.telemetry.CrashReporter
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Live stream history channel ID list and live status lookup (replaces decompiled
- * LiveStreamHistory.java).
+ * LiveStreamHistory.java). Since  without an own scope: the lookup is a
+ * suspend function in the caller's scope, the writes are plain calls (SharedPreferences.apply already writes in the
+ * background).
  */
 class LiveStreamHistory {
 
     companion object {
         const val PREF_KEY = "pref_live_stream_history_channel_ids"
         const val MAX_ENTRIES = 100
-
-        private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        private val main = Handler(Looper.getMainLooper())
 
         private fun splitIds(raw: String): List<String> =
             if (raw.isEmpty()) emptyList() else raw.split(",").filter { it.isNotEmpty() }
@@ -56,67 +51,46 @@ class LiveStreamHistory {
         }
 
         fun addToHistory(context: Context, userId: Int) {
-            scope.launch {
-                try {
-                    saveIds(context, updateIdList(loadIds(context), userId.toString(), add = true))
-                } catch (e: Exception) {
-                    CrashReporter.recordException(e)
-                }
+            try {
+                saveIds(context, updateIdList(loadIds(context), userId.toString(), add = true))
+            } catch (e: Exception) {
+                CrashReporter.recordException(e)
             }
         }
 
         fun removeFromHistory(context: Context, userId: Int) {
-            scope.launch {
-                try {
-                    saveIds(context, updateIdList(loadIds(context), userId.toString(), add = false))
-                } catch (e: Exception) {
-                    CrashReporter.recordException(e)
-                }
+            try {
+                saveIds(context, updateIdList(loadIds(context), userId.toString(), add = false))
+            } catch (e: Exception) {
+                CrashReporter.recordException(e)
             }
         }
 
         fun clearLiveStreamHistory(context: Context) {
-            scope.launch {
-                try {
-                    saveIds(context, "")
-                } catch (e: Exception) {
-                    CrashReporter.recordException(e)
-                }
+            try {
+                saveIds(context, "")
+            } catch (e: Exception) {
+                CrashReporter.recordException(e)
             }
         }
 
         fun toUserIdQuery(input: String): String =
             splitIds(input).joinToString(separator = "&user_id=", prefix = "user_id=")
 
-        fun getLiveChannels(context: Context, callback: LiveStreamHistoryCallback) {
-            scope.launch {
-                try {
-                    val rawIds = loadIds(context)
-                    if (rawIds.isEmpty()) {
-                        postList(callback, ArrayList())
-                        return@launch
-                    }
-                    val response = HelixApi.getStreamsByQueryNoAccept(context, toUserIdQuery(rawIds))
-                    if (response != null && response.get("error") == null) {
-                        val data = response.get("data") as? JsonArray
-                        if (data == null) {
-                            postList(callback, ArrayList())
-                            return@launch
-                        }
-                        val streams = HelixParser.parseStreams(context, Enums.RowType.LIVE_CHANNEL_HISTORY, data)
-                        ChannelAvatarLoader.loadAvatars(context, streams)
-                        if (streams.isNotEmpty()) {
-                            postList(callback, sortByHistoryOrder(rawIds, streams))
-                        } else {
-                            postList(callback, ArrayList())
-                        }
-                    } else {
-                        postList(callback, ArrayList())
-                    }
-                } catch (e: Exception) {
-                    CrashReporter.recordException(e)
-                    postList(callback, ArrayList())
-                }
+        /** Channels of the history that are live now, in history order; empty on errors. */
+        suspend fun getLiveChannels(context: Context): ArrayList<Movie> = withContext(Dispatchers.IO) {
+            try {
+                val rawIds = loadIds(context)
+                if (rawIds.isEmpty()) return@withContext ArrayList()
+                val response = HelixApi.getStreamsByQueryNoAccept(context, toUserIdQuery(rawIds))
+                if (response == null || response.get("error") != null) return@withContext ArrayList()
+                val data = response.get("data") as? JsonArray ?: return@withContext ArrayList()
+                val streams = HelixParser.parseStreams(context, Enums.RowType.LIVE_CHANNEL_HISTORY, data)
+                ChannelAvatarLoader.loadAvatars(context, streams)
+                if (streams.isNotEmpty()) sortByHistoryOrder(rawIds, streams) else ArrayList()
+            } catch (e: Exception) {
+                CrashReporter.recordException(e)
+                ArrayList()
             }
         }
 
@@ -133,16 +107,6 @@ class LiveStreamHistory {
             } catch (e: Exception) {
                 CrashReporter.recordException(e)
                 streams
-            }
-        }
-
-        private fun postList(callback: LiveStreamHistoryCallback, list: ArrayList<Movie>) {
-            main.post {
-                try {
-                    callback.onList(list)
-                } catch (e: Exception) {
-                    CrashReporter.recordException(e)
-                }
             }
         }
     }

@@ -7,7 +7,7 @@
 
 <p align="center">
   <img alt="Android TV, Google TV, Fire TV" src="https://img.shields.io/badge/Android%20TV%20%C2%B7%20Google%20TV%20%C2%B7%20Fire%20TV-Android%208%2B-3DDC84">
-  <img alt="Licence Apache-2.0" src="https://img.shields.io/badge/licence-Apache--2.0-blue">
+  <img alt="Licence GPL-3.0" src="https://img.shields.io/badge/licence-GPL--3.0-blue">
   <img alt="12 languages" src="https://img.shields.io/badge/languages-12-8A5CF6">
   <img alt="No telemetry" src="https://img.shields.io/badge/telemetry-none-brightgreen">
 </p>
@@ -31,7 +31,7 @@
 - **More than a stream list.** Clips from everyone you follow that play one after the other, your own viewing statistics, a phone as a second remote, Home Assistant.
 - **Yours to style.** Ten skins, and every colour, corner, font and animation can be changed on its own, with a live preview next to the list.
 - **Private by default.** No telemetry, no analytics, no crash reporter, no third-party servers. The TV talks to Twitch directly.
-- **Open.** Apache-2.0, readable code, unit tests, and a build you can reproduce with your own Twitch application.
+- **Open.** GPL-3.0, readable code, unit tests, and a build you can reproduce with your own Twitch application.
 
 ## Highlights
 
@@ -244,5 +244,7 @@ Issues and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md). Co
 
 ## Licence
 
-[Apache License 2.0](LICENSE). Third-party components and their licences: [NOTICE](NOTICE), `docs/lizenzen/` and the app
+[GNU General Public License v3.0](LICENSE): you may use, change and pass on ShrugTV, and whoever passes on a changed
+version has to publish its source under the same licence. Versions up to 2.4.0 were released under the Apache License 2.0.
+Third-party components and their licences: [NOTICE](NOTICE), `docs/lizenzen/` and the app
 (Settings → About ShrugTV → Licences).

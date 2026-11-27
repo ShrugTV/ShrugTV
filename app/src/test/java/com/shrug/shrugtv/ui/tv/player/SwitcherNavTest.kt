@@ -44,6 +44,6 @@ class SwitcherNavTest {
 
     @Test
     fun `every list has its own setting key`() {
-        assertEquals(ChannelSwitcherTab.values().size, ChannelSwitcherTab.values().map { it.key }.toSet().size)
+        assertEquals(ChannelSwitcherTab.values().size, ChannelSwitcherTab.values().map { it.pref.key }.toSet().size)
     }
 }

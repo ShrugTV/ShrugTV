@@ -6,6 +6,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.shrug.shrugtv.BuildConfig
 import com.shrug.shrugtv.net.Http
+import com.shrug.shrugtv.security.SecretStore
 import com.shrug.shrugtv.session.AppState
 import com.shrug.shrugtv.session.SessionStore
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -77,11 +78,12 @@ object TwitchDeviceAuth {
     private fun save(context: Context, o: JsonObject) {
         val access = o.get("access_token").asString
         val expiresIn = if (o.has("expires_in")) o.get("expires_in").asLong else 0L
-        val prefs = context.applicationContext.getSharedPreferences("User", 0)
+        val prefs = context.applicationContext.getSharedPreferences(SecretStore.USER_FILE, 0)
         prefs.edit().apply {
-            putString("TOKEN", access)
+            // Both tokens only encrypted
+            SecretStore.putInto(this, SecretStore.USER_FILE, SecretStore.TOKEN, access)
             if (o.has("refresh_token")) {
-                putString("REFRESH_TOKEN", o.get("refresh_token").asString)
+                SecretStore.putInto(this, SecretStore.USER_FILE, SecretStore.REFRESH_TOKEN, o.get("refresh_token").asString)
             }
             putLong("TOKEN_EXPIRES_AT", if (expiresIn > 0) System.currentTimeMillis() + expiresIn * 1000L else 0L)
             putBoolean("USER_LOGGED_OUT", false)
@@ -91,6 +93,21 @@ object TwitchDeviceAuth {
         SessionStore.updateToken(access)
         AppState.storedScopes = SCOPES.split(" ").map { it.trim() }
         Log.i(TAG, "Token saved, valid $expiresIn s")
+    }
+
+    /**
+     * Signing out, local part: removes both tokens (plain and encrypted) and the expiry, and returns them so
+     * the caller can still [revoke] them at Twitch.
+     */
+    @JvmStatic
+    fun forgetTokens(context: Context): Pair<String, String> {
+        val access = SecretStore.get(context, SecretStore.USER_FILE, SecretStore.TOKEN)
+        val refresh = SecretStore.get(context, SecretStore.USER_FILE, SecretStore.REFRESH_TOKEN)
+        val edit = context.applicationContext.getSharedPreferences(SecretStore.USER_FILE, 0).edit()
+        SecretStore.putInto(edit, SecretStore.USER_FILE, SecretStore.TOKEN, null)
+        SecretStore.putInto(edit, SecretStore.USER_FILE, SecretStore.REFRESH_TOKEN, null)
+        edit.remove("TOKEN_EXPIRES_AT").apply()
+        return access to refresh
     }
 
     @JvmStatic
@@ -115,10 +132,11 @@ object TwitchDeviceAuth {
     @Synchronized
     @JvmStatic
     fun refreshIfNeeded(context: Context): Boolean {
-        val prefs = context.applicationContext.getSharedPreferences("User", 0)
-        val refresh = prefs.getString("REFRESH_TOKEN", "") ?: ""
+        val prefs = context.applicationContext.getSharedPreferences(SecretStore.USER_FILE, 0)
         val expiresAt = prefs.getLong("TOKEN_EXPIRES_AT", 0)
-        if (refresh.isEmpty() || expiresAt == 0L || (prefs.getString("TOKEN", "") ?: "").isEmpty()
+        if (expiresAt == 0L) return false
+        val refresh = SecretStore.get(context, SecretStore.USER_FILE, SecretStore.REFRESH_TOKEN)
+        if (refresh.isEmpty() || SecretStore.get(context, SecretStore.USER_FILE, SecretStore.TOKEN).isEmpty()
             || expiresAt - System.currentTimeMillis() > REFRESH_MARGIN_MS
         ) {
             return false
@@ -139,8 +157,7 @@ object TwitchDeviceAuth {
         if (!current.isNullOrEmpty() && current != failedToken) {
             return current
         }
-        val prefs = ctx.getSharedPreferences("User", 0)
-        val refresh = prefs.getString("REFRESH_TOKEN", "") ?: ""
+        val refresh = SecretStore.get(ctx, SecretStore.USER_FILE, SecretStore.REFRESH_TOKEN)
         if (refresh.isEmpty()) {
             return null
         }

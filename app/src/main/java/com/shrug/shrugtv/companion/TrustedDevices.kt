@@ -33,6 +33,7 @@ class TrustedDevices(
 
     companion object {
         const val MAX_DEVICES = 10
+        const val EXPIRES_MS = 90L * 24 * 60 * 60 * 1000
         /** "last seen" is written at most this often (every request would wear the storage). */
         private const val SEEN_SAVE_MS = 60_000L
 
@@ -105,6 +106,8 @@ class TrustedDevices(
         val h = hash(key)
         val d = devices[h] ?: return null
         val t = now()
+        // Not used for 90 days: the key expires
+        if (t - d.lastSeen > EXPIRES_MS) { devices.remove(h); save(); return null }
         val updated = d.copy(lastSeen = t, lastIp = ip ?: d.lastIp)
         devices[h] = updated
         if (t - lastSave > SEEN_SAVE_MS) save()

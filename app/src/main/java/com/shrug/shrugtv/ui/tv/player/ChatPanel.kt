@@ -60,6 +60,7 @@ fun ChatPanel(
     /** Alternating rows, separators, compact spacing (chat settings). */
     look: com.shrug.shrugtv.chat.ChatLook = com.shrug.shrugtv.chat.ChatLook()
 ) {
+    CountRecompositions("ChatPanel")
     androidx.compose.animation.AnimatedVisibility(
         visible = visible,
         enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInHorizontally { if (fromLeft) -it / 3 else it / 3 },
@@ -236,11 +237,11 @@ private class ChatLineAdapter(
 
     override fun onViewDetachedFromWindow(holder: Holder) {
         // Rows outside the screen draw nothing, so they must not keep animating
-        holder.animated.forEach { it.stop() }
+        holder.animated.forEach { it.stop(); EmoteFrameMeter.stopped(it) }
     }
 
     override fun onViewAttachedToWindow(holder: Holder) {
-        holder.animated.forEach { if (!it.isRunning) it.start() }
+        holder.animated.forEach { if (!it.isRunning) it.start(); EmoteFrameMeter.started(it) }
     }
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
@@ -320,6 +321,7 @@ private class ChatLineAdapter(
                 }
                 found.add(d)
                 if (!d.isRunning) d.start()
+                EmoteFrameMeter.started(d)
             }
         }
         holder.animated = found
@@ -328,6 +330,7 @@ private class ChatLineAdapter(
     private fun stopAnimatedEmotes(holder: Holder) {
         for (d in holder.animated) {
             d.stop()
+            EmoteFrameMeter.stopped(d)
             (d as? Drawable)?.callback = null
         }
         holder.animated = emptyList()
@@ -336,6 +339,8 @@ private class ChatLineAdapter(
     companion object {
         private val DIFF = object : DiffUtil.ItemCallback<ChatLine>() {
             override fun areItemsTheSame(a: ChatLine, b: ChatLine) = a.id == b.id
+            // The same message object: a changed message is always a new object
+            @android.annotation.SuppressLint("DiffUtilEquals")
             override fun areContentsTheSame(a: ChatLine, b: ChatLine) = a.deleted == b.deleted && a.message === b.message
         }
     }

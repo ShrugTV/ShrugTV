@@ -10,6 +10,7 @@ import com.google.gson.JsonParser
 import com.google.gson.JsonPrimitive
 import com.shrug.shrugtv.ui.tv.settings.Entry
 import okhttp3.OkHttpClient
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
@@ -42,13 +43,17 @@ class CompanionServerTest {
     fun setUp() {
         val ctx: Context = ApplicationProvider.getApplicationContext()
         // These tests are about pairing: PIN on (the default is off since )
-        PreferenceManager.getDefaultSharedPreferences(ctx).edit().putBoolean(CompanionServer.PREF_REQUIRE_PIN, true).commit()
+        PreferenceManager.getDefaultSharedPreferences(ctx).edit().putBoolean(com.shrug.shrugtv.prefs.Prefs.companionRequirePin.key, true).commit()
         server = CompanionServer(ctx, port, pairing) {}
-        server.start(0, true)
+        server.start(0)
     }
 
     @After
-    fun tearDown() = server.shutdown()
+    fun tearDown() {
+        server.shutdown()
+        BrowseApi.source = BrowseApi.Helix
+        CompanionServer.listTimeoutMs = 8_000L
+    }
 
     private fun get(path: String, cookie: String? = null): Response =
         client.newCall(Request.Builder().url(base + path).apply { if (cookie != null) header("Cookie", cookie) }.build()).execute()
@@ -77,10 +82,10 @@ class CompanionServerTest {
     @Test
     fun `without the PIN switch every LAN request is allowed`() {
         PreferenceManager.getDefaultSharedPreferences(ApplicationProvider.getApplicationContext<Context>())
-            .edit().putBoolean(CompanionServer.PREF_REQUIRE_PIN, false).commit()
+            .edit().putBoolean(com.shrug.shrugtv.prefs.Prefs.companionRequirePin.key, false).commit()
         assertEquals(200, get("/api/state").code)
         PreferenceManager.getDefaultSharedPreferences(ApplicationProvider.getApplicationContext<Context>())
-            .edit().putBoolean(CompanionServer.PREF_REQUIRE_PIN, true).commit()
+            .edit().putBoolean(com.shrug.shrugtv.prefs.Prefs.companionRequirePin.key, true).commit()
         assertEquals(401, get("/api/state").code)
     }
 
@@ -142,6 +147,205 @@ class CompanionServerTest {
         })
         assertTrue(closed.await(5, TimeUnit.SECONDS))
         assertEquals(1008, code)
+    }
+
+    private fun openSocket(cookie: String?, origin: String?, onText: (String) -> Unit = {}): Pair<WebSocket, Int> {
+        val closed = CountDownLatch(1)
+        var code = 0
+        val req = Request.Builder().url("ws://127.0.0.1:$port/ws").apply {
+            if (cookie != null) header("Cookie", cookie)
+            if (origin != null) header("Origin", origin)
+        }.build()
+        val ws = client.newWebSocket(req, object : WebSocketListener() {
+            override fun onMessage(webSocket: WebSocket, text: String) = onText(text)
+            override fun onClosing(webSocket: WebSocket, c: Int, reason: String) { code = c; closed.countDown() }
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) { closed.countDown() }
+        })
+        closed.await(1500, TimeUnit.MILLISECONDS)
+        return ws to code
+    }
+
+    @Test
+    fun `websocket refuses a foreign origin and takes the own one (michael-shrugtv-321)`() {
+        val cookie = pairedCookie()
+        assertEquals("a page on another site", 1008, openSocket(cookie, "http://evil.example").second)
+        assertEquals("the own page", 0, openSocket(cookie, "http://127.0.0.1:$port").second)
+        assertEquals("not a browser", 0, openSocket(cookie, null).second)
+    }
+
+    @Test
+    fun `an open websocket ends when the phone is no longer paired`() {
+        val cookie = pairedCookie()
+        val ended = CountDownLatch(1)
+        var code = 0
+        val ws = client.newWebSocket(Request.Builder().url("ws://127.0.0.1:$port/ws").header("Cookie", cookie).build(), object : WebSocketListener() {
+            override fun onClosing(webSocket: WebSocket, c: Int, reason: String) { code = c; ended.countDown() }
+        })
+        pairing.disconnectAll()
+        ws.send("""{"t":"key","k":"up"}""")
+        assertTrue("closed within 5 s", ended.await(5, TimeUnit.SECONDS))
+        assertEquals(1008, code)
+    }
+
+    @Test
+    fun `wrong types in websocket messages do not end the connection`() {
+        val cookie = pairedCookie()
+        val ended = CountDownLatch(1)
+        val ws = client.newWebSocket(Request.Builder().url("ws://127.0.0.1:$port/ws").header("Cookie", cookie).build(), object : WebSocketListener() {
+            override fun onClosing(webSocket: WebSocket, c: Int, reason: String) { ended.countDown() }
+        })
+        ws.send("""{"t":["x"],"k":5}""")
+        ws.send("""{"t":"key","k":{"a":1}}""")
+        ws.send("""{"t":"text","s":{"a":1}}""")
+        ws.send("""{"t":"chat","on":"maybe"}""")
+        assertFalse("still open after 1.5 s", ended.await(1500, TimeUnit.MILLISECONDS))
+        ws.close(1000, null)
+    }
+
+    // ------------------------------------------------------------------ files of the page
+
+    private fun getWith(path: String, vararg headers: Pair<String, String>): Response =
+        client.newCall(Request.Builder().url(base + path).apply { headers.forEach { (k, v) -> header(k, v) } }.build()).execute()
+
+    @Test
+    fun `the page names its texts, has no inline script and sets the protective headers`() {
+        val r = getWith("/", "Accept-Language" to "de-DE,de;q=0.9,en;q=0.8", "Accept-Encoding" to "identity")
+        val html = r.body!!.string()
+        assertTrue(html, html.contains("<script src=\"/i18n/en.js?v=") && html.contains("<script src=\"/i18n/de.js?v="))
+        assertTrue(html.contains("<script src=\"/theme.js?v="))
+        assertFalse("no inline script", Regex("<script>").containsMatchIn(html))
+        val csp = r.header("Content-Security-Policy")!!
+        assertTrue(csp, csp.contains("script-src 'self'") && csp.contains("frame-ancestors 'none'"))
+        assertEquals("DENY", r.header("X-Frame-Options"))
+        // Other languages get their own text file, unknown ones English only
+        val fr = getWith("/", "Accept-Language" to "fr-CH").body!!.string()
+        assertTrue(fr.contains("/i18n/fr.js?v="))
+        val xx = getWith("/", "Accept-Language" to "xx").body!!.string()
+        assertFalse(xx.contains("/i18n/xx.js") || xx.contains("/i18n/de.js"))
+    }
+
+    @Test
+    fun `language files exist for every language, others are not served`() {
+        for (l in listOf("en", "de", "es", "fr", "pt", "it", "pl", "tr", "ru", "ja", "ko", "zh")) {
+            val r = getWith("/i18n/$l.js", "Accept-Encoding" to "identity")
+            assertEquals(l, 200, r.code)
+            assertTrue(r.body!!.string().contains("window.T.$l = {"))
+        }
+        assertEquals(404, get("/i18n/xx.js").code)
+    }
+
+    @Test
+    fun `files come compressed, with an ETag, and files with a checksum are kept for good`() {
+        val plain = getWith("/app.js", "Accept-Encoding" to "identity")
+        val size = plain.body!!.bytes().size
+        assertNull(plain.header("Content-Encoding"))
+        val zipped = client.newCall(Request.Builder().url("$base/app.js").header("Accept-Encoding", "gzip").build()).execute()
+        // OkHttp unzips by itself only if it set the header; here we asked ourselves, so the bytes stay packed
+        assertEquals("gzip", zipped.header("Content-Encoding"))
+        assertTrue("smaller than the plain file", zipped.body!!.bytes().size < size)
+        val etag = plain.header("ETag")!!
+        assertEquals("no checksum in the address: asked again every time", "no-cache", plain.header("Cache-Control"))
+        assertEquals(304, getWith("/app.js", "If-None-Match" to etag).code)
+        val versioned = getWith("/app.js?v=abc123", "Accept-Encoding" to "identity")
+        assertTrue(versioned.header("Cache-Control")!!, versioned.header("Cache-Control")!!.contains("immutable"))
+    }
+
+    @Test
+    fun `fonts and large icons are served and named with their checksum (michael-shrugtv-336)`() {
+        val css = getWith("/app.css", "Accept-Encoding" to "identity").body!!.string()
+        for (w in listOf("400", "600", "700")) {
+            assertTrue(css, Regex("""/fonts/inter-$w\.woff2\?v=[0-9a-f]+\)""").containsMatchIn(css))
+            val r = getWith("/fonts/inter-$w.woff2?v=1", "Accept-Encoding" to "gzip")
+            assertEquals(200, r.code)
+            assertEquals("font/woff2", r.header("Content-Type"))
+            assertNull("already compressed", r.header("Content-Encoding"))
+            assertTrue("cut down", r.body!!.bytes().size in 10_000..120_000)
+        }
+        assertEquals(404, get("/fonts/other.woff2").code)
+        val manifest = JsonParser.parseString(get("/manifest.json").body!!.string()).asJsonObject
+        val icons = manifest.getAsJsonArray("icons").map { it.asJsonObject }
+        assertTrue(icons.any { it.get("sizes").asString == "512x512" && it.get("purpose").asString == "maskable" })
+        for (i in icons) assertEquals(i.get("src").asString, 200, get(i.get("src").asString).code)
+        // The page names app.css with the checksum of what is sent, so a new font also means a new app.css address
+        val html = getWith("/", "Accept-Encoding" to "identity").body!!.string()
+        val v = Regex("""/app\.css\?v=([0-9a-f]+)""").find(html)!!.groupValues[1]
+        assertEquals(java.util.zip.CRC32().apply { update(css.toByteArray()) }.value.toString(16), v)
+    }
+
+    @Test
+    fun `a Host header is needed for the files too`() {
+        assertEquals(403, getWith("/", "Host" to "evil.example").code)
+    }
+
+    @Test
+    fun `the log needs a paired phone also without a PIN`() {
+        val ctx: Context = ApplicationProvider.getApplicationContext()
+        PreferenceManager.getDefaultSharedPreferences(ctx).edit().putBoolean(com.shrug.shrugtv.prefs.Prefs.companionRequirePin.key, false).commit()
+        assertEquals("api is open without a PIN", 200, get("/api/state").code)
+        assertEquals("the log is not", 401, get("/api/log").code)
+        assertEquals(200, get("/api/log", pairedCookie()).code)
+    }
+
+    @Test
+    fun `text and the Accept-Language header are picked`() {
+        assertEquals("de", CompanionServer.pickLanguage("de-DE,de;q=0.9"))
+        assertEquals("en", CompanionServer.pickLanguage(null))
+        assertEquals("zh", CompanionServer.pickLanguage("zh-CN,zh;q=0.9,en;q=0.8"))
+        assertEquals("pt", CompanionServer.pickLanguage("xx,pt-BR"))
+        assertEquals("en", CompanionServer.pickLanguage("nl,sv;q=0.8"))
+    }
+
+    @Test
+    fun `a silent HTTP connection is closed after the read timeout (michael-shrugtv-317)`() {
+        val ctx: Context = ApplicationProvider.getApplicationContext()
+        val ws2 = CompanionServer(ctx, port + 2, Pairing()) {}
+        ws2.start(1_000)
+        try {
+            java.net.Socket("127.0.0.1", port + 2).use { s ->
+                s.soTimeout = 5_000
+                val started = System.currentTimeMillis()
+                // Nothing sent: the server gives up after its timeout and closes, the read sees the end
+                val read = try { s.getInputStream().read() } catch (e: java.net.SocketException) { -1 }
+                val took = System.currentTimeMillis() - started
+                assertEquals("closed by the server", -1, read)
+                assertTrue("after about the timeout, took $took ms", took in 800..4_000)
+            }
+        } finally {
+            ws2.stop()
+        }
+    }
+
+    @Test
+    fun `the server sends a sign of life the browser can see (michael-shrugtv-324)`() {
+        val ctx: Context = ApplicationProvider.getApplicationContext()
+        PreferenceManager.getDefaultSharedPreferences(ctx).edit().putBoolean(com.shrug.shrugtv.prefs.Prefs.companionRequirePin.key, false).commit()
+        val before = CompanionServer.pingIntervalMs
+        CompanionServer.pingIntervalMs = 300L
+        val ws2 = CompanionServer(ctx, port + 2, Pairing()) {}
+        ws2.start(5_000)
+        try {
+            val alive = CountDownLatch(1)
+            val ws = client.newWebSocket(Request.Builder().url("ws://127.0.0.1:${port + 2}/ws").build(), object : WebSocketListener() {
+                override fun onMessage(webSocket: WebSocket, text: String) { if (text.contains("\"t\":\"alive\"")) alive.countDown() }
+            })
+            assertTrue("alive within 3 s", alive.await(3, TimeUnit.SECONDS))
+            ws.close(1000, null)
+        } finally {
+            CompanionServer.pingIntervalMs = before
+            ws2.stop()
+        }
+    }
+
+    @Test
+    fun `a body without a length is answered with 411 (michael-shrugtv-336)`() {
+        val ctx: Context = ApplicationProvider.getApplicationContext()
+        PreferenceManager.getDefaultSharedPreferences(ctx).edit().putBoolean(com.shrug.shrugtv.prefs.Prefs.companionRequirePin.key, false).commit()
+        val body = object : okhttp3.RequestBody() {
+            override fun contentType() = "application/json".toMediaType()
+            override fun writeTo(sink: okio.BufferedSink) { sink.writeUtf8("{}") }
+        } // no contentLength: OkHttp sends it chunked
+        val r = client.newCall(Request.Builder().url("$base/api/settings").post(body).build()).execute()
+        assertEquals(411, r.code)
     }
 
     // ------------------------------------------------------------------ settings from the browser
@@ -208,7 +412,7 @@ class CompanionServerTest {
                 .associate { it.get("key").asString to it.get("place").asInt }
         }
         val before = places()
-        assertEquals(10, before.size)
+        assertEquals(com.shrug.shrugtv.ui.tv.home.HomeRowOrder.DEFAULT.size, before.size)
         assertEquals(1, before.getValue("pref_row_move_followed_live"))
         assertEquals(2, before.getValue("pref_row_move_live_history"))
         // The first one in the tree is the one in first place
@@ -244,6 +448,75 @@ class CompanionServerTest {
             .edit().putBoolean(SettingsApi.ALLOW_KEY, false).commit()
         assertEquals(403, get("/api/settings", cookie).code)
         assertEquals(403, post("/api/settings", """{"values":{"pref_companion_chat":true}}""", cookie).code)
+    }
+
+    @Test
+    fun `a foreign Host header is refused, so DNS rebinding gets nothing (michael-shrugtv-294)`() {
+        val cookie = pairedCookie()
+        fun withHost(host: String, origin: String? = null) = client.newCall(Request.Builder().url("$base/api/state")
+            .header("Cookie", cookie).header("Host", host).apply { if (origin != null) header("Origin", origin) }.build()).execute().code
+        assertEquals(403, withHost("evil.example:$port"))
+        assertEquals(403, withHost("evil.example"))
+        assertEquals(403, withHost("8.8.8.8:$port"))
+        assertEquals(200, withHost("127.0.0.1:$port"))
+        assertEquals(200, withHost("192.168.0.50:$port"))
+        assertEquals(200, withHost("localhost:$port"))
+        // the origin is only compared with an allowed host
+        val post = { host: String, origin: String ->
+            client.newCall(Request.Builder().url("$base/api/settings").header("Cookie", cookie).header("Host", host)
+                .header("Origin", origin).post("""{"values":{}}""".toRequestBody()).build()).execute().code
+        }
+        assertEquals(403, post("evil.example:$port", "http://evil.example:$port"))
+    }
+
+    @Test
+    fun `a silent connection is closed after the read timeout (michael-shrugtv-294)`() {
+        val ctx: Context = ApplicationProvider.getApplicationContext()
+        val quiet = CompanionServer(ctx, port + 1, Pairing()) {}
+        quiet.start(300)
+        try {
+            java.net.Socket("127.0.0.1", port + 1).use { s ->
+                s.soTimeout = 5_000
+                val t0 = System.currentTimeMillis()
+                // Sends nothing: the server gives up after its read timeout and closes, so the read ends with -1
+                assertEquals(-1, s.getInputStream().read())
+                assertTrue(System.currentTimeMillis() - t0 < 4_000)
+            }
+        } finally {
+            quiet.stop()
+        }
+    }
+
+    @Test
+    fun `an open WebSocket outlives the read timeout because the pings are answered (michael-shrugtv-294)`() {
+        val ctx: Context = ApplicationProvider.getApplicationContext()
+        PreferenceManager.getDefaultSharedPreferences(ctx).edit().putBoolean(com.shrug.shrugtv.prefs.Prefs.companionRequirePin.key, false).commit()
+        val before = CompanionServer.pingIntervalMs
+        CompanionServer.pingIntervalMs = 300L
+        val ws2 = CompanionServer(ctx, port + 2, Pairing()) {}
+        ws2.start(1_000)
+        try {
+            val ended = CountDownLatch(1)
+            val ws = client.newWebSocket(Request.Builder().url("ws://127.0.0.1:${port + 2}/ws").build(), object : WebSocketListener() {
+                override fun onClosing(webSocket: WebSocket, code: Int, reason: String) { ended.countDown() }
+                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) { ended.countDown() }
+            })
+            // Three times the read timeout without a message from the phone: only the pongs keep it open
+            assertFalse("closed within 3 s", ended.await(3, TimeUnit.SECONDS))
+            assertTrue(ws.send("{}"))
+            ws.close(1000, null)
+        } finally {
+            CompanionServer.pingIntervalMs = before
+            ws2.stop()
+        }
+    }
+
+    @Test
+    fun `allowed hosts are private IP literals and localhost`() {
+        for (h in listOf("127.0.0.1:8080", "192.168.1.5", "10.0.0.2:80", "localhost", "LOCALHOST:1", "[::1]:8080", "[fe80::1]"))
+            assertTrue(h, CompanionServer.isAllowedHost(h))
+        for (h in listOf(null, "", "evil.example", "evil.example:80", "8.8.8.8", "192.168.0.1.evil.example", "tv.local", "[2001:db8::1]:80"))
+            assertFalse(h.toString(), CompanionServer.isAllowedHost(h))
     }
 
     @Test
@@ -295,7 +568,7 @@ class CompanionServerTest {
         val manifest = JsonParser.parseString(get("/manifest.json").body!!.string()).asJsonObject
         assertEquals(colors.get("background").asString, manifest.get("theme_color").asString)
         PreferenceManager.getDefaultSharedPreferences(ApplicationProvider.getApplicationContext<Context>())
-            .edit().putBoolean(SkinApi.PREF, false).commit()
+            .edit().putBoolean(com.shrug.shrugtv.prefs.Prefs.companionSkin.key, false).commit()
         val off = JsonParser.parseString(get("/api/theme", cookie).body!!.string()).asJsonObject
         assertFalse(off.get("on").asBoolean)
         assertFalse(off.has("colors"))
@@ -318,9 +591,10 @@ class CompanionServerTest {
         assertEquals(401, get("/api/lists").code)
         CompanionServer.listTimeoutMs = 300L
         val cookie = pairedCookie()
+        // Without Twitch in the test the list fails (502) or comes back empty; both answers name the lists switched on
         val r = JsonParser.parseString(get("/api/lists?name=top_streams", cookie).body!!.string()).asJsonObject
         assertEquals("top_streams", r.get("name").asString)
-        assertTrue(r.has("items") && r.has("playing"))
+        assertTrue((r.has("items") || r.has("error")) && r.has("playing"))
         assertEquals(6, r.getAsJsonArray("enabled").size())
         assertEquals(404, get("/api/lists?name=nonsense", cookie).code)
         PreferenceManager.getDefaultSharedPreferences(ApplicationProvider.getApplicationContext<Context>())
@@ -328,6 +602,103 @@ class CompanionServerTest {
         val off = JsonParser.parseString(get("/api/lists", cookie).body!!.string()).asJsonObject
         assertEquals(5, off.getAsJsonArray("enabled").size())
         assertFalse(off.getAsJsonArray("enabled").map { it.asString }.contains("top_language"))
+    }
+
+    /** Twitch as the test wants it: [answer] gives the Helix answer per request name, null = no answer. */
+    private fun fakeTwitch(answer: (String) -> JsonObject?) {
+        BrowseApi.source = object : BrowseApi.Source {
+            override suspend fun searchChannels(context: Context, q: String) = answer("channels")
+            override suspend fun searchCategories(context: Context, q: String) = answer("categories")
+            override suspend fun streamsOfCategory(context: Context, gameId: Long) = answer("streams")
+            override suspend fun users(context: Context, ids: List<String>) = answer("users")
+            override suspend fun videos(context: Context, userId: String) = answer("videos")
+            override suspend fun clips(context: Context, userId: String) = answer("clips")
+        }
+    }
+
+    private fun data(vararg rows: String) = JsonParser.parseString("""{"data":[${rows.joinToString(",")}]}""").asJsonObject
+
+    @Test
+    fun `a failed Twitch request is an error, not an empty list (michael-shrugtv-355)`() {
+        val cookie = pairedCookie()
+        fakeTwitch { null }
+        for (path in listOf("/api/search?q=failsearch", "/api/category?id=33214", "/api/channel/videos?id=12826", "/api/channel/clips?id=12826")) {
+            val r = get(path, cookie)
+            assertEquals(path, 502, r.code)
+            val json = JsonParser.parseString(r.body!!.string()).asJsonObject
+            assertEquals(path, "twitch", json.get("error").asString)
+            assertFalse(path, json.has("items"))
+        }
+        // An error object from Helix counts as no answer, too
+        fakeTwitch { if (it == "categories") JsonParser.parseString("""{"error":"Unauthorized","status":401}""").asJsonObject else data() }
+        assertEquals(502, get("/api/search?q=halfsearch", cookie).code)
+        // A switcher list that does not answer within the timeout: error, but the page still learns which lists are on
+        CompanionServer.listTimeoutMs = 1L
+        val list = get("/api/lists?name=top_streams", cookie)
+        assertEquals(502, list.code)
+        val json = JsonParser.parseString(list.body!!.string()).asJsonObject
+        assertEquals("twitch", json.get("error").asString)
+        assertFalse(json.has("items"))
+        assertTrue(json.getAsJsonArray("enabled").size() > 0)
+    }
+
+    @Test
+    fun `search finds categories, a category lists its live channels (michael-shrugtv-333)`() {
+        val cookie = pairedCookie()
+        fakeTwitch {
+            when (it) {
+                "channels" -> data("""{"id":"4711","broadcaster_login":"somechannel","display_name":"SomeChannel","is_live":true,"thumbnail_url":"https://x/a.png"}""")
+                "categories" -> data("""{"id":"33214","name":"Some Game","box_art_url":"https://x/art/33214-52x72.jpg"}""", """{"id":"no number","name":"bad"}""")
+                "streams" -> data("""{"user_id":"1","user_login":"small","user_name":"Small","game_name":"Some Game","viewer_count":5,"thumbnail_url":"https://x/live_small-{width}x{height}.jpg"}""",
+                    """{"user_id":"2","user_login":"big","user_name":"Big","game_name":"Some Game","viewer_count":900}""")
+                "users" -> data("""{"id":"2","profile_image_url":"https://x/big.png"}""")
+                else -> data()
+            }
+        }
+        assertEquals(200, get("/api/search?q=", cookie).code)
+        val s = JsonParser.parseString(get("/api/search?q=okSearch", cookie).body!!.string()).asJsonObject
+        assertEquals("somechannel", s.getAsJsonArray("items")[0].asJsonObject.get("login").asString)
+        val cats = s.getAsJsonArray("categories")
+        assertEquals(1, cats.size())
+        assertEquals("https://x/art/33214-144x192.jpg", cats[0].asJsonObject.get("image").asString)
+        assertEquals(400, get("/api/category?id=abc", cookie).code)
+        val c = JsonParser.parseString(get("/api/category?id=33214", cookie).body!!.string()).asJsonObject
+        val items = c.getAsJsonArray("items")
+        assertEquals(listOf("big", "small"), items.map { it.asJsonObject.get("login").asString })
+        assertEquals("https://x/big.png", items[0].asJsonObject.get("avatar").asString)
+        assertEquals("https://x/live_small-320x180.jpg", items[1].asJsonObject.get("image").asString)
+    }
+
+    @Test
+    fun `recordings and clips of a channel come with what the watch command needs (michael-shrugtv-333)`() {
+        val cookie = pairedCookie()
+        fakeTwitch {
+            when (it) {
+                "videos" -> data("""{"id":"2233445566","title":"Stream","duration":"1h2m3s","view_count":12,"published_at":"2026-11-20T18:00:00Z",
+                    "thumbnail_url":"https://x/v/%{width}x%{height}.jpg"}""", """{"id":"not-a-number"}""")
+                "clips" -> data("""{"id":"FunnyClip-abc_123","title":"Clip","duration":27.6,"view_count":99,"thumbnail_url":"https://x/c.jpg"}""")
+                else -> data()
+            }
+        }
+        val v = JsonParser.parseString(get("/api/channel/videos?id=12826", cookie).body!!.string()).asJsonObject.getAsJsonArray("items")
+        assertEquals(1, v.size())
+        assertEquals("2233445566", v[0].asJsonObject.get("vod_id").asString)
+        assertEquals(3723L, v[0].asJsonObject.get("duration_s").asLong)
+        assertEquals("https://x/v/320x180.jpg", v[0].asJsonObject.get("image").asString)
+        val c = JsonParser.parseString(get("/api/channel/clips?id=12826", cookie).body!!.string()).asJsonObject.getAsJsonArray("items")
+        assertEquals("FunnyClip-abc_123", c[0].asJsonObject.get("clip").asString)
+        assertEquals(27L, c[0].asJsonObject.get("duration_s").asLong)
+        assertEquals(401, get("/api/channel/clips?id=12826").code)
+    }
+
+    @Test
+    fun `the statistics short view answers today and the week`() {
+        val cookie = pairedCookie()
+        val r = get("/api/stats", cookie)
+        assertEquals(200, r.code)
+        val json = JsonParser.parseString(r.body!!.string()).asJsonObject
+        assertTrue(json.getAsJsonObject("today").has("total_s"))
+        assertTrue(json.getAsJsonObject("week").has("sessions"))
     }
 
     @Test
@@ -369,7 +740,7 @@ class CompanionServerTest {
         val devices = TrustedDevices(memory)
         val ctx: Context = ApplicationProvider.getApplicationContext()
         server = CompanionServer(ctx, port, pairing, devices) {}
-        server.start(0, true)
+        server.start(0)
 
         val offer = pairing.newOffer()
         val setCookie = get("/p/${offer.token}").header("Set-Cookie")!!
@@ -394,6 +765,33 @@ class CompanionServerTest {
         assertFalse(plain.contains("Max-Age="))
         pairing.disconnectAll()
         assertEquals(401, get("/api/state", plain.substringBefore(";")).code)
+    }
+
+    @Test
+    fun `stopping the server ends open websockets, so a restart pushes removed devices out (michael-shrugtv-341)`() {
+        val cookie = pairedCookie()
+        val opened = CountDownLatch(1)
+        val ended = CountDownLatch(1)
+        client.newWebSocket(Request.Builder().url("ws://127.0.0.1:$port/ws").header("Cookie", cookie).build(), object : WebSocketListener() {
+            override fun onMessage(webSocket: WebSocket, text: String) { opened.countDown() }
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) { ended.countDown() }
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) { ended.countDown() }
+        })
+        assertTrue("open within 5 s", opened.await(5, TimeUnit.SECONDS))
+        server.stop()
+        assertTrue("ended within 3 s", ended.await(3, TimeUnit.SECONDS))
+        // The port is free again at once
+        server.start(0)
+        assertEquals(200, get("/").code)
+    }
+
+    @Test
+    fun `a refused body does not spoil the next request on the same connection (michael-shrugtv-341)`() {
+        val cookie = pairedCookie()
+        val big = "{\"values\":{\"x\":\"" + "a".repeat(100_000) + "\"}}"
+        assertEquals(400, post("/api/settings", big, cookie).code)
+        assertEquals(403, post("/api/settings", "{\"values\":{}}", cookie, "http://evil.example").code)
+        assertEquals(200, get("/api/state", cookie).code)
     }
 
     @Test

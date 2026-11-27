@@ -23,6 +23,20 @@ class WatchStatsTest {
         WatchSessionData(nextId++, ch, name.lowercase(), name, "", true, sec, day, 20, isClip = true)
 
     @Test
+    fun `a session saved without channel ID joins the channel of the same login`() {
+        // : ohnePixel was listed twice, once with the ID and once without it
+        val rows = listOf(
+            WatchSessionData(nextId++, 42, "ohnepixel", "ohnePixel", "CS2", false, 3360, "2026-11-02", 20),
+            WatchSessionData(nextId++, 0, "OhnePixel", "", "CS2", false, 1200, "2026-11-03", 20),
+            WatchSessionData(nextId++, 0, "nobody", "Nobody", "Chess", false, 600, "2026-11-03", 21),
+            clip("2026-11-03", 30, 0, "ohnePixel")
+        )
+        val p = compute(rows, StatsRange.WEEK)
+        assertEquals(listOf(Ranked("ohnePixel", 3360L + 1200 + 30, 3), Ranked("Nobody", 600, 1)), p.topChannels)
+        assertEquals(listOf(Ranked("ohnePixel", 30, 1)), p.topClipChannels)
+    }
+
+    @Test
     fun `clips are counted on their own and are no recordings`() {
         val rows = listOf(
             s("2026-11-02", 3600, vod = true),
@@ -38,6 +52,18 @@ class WatchStatsTest {
         assertEquals(3600L + 90 + 1800, p.totalSec) // but in the total
         assertEquals(listOf("A", "B"), p.topClipChannels.map { it.name })
         assertEquals(2, p.topClipChannels.first().sessions)
+    }
+
+    @Test
+    fun `week grid is per weekday and hour, clips per hour on their own`() {
+        // 2026-11-02 is a Monday, 2026-11-04 a Wednesday
+        val rows = listOf(s("2026-11-02", 600, hour = 20), s("2026-11-04", 300, hour = 20), clip("2026-11-04", 30, 1, "A"))
+        val p = compute(rows, StatsRange.WEEK)
+        assertEquals(600L, p.secPerWeekdayHour[0][20])
+        assertEquals(330L, p.secPerWeekdayHour[2][20])
+        assertEquals(30L, p.clipSecPerHour[20])
+        assertEquals(7, p.periodDays)
+        assertEquals(30, compute(rows, StatsRange.DAYS_30).periodDays)
     }
 
     @Test
